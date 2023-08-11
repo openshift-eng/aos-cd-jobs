@@ -1,66 +1,71 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+#!/usr/bin/env groovy
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+node {
+    checkout scm
+    buildlib = load( "pipeline-scripts/buildlib.groovy" )
+    commonlib = buildlib.commonlib
+    commonlib.describeJob("publish-rpms", """
+        <h2>Publish RHEL 8 worker RPMs to mirror</h2>
+        Creates a directory with RPMs satisfying RHEL worker nodes dependencies
+        for a given 4.x release.
+        For more information, see https://issues.redhat.com/browse/ART-1188 and https://issues.redhat.com/browse/ART-3695.
+    """)
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-virtualenv ../env/ -p python3
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: ''
+                )
+            ),
+            [
+                $class : 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    choice(
+                        name: 'ARCH',
+                        description: 'architecture being synced',
+                        // no reason to support ppc64le or s390x (yet)
+                        choices: ['x86_64', 'aarch64'],
+                    ),
+                    choice(
+                        name: 'EL_VERSION',
+                        description: 'RHEL Version for which to synchronize RPMs',
+                        choices: ['9', '8', '7'],
+                    ),
+                    booleanParam(
+                        name: "DRY_RUN",
+                        description: "Take no action, just echo what the job would have done.",
+                        defaultValue: false
+                    ),
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
+    commonlib.checkMock()
+
+    version = params.BUILD_VERSION
+    currentBuild.displayName += " $version-el${params.EL_VERSION} [${params.ARCH}]"
+    path = "openshift-v4/${params.ARCH}/dependencies/rpms"
+    AWS_S3_SYNC_OPTS='--no-progress --delete --exact-timestamps'
+    if (params.DRY_RUN) {
+        currentBuild.displayName += " - [DRY RUN]"
+        AWS_S3_SYNC_OPTS += " --dryrun"
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        commonlib.shell(
+            script: """
+                set -e
+                python3 ./collect_deps.py --base-dir output ${version} --arch ${params.ARCH} --el ${params.EL_VERSION}
+                aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-el${params.EL_VERSION}-beta s3://art-srv-enterprise/pub/${path}/${version}-el${params.EL_VERSION}-beta/
+                rm -r output
+            """
+        )
+    }
+    buildlib.cleanWorkspace()
 }

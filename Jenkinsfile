@@ -1,66 +1,73 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+#!/usr/bin/env groovy
+node {
+    checkout scm
+    def commonlib = load("pipeline-scripts/commonlib.groovy")
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+    commonlib.describeJob("check-disk-usage-on-buildvm", """
+----------
+Check disk usage on buildvm
+----------
+Check if disk usage on buildvm exceeds a treshold;
+notify ART team if it does.
+    """)
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
+
+    properties(
+        [
+            disableResume(),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.mockParam(),
+                    string(
+                        name: "THRESHOLD",
+                        description: 'Max disk usage, expressed as percentage; example: 90',
+                        defaultValue: '90',
+                        trim: true,
+                    ),
+                    string(
+                        name: "SLACK_CHANNEL",
+                        description: 'Slack channel to notify. ' +
+                                     'Example: #team-art-debug',
+                        defaultValue: '#team-art',
+                        trim: true,
+                    )
+                ]
+            ]
+        ]
+    )
+
+    // Check for mock build
+    commonlib.checkMock()
+
+    partitions_to_check = [
+        "/dev/mapper/rhel_buildvm-root",
+        "/dev/mapper/workspace-workspace",
+        "infinibox01-bos-nfs.prod.psi.bos.redhat.com:/buildvm-openshift",
+    ]
+
+    warnings = []
+
+    for (String partition : partitions_to_check) {
+        disk_usage = sh(
+            script: "df -h | grep ${partition} | tr -s ' ' | cut -d ' ' -f5 | tr -d %",
+            returnStdout: true
+        ).trim().toInteger()
+        echo "Disk usage on `${partition}`: ${disk_usage}%"
+
+        if (disk_usage > params.THRESHOLD.toInteger()) {
+            warnings.add("Disk usage on \u0060${partition}\u0060: ${disk_usage}%")
         }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-virtualenv ../env/ -p python3
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    if (warnings) {
+        message = "*:warning: @release-artists buildvm disk usage alert*"
+        for (String warning : warnings) {
+            message = message + "\n" + warning
+        }
+        echo message
+        commonlib.slacklib.to(params.SLACK_CHANNEL).say(message)
+    } else {
+        echo "No disk space warnings"
+    }
 }

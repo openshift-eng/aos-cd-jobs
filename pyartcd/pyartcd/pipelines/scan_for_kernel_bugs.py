@@ -53,7 +53,7 @@ class ScanForKernelBugsPipeline:
             "--assembly", "stream",
             "find-bugs:kernel",
             "--clone",
-            "--comment",
+            "--update-tracker",
         ]
         if self.reconcile:
             cmd.append("--reconcile")
@@ -73,7 +73,7 @@ class ScanForKernelBugsPipeline:
             "--assembly", "stream",
             "find-bugs:kernel-clones",
             "--move",
-            "--comment",
+            "--update-tracker",
         ]
         if self.trackers:
             cmd.extend([f"--tracker={tracker}" for tracker in self.trackers])

@@ -24,7 +24,7 @@ node {
                 [
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
-                        commonlib.doozerParam(),
+                        commonlib.artToolsParam(),
                         commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                         string(
                             name: "ASSEMBLY_NAME",

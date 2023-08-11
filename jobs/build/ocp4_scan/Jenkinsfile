@@ -34,7 +34,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                 [
                     $class: 'ParametersDefinitionProperty',
                     parameterDefinitions: [
-                        commonlib.doozerParam(),
+                        commonlib.artToolsParam(),
                         commonlib.ocpVersionParam('VERSION', '4'),
                         commonlib.suppressEmailParam(),
                         string(

@@ -68,7 +68,7 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
                             defaultValue: false,
                             description: "Force rebuild of the covscan repositories."
                         ),
-                        commonlib.doozerParam(),
+                        commonlib.artToolsParam(),
                         commonlib.mockParam(),
                     ]
                 ],

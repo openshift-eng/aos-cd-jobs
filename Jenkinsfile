@@ -1,66 +1,79 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+node() {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    def slacklib = commonlib.slacklib
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+    properties(
+        [
+            disableConcurrentBuilds(),
+            [
+                $class : 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.ocpVersionParam('BUILD_VERSION'),
+                    booleanParam(
+                        name: 'SEND_TO_RELEASE_CHANNEL',
+                        defaultValue: true,
+                        description: "If true, send output to #art-release-4-<version>"
+                    ),
+                    booleanParam(
+                        name: 'SEND_TO_AOS_ART',
+                        defaultValue: false,
+                        description: "If true, send notification to #aos-art"
+                    ),
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-virtualenv ../env/ -p python3
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    commonlib.checkMock()
+
+    // Working dirs
+    def artcd_working = "${WORKSPACE}/artcd_working"
+    def doozer_working = "${artcd_working}/doozer_working"
+    buildlib.cleanWorkdir(artcd_working)
+
+    // Run pyartcd
+    sh "mkdir -p ./artcd_working"
+
+    def cmd = [
+        "artcd",
+        "-vv",
+        "--working-dir=${artcd_working}",
+        "--config=./config/artcd.toml",
+        "images-health",
+        "--version=${params.BUILD_VERSION}"
+    ]
+    if (params.SEND_TO_RELEASE_CHANNEL) {
+        cmd << "--send-to-release-channel"
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+    if (params.SEND_TO_AOS_ART) {
+        cmd << "--send-to-aos-art"
+    }
+
+    withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER')]) {
+
+        wrap([$class: 'BuildUser']) {
+            builderEmail = env.BUILD_USER_EMAIL
+        }
+
+        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "DOOZER_DB_NAME=art_dash"]) {
+            try {
+                echo "Will run ${cmd}"
+                commonlib.shell(script: cmd.join(' '))
+            } catch (exception) {
+                slacklib.to(BUILD_VERSION).say(":alert: Image health check job failed!\n${BUILD_URL}")
+                currentBuild.result = "FAILURE"
+                throw exception  // gets us a stack trace FWIW
+            } finally {
+                // archive artifacts
+                artifacts = []
+                artifacts.add("artcd_working/doozer_working/debug.log")
+                commonlib.safeArchiveArtifacts(artifacts)
+            }
+        }
+    }
 }

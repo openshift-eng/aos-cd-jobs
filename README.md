@@ -1,232 +1,127 @@
-# aos-cd-jobs
+# Mirror latest 4.y images to nightlies
 
-This repository backs Jenkins jobs on a couple of Jenkins masters.
+## Purpose
 
-## Jenkins pipeline definitions under `scheduled-jobs/`
+This job gets the latest payload images from our candidate tags, syncs them to
+quay.io/openshift-release-dev/ocp-v4.0-art-dev where we publish payload members
+for all 4.y versions, and updates the arch-specific imagestreams on api.ci
+(which feed into nightlies on our release-controllers) to point at the updated
+(arch-specific) image shasum.
 
-Scheduled pipeline definitions are stored in this directory so they are not
-indexed by the process described below and turned into a branch on the
-multi-branch pipeline.  This is done to facilitate enabling and disabling the
-jobs without needing to change the source code on the repository, and any job
-that requires that should be under this directory.
+Before announcing a new assembly on api.ci, a comprehensive set of internal
+consistency checks is executed. Build-sync may decide not to create a new entry
+in api.ci because of this, and should be considered the ultimate artbiter.
 
-|     Job Name     | Description |
-| ---------------- | ----------- |
-| `build/ose`      | Runs build/ose daily. Presently used to build 3.6 for daily integration test environments. |
-| `build/t-th`     | Runs build/ose every Tuesday and Thursday for particular builds of OCP. |
+Example imagestreams:
 
-## Jenkins pipeline definitions under `jobs/`
+* [`4.5 x86_64`](https://api.ci.openshift.org/console/project/ocp/browse/images/4.5-art-latest/)
+* [`4.4 s390x`](https://api.ci.openshift.org/console/project/ocp-s390x/browse/images/4.4-art-latest-s390x)
+* [`4.6 ppc64le`](https://api.ci.openshift.org/console/project/ocp-ppc64le/browse/images/4.6-art-latest-ppc64le)
 
-An internal [Continuous Infrastructure Jenkins instance](https://buildvm.openshift.eng.bos.redhat.com:8443/) indexes
-Jenkinsfiles in the branches of this repository.  The branches are automatically generated from the Jenkinsfiles that live under
-the `jobs/` directory on the `master` branch. The job responsible for generating, updating and removing the branches can be found
-in the [`Jenkinsfile`](Jenkinsfile) at the root directory. The branch update job is configured to be executed periodically, but
-can be manually triggered in [jenkins](https://buildvm.openshift.eng.bos.redhat.com:8443/job/update-branches/).
+## Timing
 
-The scripts used by the job described above are [`pruner.py`](aos_cd_jobs/pruner.py), which removes branches for jobs that no
-longer exist, and [`updater.py`](aos_cd_jobs/updater.py), which creates/updates branches for existing jobs. A "job" is any
-directory under the `jobs/` directory which contains a `Jenkinsfile`.  Every branch is an orphan (doesn't contain any history) and
-its contents are the contents of the `master` branch with the corresponding directory under `jobs/` copied to the root directory
-and the `jobs/` directory removed.
+This will nearly always be run by the `ocp4` or `custom` job.
 
-As an example, the contents of the root and `jobs/build/openshift-scripts` directories in master are currently:
+A human might want to run this after hand-adjusting the current tagged images
+in brew in order to update the nightlies accordingly. Another option is to sync
+images from an assembly.
 
-    ├── build-scripts
-    │   └── …
-    ├── Jenkinsfile
-    ├── jobs
-    │   …
-    │   └── build
-    │       └── openshift-scripts
-    │           ├── Jenkinsfile
-    │           ├── README.md
-    │           └── scripts
-    │               └── merge-and-build-openshift-scripts.sh
-    …
-    └── README.md
+## Artifacts
 
-The final contents of the `build/openshift-scripts` branch, after the execution of the job, will be:
+Among the archived artifacts for this job are the arch-specific imagestream
+definitions that specify the contents of nightlies. These can be useful for
+monkeying with the contents by hand, for example to [trigger a new nightly](https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#what-to-do-if-the-latest-nightly-is-rejected-).
+(Although such monkeying for any other reason is probably unwise, and tedious
+for multiple arches.)
 
-    ├── build-scripts
-    │   └── …
-    ├── Jenkinsfile
-    ├── README.md
-    …
-    └── scripts
-        └── merge-and-build-openshift-scripts.sh
+## Parameters
 
-Note that the files `Jenkinsfile` and `README.md` in the master branch exist both in the root directory and in the job directory.
-Because of the sequence of steps described above, the former will be overwritten by the latter.
+### Standard parameters ASSEMBLY, BUILD\_VERSION, DOOZER\_DATA\_PATH, DRY\_RUN, MOCK, SUPPRESS\_EMAIL
 
-Jobs under the `jobs/build/` directory are indexed at the
-[`aos-cd-builds`](https://buildvm.openshift.eng.bos.redhat.com:8443/job/aos-cd-builds/) grouping. Some jobs are described below. 
+See [Standard Parameters](/jobs/README.md#standard-parameters).
 
-|          Job Name          | Description |
-| -------------------------- | ----------- |
-| `build/ocp`                | Main build task for OCP 3.7. Also builds openshift-ansible 3.7 and all OCP images. |
-| `build/ose`                | Main build task for OCP <=3.6. Also builds openshift-ansible artifiacts and jenkins images. |
-| `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](https://github.com/openshift/online) team. |
-| `build/refresh-images`     |             |
-| `build/scan-images`        | Scans the images for CVEs using openscap. |
-| `sprint/stage-to-prod`     | Promote RPMs from the staging repositories to the production repositories (Copies files from [latest/ in the enterprise online-stg](https://mirror.openshift.com/enterprise/online-stg/latest/) repo to [online-prod/lastest](https://mirror.openshift.com/enterprise/online-prod/latest/). Also copies files from [libra rhel-7-libra-stage](https://mirror.ops.rhcloud.com/libra/rhel-7-libra-stage/) to [libra's latest online-prod](https://mirror.ops.rhcloud.com/libra/online-prod/latest/) in a new directory based on the day's date.). |
-| `sprint/control`           | Send out messages about dev/stage cut to engineering teams. |
-| `package-dockertested`     | Tests new Brew builds of Docker and tags them into a [mirror repo](https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/Packages/) for use by the CI systems. |
-| `starter/operation`        | Run specific operations on starter clusters. |
-| `starter/upgrade`          | Runs an openshift-ansible based upgrade on a starter cluster. |
+### RETRIGGER\_CURRENT\_NIGHTLY
 
-## Jenkins Job Builder configuration under `jjb/`
+Force the release controller to re-create the latest nightly for the version
+with existing images; no change will be made to payload images in the release,
+and all other parameters will be ignored.
 
-Jenkins Job Builder definitions under the `jjb/` directory are not currently used to underpin any jobs, but were an investigation
-into how the JJB system was used by the AOS CI team to build and support CI jobs for the `openshift-ansible` repository.
+### PUBLISH
 
-## Continuous Upgrade job configuration under `continuous-upgrade/`
+This is intended for publishing a release image for assemblies (which would not
+otherwise get an entry on the release-controller). An image per arch will be
+published to registry.ci like nightlies -- the job description will list the
+locations.
 
-Continuous Upgrade job is using Jenkins Job Builder framework to continuously upgrade an Openshift cluster.
+### DEBUG
 
-To be able to generate XML configuration of continuous-upgrade jobs you need to install [jenkins-jobs tool](https://docs.openstack.org/infra/jenkins-job-builder/installation.html). After installing the tool run [`continuous-upgrade/generate-jobs.py`](continuous-upgrade/generate-jobs.py) to re-generate XMLs of the jobs. 
+Run "oc" commands with greater logging if they seem to be doing something funny.
 
-To push the changes in any of the jobs to the server use:
-```shell
-sjb/push-update.sh continuous-upgrade/generated/continuous-upgrade_JOB_NAME.xml
-```
+### IMAGES
 
-## Custom XML Generator configuration under `sjb/`
+[List](/jobs/README.md#list-parameters) of image distgits to sync.
+If not specified, the default is to sync every image.
+This can be useful for testing purposes or for hand-crafted updates, because
+syncing all images takes a great deal longer than a handful.
 
-A custom XML generator lives under the `sjb/` directory. This generator is meant to be a tightly scoped tool that would help us
-bridge the gap between monolithic scripts inside of Freestyle Jenkins Jobs and segmented Jenkins Pipelines driven by source-
-controlled Groovy scripts and libraries.
+You will usually want to include the openshift-enterprise-pod distgit (see below).
 
-The generator understands a small set of `action`s, each of which is underpinned by a Python module under
-[`sjb/actions/`](sjb/actions). A configuration YAML file is read in by [`sjb/generate.py`](sjb/generate.py) and used to generate a
-set of input variables to the [Jinja job template XML](sjb/templates/test_case.xml). Jobs can depend on a parent to reuse
-configuration. Documentation on the YAML syntax can be found at [`syntax.md`](./sjb/syntax.md).
+### EXCLUDE\_ARCHES
 
-A typical workflow for a developer making changes to the job would look like:
+[List](/jobs/README.md#list-parameters) of architectures NOT to sync.
+If not specified, the default is to sync every arch that is built for any image.
 
- - make edits to a configuration file under `sjb/config/`
- - run `sjb/generate.sh`
- - commit changes
- - run `sjb/push-update-automatic.sh` once changes are approved and merged into `master`
+Sometimes when we are turning arches on and off, it is inconvenient to require
+all the previously-built images to have all arches built (this usually requires
+a full rebuild). With this parameter we can ignore "problematic" arches.
 
-Your local environment needs Python dependencies installed to run `sjb/generate.sh` - this can be done via the command `$ pip install -r sjb/requirements.txt`.
-You will also need [pip](https://pypi.org/project/pip/), which comes bundled with most Python distributions.
+### EMERGENCY\_IGNORE\_ISSUES
 
-In order to test a job, it is necessary to copy a configuration file under `sjb/config` to a new YAML file with a different name,
-then re-generate XML and use the following command to push only your test job up to the server:
-```shell
-sjb/push-update.sh sjb/generated/YOUR_TEST_JOB.xml
-````
-Cleanup of these jobs post-test is still manual.
+Ignore the results of the consistency checks and sync out whatever we have
+anyway. Obviously, this should never be necessary; in most cases we should
+update the `releases.yml` `permits` field for the assembly instead, and for GA
+versions we should never be producing inconsistent nightlies. So use this only
+with approval from team leadership.
 
-If changes are being made to the files under `sjb/` in this repository, it is not enough to copy a job configuration and run it to
-test the changes. Instead, it will be necessary to mark the copied job as syncing a pull request for `aos-cd-jobs` using the `type`
-field on the repository as per [the spec](./sjb/syntax.md#sync_repos). Then, when running your copied job, configure it at run-time
-to merge in your pull request by entering in your pull request number in the appropriate parameter field in the Jenkins UI when
-starting the job.
+### ORGANIZATION
 
-### Push Credentials
+Quay.io organization to mirror to - there is no reason to ever change this.
 
-Note: the `sjb/push-update{,-automatic}.sh` scripts expect `$USERNAME` and `$PASSWORD` to be set as envars when they are run.
-`$USERNAME` is your user with which you log in to the Jenkins master at [ci.openshift](http://ci.openshift.redhat.com/).
-`$PASSWORD` is a Jenkins API token you have to generate through the Jenkins UI. As a logged-in user, click your username in the upper right hand of the UI. After the account page loads, click "Configure" on the right hand side, and after the configuration page loads, you will see an option to generate a new token. Copy this to your password store, since it is only displayed for copy/pasting when you first generate it.
-The `$USERNAME` and `$PASSWORD` are used for basic auth against the server on push actions.
+### REPOSITORY
 
-## Pull Request approvers under `approvers/`
+Quay.io repository to mirror to - there is no reason to ever change this.
 
-In order to ensure that pull requests are only merged during phases of a sprint where they are appropriate, all `[merge]` jobs now
-call out to an approver on the Jenkins master that will determine if the pull request should merge into the specific branch and
-repo that it targets.
+## Known issues
 
-When running `[merge]` on a PR, developers will optionally be able to add `[severity: value]` extensions, where value can take:
+### Multiarch sync must include openshift-enterprise-pod image
 
- - none ( `[merge]` )
- - bug ( `[merge][severity: bug]` )
- - blocker ( `[merge][severity: blocker]` )
- - low-risk ( `[merge][severity: lowrisk]` )
+The cluster version operator (CVO) requires that all named images be present in
+the payload, or it fails the cluster bootstrap. However, some payload images
+are unavailable on some architectures. In order to keep the CVO from flagging
+this, we sync a "dummy" image in place of missing images for an architecture.
+We have chosen the `pod` image (that is, the `openshift-enterprise-pod`
+distgit) for our dummy image in these cases, since it is available for all
+arches and contains useful binaries for determining what it is if someone is
+confused about the whole dummy image substitution.
 
-The `lowrisk` severity is special in that all approvers other than the [`closed_approver.sh`](approvers/closed_approver.sh), will
-allow merges with it. Developers should use this tag when they are making changes to code in the repository that does not make up
-any part of the shipped product and therefore does not have any chance of impacting deployments.
+The result is that build-sync requires that `openshift-enterprise-pod` be included in what is synced.
+This is true even if no substitution is needed, because the job looks up that image before attempting any syncing.
 
-There will be four possible designations for any branch in your repo:
+Usually this is no problem since the `pod` image is available. There are two cases where it's not:
 
-<table>
-  <tr>
-    <th colspan="2" rowspan="2"></th>
-    <th colspan="4">Pull Request Severity<br></th>
-  </tr>
-  <tr>
-    <td>None</td>
-    <td>Bug</td>
-    <td>Blocker</td>
-    <td>Low-Risk</td>
-  </tr>
-  <tr>
-    <td rowspan="4">Branch Stage<br></td>
-    <td>Open</td>
-    <td>✔️</td>
-    <td>✔️</td>
-    <td>✔️</td>
-    <td>✔️</td>
-  </tr>
-  <tr>
-    <td>DevCut</td>
-    <td>❌</td>
-    <td>✔️</td>
-    <td>✔️</td>
-    <td>✔️</td>
-  </tr>
-  <tr>
-    <td>StageCut</td>
-    <td>❌</td>
-    <td>❌</td>
-    <td>✔️</td>
-    <td>✔️</td>
-  </tr>
-  <tr>
-    <td>Closed</td>
-    <td>❌</td>
-    <td>❌</td>
-    <td>❌</td>
-    <td>❌</td>
-  </tr>
-</table>
+1. When building from a newly branched release and this image hasn't built yet.
+   In this case, either get the image building, or just tag in one from the previous release in brew.
+2. When building a subset of images that doesn't include it. Just make sure to include it.
 
-### Consulting an Approver
+### Sometimes it doesn't actually update the imagestreams
 
-In order to determine if a pull request should merge, consult the [`approve.sh`](approvers/approve.sh) script on the Jenkins
-master on which the job runs:
+This seems to be an oc bug, and could be fixed by now. But sometimes when we
+`oc apply` the updated imagestream, everything seems to work, but we find the
+imagestream isn't actually updated. Naturally we always notice this when we're
+trying to get a release out at the last second.
 
-```shell
-approve.sh "${REPO}" "${TARGET_BRANCH}" "${MERGE_SEVERITY:-"none"}"
-```
+It seems to work if we take the imagestream definitions from the job artifacts
+and hand-apply them like so on as jenkins user on buildvm:
 
-### Configuring Branch Status
+    /usr/bin/oc apply --config /home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig --filename=./is.s390x.doctored.yaml
 
-To configure a branch status, run the [`configure_approver`](https://ci.dev.openshift.redhat.com/jenkins/job/configure_approver/)
-job on the [ci.dev](https://ci.dev.openshift.redhat.com/jenkins/) Jenkins master. This job will configure the approver you ask
-for as well as propagate the changes to the [ci.openshift](http://ci.openshift.redhat.com/) server. The job runs the
-[`configure_approver`](approvers/configure_approver.sh) script:
-
-```shell
-for repo in ${REPOSITORIES}; do
-    for branch in ${BRANCHES}; do
-        configure_approver.sh "${repo}" "${branch}" "${STAGE}"
-    done
-done
-
-list_approvers.sh
-```
-
-### Approver Design
-
-Approvers are configured by creating a symbolic link at `~jenkins/approvers/openshift/${REPO}/${TARGET_BRANCH}/approver` for the
-approver that is requested for that branch. The approvers are the [`closed_approver.sh`](approvers/closed_approver.sh),
-[`open_approver.sh`](approvers/open_approver.sh), [`devcut_approver.sh`](approvers/devcut_approver.sh), and
-[`stagecut_approver.sh`](approvers/stagecut_approver.sh) scripts in this repository under [`approvers/`](approvers/).
-
-### Developer Workflow
-
-Development on approver scripts in this repository is fairly straightforward. When your changes are ready and have been merged,
-run the [`push.sh`](approvers/push.sh) script to deploy your changes to the Jenkins masters. You will need to have your SSH config
-set up for the `ci.openshift` and `ci.dev.openshift` hosts in order for this script to work.

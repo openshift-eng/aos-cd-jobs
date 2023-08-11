@@ -136,7 +136,7 @@ class Ocp4ScanPipeline:
 @click_coroutine
 async def ocp4_scan(runtime: Runtime, version: str):
     # Create a Lock manager instance
-    lock = Lock.GITHUB_ACTIVITY
+    lock = Lock.DISTGIT_REBASE
     lock_manager = locks.LockManager.from_lock(lock)
     lock_name = lock.value.format(version=version)
 

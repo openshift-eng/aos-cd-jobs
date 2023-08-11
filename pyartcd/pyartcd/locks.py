@@ -11,7 +11,7 @@ class Lock(enum.Enum):
     OLM_BUNDLE = 'olm-bundle-lock-{version}'
     MIRRORING_RPMS = 'mirroring-rpms-{version}'
     COMPOSE = 'compose-lock-{version}'
-    GITHUB_ACTIVITY = 'github-activity-lock-{version}'
+    DISTGIT_REBASE = 'distgit-rebase-lock-{version}'
     MASS_REBUILD = 'mass-rebuild-serializer'
     SIGNING = 'signing-lock-{signing_env}'
 
@@ -40,7 +40,7 @@ LOCK_POLICY = {
         'lock_timeout': 60 * 60 * 6,  # 6 hours
     },
     # github-activity-lock: give up after 1 hour
-    Lock.GITHUB_ACTIVITY: {
+    Lock.DISTGIT_REBASE: {
         'retry_count': 36000 * 1,
         'retry_delay_min': 0.1,
         'lock_timeout': 60 * 60 * 6,  # 6 hours

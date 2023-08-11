@@ -2,6 +2,7 @@ import json
 import os.path
 import shutil
 import traceback
+from types import coroutine
 
 import click
 import yaml
@@ -56,7 +57,7 @@ class RpmMirror:
 class Ocp4Pipeline:
     def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str,
                  pin_builds: bool, build_rpms: str, rpm_list: str, build_images: str, image_list: str,
-                 skip_plashets: bool, mail_list_failure: str):
+                 skip_plashets: bool, ignore_locks: bool, mail_list_failure: str):
 
         self.runtime = runtime
         self.assembly = assembly
@@ -66,6 +67,7 @@ class Ocp4Pipeline:
         self.build_images = build_images
         self.image_list = image_list
         self.skip_plashets = skip_plashets
+        self.ignore_locks = ignore_locks
         self.mail_list_failure = mail_list_failure
 
         self.build_plan = BuildPlan()
@@ -356,7 +358,8 @@ class Ocp4Pipeline:
         changed_children = await self._check_changed_child_images(changes)
 
         # Update build plan
-        self.build_plan.images_included = changed_images + [child for child in changed_children if child not in changed_images]
+        self.build_plan.images_included = \
+            changed_images + [child for child in changed_children if child not in changed_images]
         self.build_plan.images_excluded.clear()
         run_details.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
 
@@ -809,17 +812,43 @@ class Ocp4Pipeline:
             self.runtime.logger.info('Building only where source has changed.')
             await self._plan_builds()
 
-        await self._rebase_and_build_rpms()
+        await self._run_with_distgit_rebase_lock(self._rebase_and_build_rpms())
+
         if not self.skip_plashets:
             await self._build_compose()
         else:
             self.runtime.logger.warning('Skipping plashets creation as SKIP_PLASHETS was set to True')
-        await self._rebase_images()
+
+        await self._run_with_distgit_rebase_lock(self._rebase_images())
+
         await self._build_images()
         await self._sync_images()
         await self._mirror_rpms()
         await self._sweep()
         self._report_success()
+
+    async def _run_with_distgit_rebase_lock(self, coro: coroutine):
+        """
+        Tries to acquire github-activity-lock-4.y, then executes func()
+        """
+
+        if self.ignore_locks:
+            return await coro
+
+        lock = Lock.DISTGIT_REBASE
+        lock_manager = locks.LockManager.from_lock(lock)
+        lock_name = lock.value.format(version=self.version.stream)
+
+        try:
+            async with await lock_manager.lock(lock_name):
+                return await coro
+
+        except LockError as e:
+            self.runtime.logger.error('Failed acquiring lock %s: %s', e)
+            raise
+
+        finally:
+            await lock_manager.destroy()
 
 
 @cli.command("ocp4",
@@ -833,7 +862,8 @@ class Ocp4Pipeline:
               help='ocp-build-data fork to use (e.g. assembly definition in your own fork)')
 @click.option('--data-gitref', required=False, default='',
               help='Doozer data path git [branch / tag / sha] to use')
-@click.option('--pin-builds', is_flag=True, help='Build only specified rpms/images regardless of whether source has changed')
+@click.option('--pin-builds', is_flag=True,
+              help='Build only specified rpms/images regardless of whether source has changed')
 @click.option('--build-rpms', required=True,
               type=click.Choice(['all', 'only', 'except', 'none'], case_sensitive=False),
               help='Which RPMs are candidates for building? "only/except" refer to --rpm-list param')
@@ -847,11 +877,11 @@ class Ocp4Pipeline:
               help='(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES '
                    '(e.g. logging-kibana5,openshift-jenkins-2)')
 @click.option('--skip-plashets', is_flag=True, default=False,
-              help='Do not build plashets (for example to save time when running multiple builds against test assembly)')
+              help='Do not build plashets (e.g. to save time when running multiple builds against test assembly)')
 @click.option('--mail-list-failure', required=False, default='aos-art-automation+failed-ocp4-build@redhat.com',
               help='Failure Mailing List')
 @click.option('--ignore-locks', is_flag=True, default=False,
-              help='Do not wait for other builds in this version to complete (use only if you know they will not conflict)')
+              help='Do not wait for other builds in this version to complete (use only if they will not conflict)')
 @pass_runtime
 @click_coroutine
 async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str, pin_builds: bool,
@@ -876,25 +906,8 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, da
         build_images=build_images,
         image_list=image_list,
         skip_plashets=skip_plashets,
+        ignore_locks=ignore_locks,
         mail_list_failure=mail_list_failure,
     )
 
-    if ignore_locks:
-        await pipeline.run()
-
-    else:
-        # Create a Lock manager instance
-        lock = Lock.GITHUB_ACTIVITY
-        lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = lock.value.format(version=version)
-
-        try:
-            async with await lock_manager.lock(lock_name):
-                await pipeline.run()
-
-        except LockError as e:
-            runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-            raise
-
-        finally:
-            await lock_manager.destroy()
+    await pipeline.run()

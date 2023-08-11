@@ -9,14 +9,16 @@ from datetime import datetime
 from enum import Enum
 from io import TextIOWrapper
 from pathlib import Path
+from types import coroutine
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import click
 import yaml
 from aioredlock import LockError
 from doozerlib.assembly import AssemblyTypes
-from pyartcd import constants, exectools, locks
+from pyartcd import constants, exectools, locks, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
+from pyartcd.locks import Lock
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_type, isolate_el_version_in_branch,
@@ -37,7 +39,8 @@ class RebuildPipeline:
     """ Rebuilds a component for an assembly """
 
     def __init__(self, runtime: Runtime, group: str, assembly: str,
-                 type: RebuildType, dg_key: str, ocp_build_data_url: str, logger: Optional[logging.Logger] = None):
+                 type: RebuildType, dg_key: str, ocp_build_data_url: str, logger: Optional[logging.Logger] = None,
+                 ignore_locks: bool = False):
         if type in [RebuildType.RPM, RebuildType.IMAGE] and not dg_key:
             raise ValueError("'dg_key' is required.")
         elif type == RebuildType.RHCOS and dg_key:
@@ -50,6 +53,7 @@ class RebuildPipeline:
         self.dg_key = dg_key
         self.logger = logger or runtime.logger
         self.ocp_build_data_url = ocp_build_data_url
+        self.ignore_locks = ignore_locks
 
         # determines OCP version
         match = re.fullmatch(r"openshift-(\d+).(\d+)", group)
@@ -83,7 +87,7 @@ class RebuildPipeline:
 
         if self.type == RebuildType.RPM:
             # Rebases and builds the specified rpm
-            nvrs = await self._rebase_and_build_rpm(release)
+            nvrs = await self._run_with_distgit_rebase_lock(self._rebase_and_build_rpm(release))
             if self.runtime.dry_run:
                 # fake rpm nvrs for dry run
                 nvrs = [
@@ -102,7 +106,7 @@ class RebuildPipeline:
                 # Builds plashet repos
                 self._build_plashets(timestamp, el_version, group_config, image_config),
                 # Rebases distgit repo
-                self._rebase_image(release),
+                self._run_with_distgit_rebase_lock(self._rebase_image(release)),
             )
 
             # Generates rebuild.repo
@@ -568,6 +572,26 @@ class RebuildPipeline:
         }
         return schema
 
+    async def _run_with_distgit_rebase_lock(self, coro: coroutine):
+        if self.ignore_locks:
+            return await coro
+
+        lock = Lock.DISTGIT_REBASE
+        lock_manager = locks.LockManager.from_lock(lock)
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        lock_name = lock.value.format(version=f'{major}.{minor}')
+
+        async with await lock_manager.lock(lock_name):
+            try:
+                return await coro
+
+            except LockError as e:
+                self.runtime.logger.error('Failed acquiring lock %s: %s', e)
+                raise
+
+            finally:
+                await lock_manager.destroy()
+
 
 @cli.command("rebuild")
 @click.option("--ocp-build-data-url", metavar='BUILD_DATA', default=None,
@@ -592,21 +616,6 @@ async def rebuild(runtime: Runtime, ocp_build_data_url: str, version: str, assem
     elif type == "rhcos" and component:
         raise click.BadParameter("Option '--component' cannot be used when --type == 'rhcos'")
     pipeline = RebuildPipeline(runtime, group=f'openshift-{version}', assembly=assembly, type=RebuildType[type.upper()],
-                               dg_key=component, ocp_build_data_url=ocp_build_data_url)
+                               dg_key=component, ocp_build_data_url=ocp_build_data_url, ignore_locks=ignore_locks)
 
-    if ignore_locks:
-        await pipeline.run()
-
-    else:
-        # Create a Lock manager instance
-        lock = locks.Lock.GITHUB_ACTIVITY
-        lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = lock.value.format(version=version)
-
-        try:
-            async with await lock_manager.lock(lock_name):
-                await pipeline.run()
-
-        except LockError as e:
-            runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-            raise
+    await pipeline.run()

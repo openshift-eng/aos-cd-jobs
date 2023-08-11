@@ -1,66 +1,73 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+#!/usr/bin/env groovy
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+node {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("accept-release", """
+        <h2>Accept a release on Release Controller</h2>
+    """)
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-virtualenv ../env/ -p python3
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    // Expose properties for a parameterized build
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '7',
+                    daysToKeepStr: '7'
+                )
+            ),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    string(
+                        name: 'RELEASE_NAME',
+                        description: 'Release name (e.g 4.10.4 or nightly). Arch is amd64 by default.',
+                        trim: true,
+                        defaultValue: ""
+                    ),
+                    choice(
+                        name: 'ARCH',
+                        description: 'Release architecture (amd64, s390x, ppc64le, arm64, multi)',
+                        choices: ['amd64', 's390x', 'ppc64le', 'arm64', 'multi'].join('\n'),
+                    ),
+                    booleanParam(
+                        name: 'REJECT',
+                        description: 'Instead of Accepting, Reject a release',
+                        defaultValue: false
+                    ),
+                    booleanParam(
+                        name: 'CONFIRM',
+                        description: 'Running without this would be a [dry-run]. Must be specified to apply changes to server',
+                        defaultValue: false
+                    ),
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    if (!params.RELEASE_NAME) {
+        error("You must provide a release name")
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    def dry_run = params.CONFIRM ? '' : '[DRY_RUN]'
+    currentBuild.displayName = "${params.RELEASE_NAME} ${dry_run}"
+
+    def action = params.REJECT ? "reject" : 'accept'
+    def message = "Manually ${action}ed by ART"
+    def confirm_param = params.CONFIRM ? "--execute" : ''
+
+    sh "wget https://raw.githubusercontent.com/openshift/release-controller/master/hack/release-tool.py"
+    
+    buildlib.withAppCiAsArtPublish() {
+        commonlib.shell(
+            script: """
+                scl enable rh-python38 -- python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context art-publish@app.ci ${confirm_param} ${action} ${params.RELEASE_NAME}
+                """,
+        )
+    }
+    buildlib.cleanWorkspace()
 }

@@ -69,24 +69,31 @@ def block_until_building(queue_item: QueueItem, delay: int = 5) -> str:
     return f"{data['task']['url']}{build_number}"
 
 
-def start_build(job_name: str, params: dict, blocking: bool = False,
+def start_build(job_name: str, params: dict,
+                block_until_building: bool = True,
+                block_until_complete: bool = False,
                 watch_building_delay: int = 5) -> Optional[str]:
     """
     Starts a new Jenkins build
 
     :param job_name: e.g. "aos-cd-builds/build%2Fbuild-sync"
     :param params: a key-value collection to be passed to the build
-    :param blocking: if True, will block until the new builds completes; if False,
-                    start a new build in "fire-and-forget" fashion
+    :param block_until_building: True by default. Will block until the new build starts. This ensures
+        triggered jobs are properly backlinked to parent jobs.
+    :param block_until_complete: False by default. Will block until the new build completes
     :param watch_building_delay: Poll rate for building state
 
-    Returns the build result if blocking=True, None otherwise
+    Returns the build result if block_until_complete is True, None otherwise
     """
 
     init_jenkins()
     logger.info('Starting new build for job: %s', job_name)
     job = jenkins_client.get_job(job_name)
     queue_item = job.invoke(build_params=params)
+
+    if not (block_until_building or block_until_complete):
+        logger.info('Started new build for job: %s', job_name)
+        return
 
     build_url = block_until_building(queue_item, watch_building_delay)
     logger.info('Started new build at %s', build_url)
@@ -117,17 +124,19 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
         valid=[200]
     )
 
-    # If blocking==True, wait for the build to complete; get its status and return it
-    if blocking:
-        logger.info('Waiting for build to complete...')
-        build.block_until_complete()
-        result = build.poll()['result']
-        logger.info('Build completed with result: %s', result)
-        return result
+    if not block_until_complete:
+        return None
+
+    # Wait for the build to complete; get its status and return it
+    logger.info('Waiting for build to complete...')
+    build.block_until_complete()
+    result = build.poll()['result']
+    logger.info('Build completed with result: %s', result)
+    return result
 
 
 def start_ocp4(build_version: str, assembly: str, rpm_list: list = [],
-               image_list: list = [], blocking: bool = False) -> Optional[str]:
+               image_list: list = [], **kwargs) -> Optional[str]:
     params = {
         'BUILD_VERSION': build_version,
         'ASSEMBLY': assembly
@@ -154,20 +163,20 @@ def start_ocp4(build_version: str, assembly: str, rpm_list: list = [],
     return start_build(
         job_name=Jobs.OCP4.value,
         params=params,
-        blocking=blocking
+        **kwargs
     )
 
 
-def start_rhcos(build_version: str, new_build: bool, blocking: bool = False) -> Optional[str]:
+def start_rhcos(build_version: str, new_build: bool, **kwargs) -> Optional[str]:
     return start_build(
         job_name=Jobs.RHCOS.value,
         params={'BUILD_VERSION': build_version, 'NEW_BUILD': new_build},
-        blocking=blocking
+        **kwargs
     )
 
 
 def start_build_sync(build_version: str, assembly: str, doozer_data_path: Optional[str] = None,
-                     doozer_data_gitref: Optional[str] = None, blocking: bool = False) -> Optional[str]:
+                     doozer_data_gitref: Optional[str] = None, **kwargs) -> Optional[str]:
     params = {
         'BUILD_VERSION': build_version,
         'ASSEMBLY': assembly,
@@ -180,11 +189,11 @@ def start_build_sync(build_version: str, assembly: str, doozer_data_path: Option
     return start_build(
         job_name=Jobs.BUILD_SYNC.value,
         params=params,
-        blocking=blocking
+        **kwargs
     )
 
 
-def start_build_microshift(build_version: str, assembly: str, dry_run: bool, blocking: bool = False) -> Optional[str]:
+def start_build_microshift(build_version: str, assembly: str, dry_run: bool, **kwargs) -> Optional[str]:
     return start_build(
         job_name=Jobs.BUILD_MICROSHIFT.value,
         params={
@@ -192,13 +201,13 @@ def start_build_microshift(build_version: str, assembly: str, dry_run: bool, blo
             'ASSEMBLY': assembly,
             'DRY_RUN': dry_run
         },
-        blocking=blocking
+        **kwargs
     )
 
 
 def start_olm_bundle(build_version: str, assembly: str, operator_nvrs: list,
                      doozer_data_path: str = constants.OCP_BUILD_DATA_URL,
-                     doozer_data_gitref: str = '', blocking: bool = False) -> Optional[str]:
+                     doozer_data_gitref: str = '', **kwargs) -> Optional[str]:
     if not operator_nvrs:
         logger.warning('Empty operator NVR received: skipping olm-bundle')
         return
@@ -212,26 +221,26 @@ def start_olm_bundle(build_version: str, assembly: str, operator_nvrs: list,
             'DOOZER_DATA_GITREF': doozer_data_gitref,
             'OPERATOR_NVRS': ','.join(operator_nvrs)
         },
-        blocking=blocking
+        **kwargs
     )
 
 
-def start_sync_for_ci(version: str, blocking: bool = False):
+def start_sync_for_ci(version: str, **kwargs):
     return start_build(
         job_name=Jobs.SYNC_FOR_CI.value,
         params={
             'ONLY_FOR_VERSION': version
         },
-        blocking=blocking
+        **kwargs
     )
 
 
-def start_microshift_sync(version: str, assembly: str, blocking: bool = False):
+def start_microshift_sync(version: str, assembly: str, **kwargs):
     return start_build(
         job_name=Jobs.MICROSHIFT_SYNC.value,
         params={
             'BUILD_VERSION': version,
             'ASSEMBLY': assembly
         },
-        blocking=blocking
+        **kwargs
     )

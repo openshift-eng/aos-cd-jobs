@@ -85,6 +85,11 @@ node {
                             description: "Take no action, just echo what the job would have done.",
                             defaultValue: false
                         ),
+                        booleanParam(
+                            name: "TRIGGER_BUILD_SYNC",
+                            description: "Automatically trigger build sync against the automatically created PR",
+                            defaultValue: true
+                        ),
                         commonlib.mockParam(),
                     ]
                 ],
@@ -156,10 +161,20 @@ node {
             } else {
                 cmd << "--auto-previous"
             }
+            if (params.TRIGGER_BUILD_SYNC) {
+                cmd << "--auto-trigger-build-sync"
+            }
 
             buildlib.withAppCiAsArtPublish() {
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-                    commonlib.shell(script: cmd.join(' '))
+                withCredentials([
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
+                ]) {
+                    withEnv(["BUILD_URL=${BUILD_URL}"]) {
+                        commonlib.shell(script: cmd.join(' '))
+                    }
                 }
             }
         }

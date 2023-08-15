@@ -532,13 +532,15 @@ class Ocp4Pipeline:
         if self.assembly == 'stream':
             # Since plashets may have been rebuilt, fire off sync for CI. This will transfer RPMs out to
             # mirror.openshift.com/enterprise so that they may be consumed through CI rpm mirrors.
-            jenkins.start_sync_for_ci(version=self.version.stream, blocking=False)
+            # Set block_until_building=False since it can take a very long time for the job to start
+            # it is enough for it to be queued
+            jenkins.start_sync_for_ci(version=self.version.stream, block_until_building=False)
 
             # Also trigger rhcos builds for the release in order to absorb any changes from plashets or RHEL which may
             # have triggered our rebuild. If there are no changes to the RPMs, the build should exit quickly. If there
             # are changes, the hope is that by the time our images are done building, RHCOS will be ready and build-sync
             # will find consistent RPMs.
-            jenkins.start_rhcos(build_version=self.version.stream, new_build=False, blocking=False)
+            jenkins.start_rhcos(build_version=self.version.stream, new_build=False)
 
     async def _rebase_images(self):
         if not self.build_plan.build_images:

@@ -49,7 +49,7 @@ def init_jenkins():
     logger.info('Connected to Jenkins %s', jenkins_client.version)
 
 
-def block_until_building(queue_item: QueueItem, delay: int = 5) -> str:
+def wait_until_building(queue_item: QueueItem, delay: int = 5) -> str:
     """
     Watches a queue item and blocks until the scheduled build starts.
 
@@ -95,7 +95,7 @@ def start_build(job_name: str, params: dict,
         logger.info('Started new build for job: %s', job_name)
         return
 
-    build_url = block_until_building(queue_item, watch_building_delay)
+    build_url = wait_until_building(queue_item, watch_building_delay)
     logger.info('Started new build at %s', build_url)
 
     # Set build description to allow backlinking

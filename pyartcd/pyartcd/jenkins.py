@@ -21,7 +21,7 @@ class Jobs(Enum):
     OCP4 = 'aos-cd-builds/build%2Focp4'
     RHCOS = 'aos-cd-builds/build%2Frhcos'
     OLM_BUNDLE = 'aos-cd-builds/build%2Folm_bundle'
-    SYNC_FOR_CI = 'scheduled-builds/sync-for-ci'
+    SYNC_FOR_CI = 'aos-cd-builds/build%2Fsync-for-ci'
     MICROSHIFT_SYNC = 'aos-cd-builds/build%2Fmicroshift_sync'
 
 
@@ -220,7 +220,10 @@ def start_sync_for_ci(version: str, blocking: bool = False):
     return start_build(
         job_name=Jobs.SYNC_FOR_CI.value,
         params={
-            'ONLY_FOR_VERSION': version
+            "GROUP": f"openshift-{version}",
+            "REPOSYNC_DIR": version,
+            "ARCH": "x86_64",
+            "REPO_TYPE": "unsigned"
         },
         blocking=blocking
     )

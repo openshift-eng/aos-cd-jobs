@@ -1,4 +1,3 @@
-
 import logging
 import os
 import time
@@ -69,6 +68,22 @@ def wait_until_building(queue_item: QueueItem, delay: int = 5) -> str:
     return f"{data['task']['url']}{build_number}"
 
 
+def set_build_description(current_build_url: str, current_job_name: str, triggered_build: Build):
+    # Set build description to allow backlinking
+    current_build_number = list(filter(None, current_build_url.split('/')))[-1]
+    description = f'Started by upstream project <b>{current_job_name}</b> ' \
+                  f'build number <a href="{current_build_url}">{current_build_number}</a><br><br>'
+    triggered_build.job.jenkins.requester.post_and_confirm_status(
+        f'{triggered_build.baseurl}/submitDescription',
+        params={
+            'Submit': 'submit',
+            'description': description
+        },
+        data="",
+        valid=[200]
+    )
+
+
 def start_build(job_name: str, params: dict,
                 block_until_building: bool = True,
                 block_until_complete: bool = False,
@@ -95,42 +110,28 @@ def start_build(job_name: str, params: dict,
         logger.info('Started new build for job: %s', job_name)
         return
 
-    build_url = wait_until_building(queue_item, watch_building_delay)
-    logger.info('Started new build at %s', build_url)
+    triggered_build_url = wait_until_building(queue_item, watch_building_delay)
+    logger.info('Started new build at %s', triggered_build_url)
 
-    # Set build description to allow backlinking
     try:
-        upstream_build_url = os.environ['BUILD_URL']
-        job_name = os.environ['JOB_NAME']
+        current_build_url = os.environ['BUILD_URL']
+        current_job_name = os.environ['JOB_NAME']
     except KeyError:
         logger.error('BUILD_URL and JOB_NAME env vars must be defined!')
         raise
 
-    upstream_build_number = list(filter(None, upstream_build_url.split('/')))[-1]
-    build = Build(
-        url=build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL),
-        buildno=int(build_url.split('/')[-1]),
-        job=job
-    )
-    description = f'Started by upstream project <b>{job_name}</b> ' \
-                  f'build number <a href="{upstream_build_url}">{upstream_build_number}</a><br><br>'
-    build.job.jenkins.requester.post_and_confirm_status(
-        f'{build.baseurl}/submitDescription',
-        params={
-            'Submit': 'submit',
-            'description': description
-        },
-        data="",
-        valid=[200]
-    )
+    triggered_build_url = triggered_build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL)
+    triggered_build_no = int(triggered_build_url.split('/')[-1])
+    triggered_build = Build(url=triggered_build_url, buildno=triggered_build_no, job=job)
+    set_build_description(current_build_url, current_job_name, triggered_build)
 
     if not block_until_complete:
         return None
 
     # Wait for the build to complete; get its status and return it
     logger.info('Waiting for build to complete...')
-    build.block_until_complete()
-    result = build.poll()['result']
+    triggered_build.block_until_complete()
+    result = triggered_build.poll()['result']
     logger.info('Build completed with result: %s', result)
     return result
 

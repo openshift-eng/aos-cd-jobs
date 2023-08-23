@@ -25,7 +25,7 @@ LOCK_POLICY = {
     Lock.OLM_BUNDLE: {
         'retry_count': 36000,
         'retry_delay_min': 0.1,
-        'lock_timeout': 60 * 60 * 2,  # 2 hours
+        'lock_timeout': 60 * 30 # 30 minutes
     },
     # mirror RPMs: give up after 1 hour
     Lock.MIRRORING_RPMS: {

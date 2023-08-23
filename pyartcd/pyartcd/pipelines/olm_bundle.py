@@ -2,6 +2,7 @@ import os
 
 import click
 from aioredlock import LockError
+import atexit
 
 from pyartcd import constants, exectools
 from pyartcd.cli import cli, pass_runtime, click_coroutine
@@ -60,27 +61,35 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
     lock_manager = locks.LockManager.from_lock(lock)
     lock_name = lock.value.format(version=version)
 
+    async def run():
+        # Build bundles
+        runtime.logger.info('Running command: %s', cmd)
+        await exectools.cmd_assert_async(cmd)
+
+        # Parse doozer record.log
+        with open('doozer_working/record.log') as file:
+            record_log = parse_record_log(file)
+        records = record_log.get('build_olm_bundle', [])
+        bundle_nvrs = []
+
+        for record in records:
+            if record['status'] != '0':
+                raise RuntimeError('record.log includes unexpected build_olm_bundle '
+                                    f'record with error message: {record["message"]}')
+            bundle_nvrs.append(record['bundle_nvr'])
+
+        runtime.logger.info(f'Successfully built:\n{", ".join(bundle_nvrs)}')
+
     try:
         # Try to acquire olm-bundle lock for build version
-        async with await lock_manager.lock(lock_name):
-            # Build bundles
-            runtime.logger.info('Running command: %s', cmd)
-            await exectools.cmd_assert_async(cmd)
-
-            # Parse doozer record.log
-            with open('doozer_working/record.log') as file:
-                record_log = parse_record_log(file)
-            records = record_log.get('build_olm_bundle', [])
-            bundle_nvrs = []
-
-            for record in records:
-                if record['status'] != '0':
-                    raise RuntimeError('record.log includes unexpected build_olm_bundle '
-                                       f'record with error message: {record["message"]}')
-                bundle_nvrs.append(record['bundle_nvr'])
-
-            runtime.logger.info(f'Successfully built:\n{", ".join(bundle_nvrs)}')
-
+        async with await lock_manager.lock(lock_name) as lock:
+            task = asyncio.create_task(run())
+            while not task.done():
+                try:
+                    await asyncio.wait_for(task, timeout=60*15)  # Wait for 15 minutes
+                except asyncio.TimeoutError:
+                    print("Extending lock")
+                    await lock.extend()
     except (ChildProcessError, RuntimeError) as e:
         runtime.logger.error('Encountered error: %s', e)
         if not runtime.dry_run:

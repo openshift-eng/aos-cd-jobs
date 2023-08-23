@@ -2,7 +2,6 @@ import os
 
 import click
 from aioredlock import LockError
-import atexit
 
 from pyartcd import constants, exectools
 from pyartcd.cli import cli, pass_runtime, click_coroutine

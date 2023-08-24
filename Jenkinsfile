@@ -1,66 +1,76 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+node('ocp-artifacts') {
+    wrap([$class: "BuildUser"]) {
+        // gomod created files have filemode 444. It will lead to a permission denied error in the next build.
+        sh "chmod u+w -R ."
+        checkout scm
+        def buildlib = load("pipeline-scripts/buildlib.groovy")
+        def commonlib = buildlib.commonlib
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+        commonlib.describeJob("scan-osh", """
+            <h2>Kick off SAST scans for builds</h2>
+        """)
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
+        properties(
+            [
+                disableResume(),
+                buildDiscarder(
+                    logRotator(
+                        artifactDaysToKeepStr: "30",
+                        artifactNumToKeepStr: "",
+                        daysToKeepStr: "30",
+                        numToKeepStr: "")),
+                [
+                    $class: "ParametersDefinitionProperty",
+                    parameterDefinitions: [
+                        string(
+                            name: "BUILD_NVRS",
+                            description: "The list of builds for which we need to kick off the scan",
+                            defaultValue: "",
+                            trim: true
+                        ),
+                        string(
+                            name: "EMAIL",
+                            description: "Additional email to which the results of the scan should be sent out to",
+                            defaultValue: "",
+                            trim: true
+                        ),
+                        commonlib.mockParam(),
+                    ]
+                ],
+            ]
+        )
+
+        commonlib.checkMock()
+
+        stage("initialize") {
+                if (!params.BUILD_NVRS) {
+                    error("BUILD_NVRS is required")
+                }
         }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-virtualenv ../env/ -p python3
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
+
+        stage("kick-off-scan") {
+            buildlib.cleanWorkdir("./artcd_working")
+            sh "mkdir -p ./artcd_working"
+
+            def builds = BUILD_NVRS.split(',')
+
+            for (String build : builds) {
+                def cmd = [
+                    "osh-cli",
+                    "mock-build",
+                    "--config=cspodman",
+                    "--brew-build",
+                    "${build}",
+                    "--nowait"
+                ]
+
+                if (params.EMAIL) {
+                    cmd << "--email-to ${EMAIL}"
+                }
+
+                echo "Will run ${cmd}"
+                commonlib.shell(script: cmd.join(' '))
+            }
         }
-      }
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
 }

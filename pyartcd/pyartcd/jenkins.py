@@ -119,14 +119,14 @@ def set_build_description(build: Build, description: str):
 
 
 @check_env_vars
-def start_build(job_name: str, params: dict,
+def start_build(job: Jobs, params: dict,
                 block_until_building: bool = True,
                 block_until_complete: bool = False,
                 watch_building_delay: int = 5) -> Optional[str]:
     """
     Starts a new Jenkins build
 
-    :param job_name: e.g. "aos-cd-builds/build%2Fbuild-sync"
+    :param job: one of Jobs enum
     :param params: a key-value collection to be passed to the build
     :param block_until_building: True by default. Will block until the new build starts. This ensures
         triggered jobs are properly backlinked to parent jobs.
@@ -137,6 +137,7 @@ def start_build(job_name: str, params: dict,
     """
 
     init_jenkins()
+    job_name = job.value
     logger.info('Starting new build for job: %s', job_name)
     job = jenkins_client.get_job(job_name)
     queue_item = job.invoke(build_params=params)
@@ -185,7 +186,7 @@ def start_ocp4(build_version: str, assembly: str, rpm_list: list,
         params['BUILD_IMAGES'] = 'none'
 
     return start_build(
-        job_name=Jobs.OCP4.value,
+        job=Jobs.OCP4,
         params=params,
         **kwargs
     )
@@ -193,7 +194,7 @@ def start_ocp4(build_version: str, assembly: str, rpm_list: list,
 
 def start_rhcos(build_version: str, new_build: bool, **kwargs) -> Optional[str]:
     return start_build(
-        job_name=Jobs.RHCOS.value,
+        job=Jobs.RHCOS,
         params={'BUILD_VERSION': build_version, 'NEW_BUILD': new_build},
         **kwargs
     )
@@ -211,7 +212,7 @@ def start_build_sync(build_version: str, assembly: str, doozer_data_path: Option
         params['DOOZER_DATA_GITREF'] = doozer_data_gitref
 
     return start_build(
-        job_name=Jobs.BUILD_SYNC.value,
+        job=Jobs.BUILD_SYNC,
         params=params,
         **kwargs
     )
@@ -219,7 +220,7 @@ def start_build_sync(build_version: str, assembly: str, doozer_data_path: Option
 
 def start_build_microshift(build_version: str, assembly: str, dry_run: bool, **kwargs) -> Optional[str]:
     return start_build(
-        job_name=Jobs.BUILD_MICROSHIFT.value,
+        job=Jobs.BUILD_MICROSHIFT,
         params={
             'BUILD_VERSION': build_version,
             'ASSEMBLY': assembly,
@@ -237,7 +238,7 @@ def start_olm_bundle(build_version: str, assembly: str, operator_nvrs: list,
         return
 
     return start_build(
-        job_name=Jobs.OLM_BUNDLE.value,
+        job=Jobs.OLM_BUNDLE,
         params={
             'BUILD_VERSION': build_version,
             'ASSEMBLY': assembly,
@@ -251,7 +252,7 @@ def start_olm_bundle(build_version: str, assembly: str, operator_nvrs: list,
 
 def start_sync_for_ci(version: str, **kwargs):
     return start_build(
-        job_name=Jobs.SYNC_FOR_CI.value,
+        job=Jobs.SYNC_FOR_CI,
         params={
             'ONLY_FOR_VERSION': version
         },
@@ -261,7 +262,7 @@ def start_sync_for_ci(version: str, **kwargs):
 
 def start_microshift_sync(version: str, assembly: str, **kwargs):
     return start_build(
-        job_name=Jobs.MICROSHIFT_SYNC.value,
+        job=Jobs.MICROSHIFT_SYNC,
         params={
             'BUILD_VERSION': version,
             'ASSEMBLY': assembly
@@ -325,7 +326,7 @@ def start_scan_osh(build_nvrs: list, email: Optional[str] = "", **kwargs):
         params['EMAIL'] = email
 
     return start_build(
-        job_name=Jobs.SCAN_OSH.value,
+        job=Jobs.SCAN_OSH,
         params=params,
         **kwargs
     )

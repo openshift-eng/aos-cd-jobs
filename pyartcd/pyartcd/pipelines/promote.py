@@ -639,6 +639,13 @@ class PromotePipeline:
         util.log_dir_tree(client_mirror_dir)  # print dir tree
         util.log_file_content(f"{client_mirror_dir}/sha256sum.txt")  # print sha256sum.txt
 
+        with open(f"{client_mirror_dir}/sha256sum.txt", "r") as shas:
+            archives = [line.split()[-1] for line in shas.readlines()]
+            seen = set()
+            dupes = [x for x in archives if x in seen or seen.add(x)]
+            if dupes:
+                raise ValueError(f'Duplicate archive entries in {client_mirror_dir}/sha256sum.txt: {dupes}')
+
         # Publish the clients to our S3 bucket.
         await util.mirror_to_s3(f"{base_to_mirror_dir}/{build_arch}", f"s3://art-srv-enterprise/pub/openshift-v4/{build_arch}", dry_run=self.runtime.dry_run)
         return f"{build_arch}/clients/{client_type}/{release_name}/sha256sum.txt"
@@ -666,7 +673,7 @@ class PromotePipeline:
         with open(f'{client_mirror_dir}/{archive_name}', 'rb') as f:
             shasum = hashlib.sha256(f.read()).hexdigest()
         with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:
-            f.write(f"{shasum}  oc-mirror.tar.gz\n")
+            f.write(f"{shasum}  {archive_name}\n")
 
         # Remove baremetal-installer binary
         os.remove(f'{client_mirror_dir}/{binary_name}')

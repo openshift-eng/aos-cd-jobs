@@ -8,7 +8,7 @@ import yaml
 from aioredlock import LockError
 
 from pyartcd import locks, util, plashets, exectools, constants, \
-    run_details, jenkins, record as record_util, oc
+    jenkins, record as record_util, oc
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.locks import Lock
 from pyartcd.runtime import Runtime
@@ -131,7 +131,7 @@ class Ocp4Pipeline:
         self.version.release = util.default_release_suffix()
 
         self.runtime.logger.info('Initializing build:\n%s', str(self.version))
-        run_details.update_title(f' - {self.version.stream}-{self.version.release} ')
+        jenkins.update_title(f' - {self.version.stream}-{self.version.release} ')
 
     async def _initialize_build_plan(self):
         """
@@ -212,62 +212,62 @@ class Ocp4Pipeline:
         Update build title and description accordingly.
         """
 
-        run_details.update_description('Pinned builds (whether source changed or not).<br/>')
+        jenkins.update_description('Pinned builds (whether source changed or not).<br/>')
 
         if not self.build_plan.build_rpms:
-            run_details.update_description('RPMs: not building.<br/>')
+            jenkins.update_description('RPMs: not building.<br/>')
 
         elif self.build_plan.rpms_included:
-            run_details.update_description(f'RPMs: building {self.build_plan.rpms_included}.<br/>')
+            jenkins.update_description(f'RPMs: building {self.build_plan.rpms_included}.<br/>')
 
         elif self.build_plan.rpms_excluded:
-            run_details.update_description(
+            jenkins.update_description(
                 f'RPMs: building all except {self.build_plan.rpms_excluded}.<br/>')
 
         else:
-            run_details.update_description('RPMs: building all.<br/>')
+            jenkins.update_description('RPMs: building all.<br/>')
 
         if self.build_plan.rpms_included:
-            run_details.update_title(self._display_tag_for(self.build_plan.rpms_included, 'RPM'))
+            jenkins.update_title(self._display_tag_for(self.build_plan.rpms_included, 'RPM'))
 
         elif self.build_plan.rpms_excluded:
-            run_details.update_title(
+            jenkins.update_title(
                 self._display_tag_for(self.build_plan.rpms_excluded, 'RPM', is_excluded=True))
 
         elif self.build_plan.build_rpms:
-            run_details.update_title(' [all RPMs]')
+            jenkins.update_title(' [all RPMs]')
 
-        run_details.update_description('Will create RPM compose.<br/>')
+        jenkins.update_description('Will create RPM compose.<br/>')
 
         if not self.build_plan.build_images:
-            run_details.update_description('Images: not building.<br/>')
+            jenkins.update_description('Images: not building.<br/>')
 
         elif self.mass_rebuild:
-            run_details.update_title(' [mass rebuild]')
-            run_details.update_description('Mass image rebuild (more than half) - invoking serializing semaphore<br/>')
+            jenkins.update_title(' [mass rebuild]')
+            jenkins.update_description('Mass image rebuild (more than half) - invoking serializing semaphore<br/>')
 
         elif self.build_plan.images_included:
             images_to_build = len(self.build_plan.images_included)
             if images_to_build <= 10:
-                run_details.update_description(f'Images: building {self.build_plan.images_included}.<br/>')
+                jenkins.update_description(f'Images: building {self.build_plan.images_included}.<br/>')
             else:
-                run_details.update_description(f'Images: building {images_to_build} images.<br/>')
+                jenkins.update_description(f'Images: building {images_to_build} images.<br/>')
 
         elif self.build_plan.images_excluded:
-            run_details.update_description(f'Images: building all except {self.build_plan.images_excluded}.<br/>')
+            jenkins.update_description(f'Images: building all except {self.build_plan.images_excluded}.<br/>')
 
         else:
-            run_details.update_description('Images: building all.<br/>')
+            jenkins.update_description('Images: building all.<br/>')
 
         if self.build_plan.images_included:
-            run_details.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
+            jenkins.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
 
         elif self.build_plan.images_excluded:
-            run_details.update_title(
+            jenkins.update_title(
                 self._display_tag_for(self.build_plan.images_excluded, 'image', is_excluded=True))
 
         elif self.build_plan.build_images:
-            run_details.update_title(' [all images]')
+            jenkins.update_title(' [all images]')
 
     async def _get_changes(self) -> dict:
         """
@@ -297,7 +297,7 @@ class Ocp4Pipeline:
         Logs the message and appends it to current job description
         """
         self.runtime.logger.info(msg)
-        run_details.update_description(f'{msg}<br/>')
+        jenkins.update_description(f'{msg}<br/>')
 
     def _check_changed_rpms(self, changes: dict):
         # Check changed RPMs
@@ -311,13 +311,13 @@ class Ocp4Pipeline:
             self._report('Will create RPM compose.')
             self.build_plan.rpms_included = changed_rpms
             self.build_plan.rpms_excluded.clear()
-            run_details.update_title(self._display_tag_for(self.build_plan.rpms_included, 'RPM'))
+            jenkins.update_title(self._display_tag_for(self.build_plan.rpms_included, 'RPM'))
 
         else:
             self.build_plan.build_rpms = False
             self._report('RPMs: none changed.')
             self._report('Will still create RPM compose.')
-            run_details.update_title(' [no changed RPMs]')
+            jenkins.update_title(' [no changed RPMs]')
 
     @staticmethod
     def _include_exclude(kind: str, includes: list, excludes: list) -> list:
@@ -347,7 +347,7 @@ class Ocp4Pipeline:
         if not changed_images:
             self._report('Images: none changed.')
             self.build_plan.build_images = False
-            run_details.update_title(' [no changed images]')
+            jenkins.update_title(' [no changed images]')
             return
 
         self._report(f'Found {len(changed_images)} image(s) with changes:\n{",".join(changed_images)}')
@@ -358,7 +358,7 @@ class Ocp4Pipeline:
         # Update build plan
         self.build_plan.images_included = changed_images + [child for child in changed_children if child not in changed_images]
         self.build_plan.images_excluded.clear()
-        run_details.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
+        jenkins.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
 
     def _gather_children(self, all_images: list, data: dict, initial: list, gather: bool):
         """
@@ -413,7 +413,7 @@ class Ocp4Pipeline:
         Update in the "build_plan" data structure.
         """
 
-        run_details.update_description('Building sources that have changed.<br/>')
+        jenkins.update_description('Building sources that have changed.<br/>')
         changes = await self._get_changes()
         self._check_changed_rpms(changes)
         await self._check_changed_images(changes)
@@ -604,9 +604,9 @@ class Ocp4Pipeline:
         failed_images = list(failed_map.keys())
 
         if len(failed_images) <= 10:
-            run_details.update_description(f'Failed images: {", ".join(failed_images)}<br/>')
+            jenkins.update_description(f'Failed images: {", ".join(failed_images)}<br/>')
         else:
-            run_details.update_description(f'{len(failed_images)} images failed. Check record.log for details<br/>')
+            jenkins.update_description(f'{len(failed_images)} images failed. Check record.log for details<br/>')
 
         self.runtime.logger.warning('Failed images: %s', ', '.join(failed_images))
 
@@ -778,8 +778,8 @@ class Ocp4Pipeline:
 
             self._mail_client.send_mail(
                 to='aos-art-automation+failed-sweep@redhat.com',
-                subject=f'Problem sweeping after {run_details.build_url}',
-                content=f'Check Jenkins console for details: {run_details.build_url}/console'
+                subject=f'Problem sweeping after {jenkins.current_build_url}',
+                content=f'Check Jenkins console for details: {jenkins.current_build_url}/console'
             )
 
     def _report_success(self):
@@ -798,7 +798,7 @@ class Ocp4Pipeline:
                             f'Elapsed image build time: {metrics[0]["elapsed_total_minutes"]} minutes\n' \
                             f'Time spent waiting for OSBS capacity: {metrics[0]["elapsed_wait_minutes"]} minutes'
 
-        run_details.update_description(f'<hr />Build results:<br/><br/>{timing_report}<br/>')
+        jenkins.update_description(f'<hr />Build results:<br/><br/>{timing_report}<br/>')
 
     async def run(self):
         await self._initialize()
@@ -861,7 +861,7 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, da
                mail_list_failure: str, ignore_locks: bool):
 
     if not await util.is_build_permitted(version):
-        run_details.update_description('Builds not permitted', append=False)
+        jenkins.update_description('Builds not permitted', append=False)
         raise RuntimeError('This build is being terminated because it is not permitted according to current group.yml')
 
     jenkins.init_jenkins()

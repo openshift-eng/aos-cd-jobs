@@ -532,6 +532,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
     @patch("shutil.rmtree")
     @patch("builtins.open")
     @patch("pyartcd.jenkins.update_title")
+    @patch("pyartcd.jenkins.start_scan_osh")
     @patch("pyartcd.jenkins.update_description")
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
@@ -591,7 +592,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
 
         # ApiServer rebuilt
         cmd_assert_mock.reset_mock()
-        parse_record_log_mock.return_value = {'build': [{'distgit': 'ose-openshift-apiserver', 'status': '0'}]}
+        parse_record_log_mock.return_value = {'build': [{'distgit': 'ose-openshift-apiserver', 'status': '0', 'nvrs': 'bogus'}]}
         self.ocp4.runtime.dry_run = False
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = ['image1', 'image2']

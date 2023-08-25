@@ -28,6 +28,7 @@ class Jobs(Enum):
     OLM_BUNDLE = 'aos-cd-builds/build%2Folm_bundle'
     SYNC_FOR_CI = 'scheduled-builds/sync-for-ci'
     MICROSHIFT_SYNC = 'aos-cd-builds/build%2Fmicroshift_sync'
+    SCAN_OSH = 'aos-cd-builds/build%2Fscan-osh'
 
 
 def init_jenkins():
@@ -313,3 +314,18 @@ def update_description(description: str, append: bool = True):
         description = build.get_description() + description
 
     set_build_description(build, description)
+
+
+def start_scan_osh(build_nvrs: str, email: Optional[str] = "", **kwargs):
+    params = {
+        'BUILD_NVRS': build_nvrs
+    }
+
+    if email:
+        params['EMAIL'] = email
+
+    return start_build(
+        job_name=Jobs.SCAN_OSH.value,
+        params=params,
+        **kwargs
+    )

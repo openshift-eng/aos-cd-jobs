@@ -1,3 +1,4 @@
+import functools
 import logging
 import os
 import time
@@ -5,6 +6,7 @@ from enum import Enum
 from typing import Optional
 
 from jenkinsapi.jenkins import Jenkins
+from jenkinsapi.job import Job
 from jenkinsapi.queue import QueueItem
 from jenkinsapi.build import Build
 from jenkinsapi.utils.crumb_requester import CrumbRequester
@@ -12,6 +14,10 @@ from jenkinsapi.utils.crumb_requester import CrumbRequester
 from pyartcd import constants
 
 logger = logging.getLogger(__name__)
+
+current_build_url = os.environ.get('BUILD_URL', None)
+current_job_name = os.environ.get('JOB_NAME', None)
+jenkins_client: Optional[Jenkins] = None
 
 
 class Jobs(Enum):
@@ -22,9 +28,6 @@ class Jobs(Enum):
     OLM_BUNDLE = 'aos-cd-builds/build%2Folm_bundle'
     SYNC_FOR_CI = 'scheduled-builds/sync-for-ci'
     MICROSHIFT_SYNC = 'aos-cd-builds/build%2Fmicroshift_sync'
-
-
-jenkins_client: Optional[Jenkins] = None
 
 
 def init_jenkins():
@@ -48,11 +51,27 @@ def init_jenkins():
     logger.info('Connected to Jenkins %s', jenkins_client.version)
 
 
-def wait_until_building(queue_item: QueueItem, delay: int = 5) -> str:
+def check_env_vars(func):
+    """
+    Enforces that BUILD_URL and JOB_NAME are set
+    """
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        if not current_build_url or not current_job_name:
+            logger.error('Env vars BUILD_URL and JOB_NAME must be defined!')
+            raise RuntimeError
+        return func(*args, **kwargs)
+
+    return wrapped
+
+
+@check_env_vars
+def wait_until_building(queue_item: QueueItem, job: Job, delay: int = 5) -> Build:
     """
     Watches a queue item and blocks until the scheduled build starts.
-
-    Returns the URL of the new build.
+    Updates the description of the new build with the details of the caller job
+    Returns a jenkinsapi.build.Build object representing the new build.
     """
 
     while True:
@@ -64,17 +83,26 @@ def wait_until_building(queue_item: QueueItem, delay: int = 5) -> str:
             logger.info('Build not started yet, sleeping for %s seconds...', delay)
             time.sleep(delay)
 
-    logger.info('Build started: number = %s', build_number)
-    return f"{data['task']['url']}{build_number}"
+    triggered_build_url = f"{data['task']['url']}{build_number}"
+    logger.info('Started new build at %s', triggered_build_url)
 
-
-def set_build_description(current_build_url: str, current_job_name: str, triggered_build: Build):
-    # Set build description to allow backlinking
-    current_build_number = list(filter(None, current_build_url.split('/')))[-1]
+    # Update the description of the new build with the details of the caller job
+    triggered_build_url = triggered_build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL)
+    triggered_build = Build(url=triggered_build_url, buildno=get_build_number(triggered_build_url), job=job)
     description = f'Started by upstream project <b>{current_job_name}</b> ' \
-                  f'build number <a href="{current_build_url}">{current_build_number}</a><br><br>'
-    triggered_build.job.jenkins.requester.post_and_confirm_status(
-        f'{triggered_build.baseurl}/submitDescription',
+                  f'build number <a href="{current_build_url}">{get_build_number(current_build_url)}</a><br><br>'
+    set_build_description(triggered_build, description)
+
+    return triggered_build
+
+
+def get_build_number(build_url: str) -> int:
+    return int(list(filter(None, build_url.split('/')))[-1])
+
+
+def set_build_description(build: Build, description: str):
+    build.job.jenkins.requester.post_and_confirm_status(
+        f'{build.baseurl}/submitDescription',
         params={
             'Submit': 'submit',
             'description': description
@@ -84,6 +112,7 @@ def set_build_description(current_build_url: str, current_job_name: str, trigger
     )
 
 
+@check_env_vars
 def start_build(job_name: str, params: dict,
                 block_until_building: bool = True,
                 block_until_complete: bool = False,
@@ -107,23 +136,11 @@ def start_build(job_name: str, params: dict,
     queue_item = job.invoke(build_params=params)
 
     if not (block_until_building or block_until_complete):
-        logger.info('Started new build for job: %s', job_name)
+        logger.info('Queued new build for job: %s', job_name)
         return
 
-    triggered_build_url = wait_until_building(queue_item, watch_building_delay)
-    logger.info('Started new build at %s', triggered_build_url)
-
-    try:
-        current_build_url = os.environ['BUILD_URL']
-        current_job_name = os.environ['JOB_NAME']
-    except KeyError:
-        logger.error('BUILD_URL and JOB_NAME env vars must be defined!')
-        raise
-
-    triggered_build_url = triggered_build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL)
-    triggered_build_no = int(triggered_build_url.split('/')[-1])
-    triggered_build = Build(url=triggered_build_url, buildno=triggered_build_no, job=job)
-    set_build_description(current_build_url, current_job_name, triggered_build)
+    # Wait for the build to start
+    triggered_build = wait_until_building(queue_item, job, watch_building_delay)
 
     if not block_until_complete:
         return None
@@ -136,8 +153,8 @@ def start_build(job_name: str, params: dict,
     return result
 
 
-def start_ocp4(build_version: str, assembly: str, rpm_list: list = [],
-               image_list: list = [], **kwargs) -> Optional[str]:
+def start_ocp4(build_version: str, assembly: str, rpm_list: list,
+               image_list: list, **kwargs) -> Optional[str]:
     params = {
         'BUILD_VERSION': build_version,
         'ASSEMBLY': assembly
@@ -245,3 +262,49 @@ def start_microshift_sync(version: str, assembly: str, **kwargs):
         },
         **kwargs
     )
+
+
+@check_env_vars
+def update_title(title: str, append: bool = True):
+    """
+    Set build title to <title>. If append is True, retrieve current title,
+    append <title> and update. Otherwise, replace current title
+    """
+
+    job = jenkins_client.get_job(current_job_name)
+    build = Build(
+        url=current_build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL),
+        buildno=int(list(filter(None, current_build_url.split('/')))[-1]),
+        job=job
+    )
+
+    if append:
+        title = build._data['displayName'] + title
+
+    data = {'json': f'{{"displayName":"{title}"}}'}
+    headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Referer': f"{build.baseurl}/configure"}
+    build.job.jenkins.requester.post_url(
+        f'{build.baseurl}/configSubmit',
+        params=data,
+        data='',
+        headers=headers)
+
+
+@check_env_vars
+def update_description(description: str, append: bool = True):
+    """
+    Set build description to <description>. If append is True, retrieve current description,
+    append <description> and update. Otherwise, replace current description
+    """
+
+    job = jenkins_client.get_job(current_job_name)
+    build = Build(
+        url=current_build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL),
+        buildno=int(list(filter(None, current_build_url.split('/')))[-1]),
+        job=job
+    )
+
+    if append:
+        description = build.get_description() + description
+
+    set_build_description(build, description)

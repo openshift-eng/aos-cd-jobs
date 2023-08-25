@@ -316,9 +316,9 @@ def update_description(description: str, append: bool = True):
     set_build_description(build, description)
 
 
-def start_scan_osh(build_nvrs: str, email: Optional[str] = "", **kwargs):
+def start_scan_osh(build_nvrs: list, email: Optional[str] = "", **kwargs):
     params = {
-        'BUILD_NVRS': build_nvrs
+        'BUILD_NVRS': ','.join(build_nvrs)
     }
 
     if email:

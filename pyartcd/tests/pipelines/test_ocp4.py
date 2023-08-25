@@ -137,8 +137,8 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
             mail_list_failure=''
         )
 
-    @patch("pyartcd.run_details.update_description")
-    @patch("pyartcd.run_details.update_title")
+    @patch("pyartcd.jenkins.update_description")
+    @patch("pyartcd.jenkins.update_title")
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._get_changes", return_value={})
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._check_changed_child_images")
     async def test_no_changes(self, *_):
@@ -150,8 +150,8 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.ocp4.build_plan.build_rpms, False)
         self.assertEqual(self.ocp4.build_plan.build_images, False)
 
-    @patch("pyartcd.run_details.update_description")
-    @patch("pyartcd.run_details.update_title")
+    @patch("pyartcd.jenkins.update_description")
+    @patch("pyartcd.jenkins.update_title")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "219 images", ""))
     async def test_check_changed_rpms(self, *_):
         await self.ocp4._initialize_build_plan()
@@ -177,8 +177,8 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
         self.ocp4._check_changed_rpms(changes)
         self.assertFalse(self.ocp4.build_plan.build_rpms)
 
-    @patch("pyartcd.run_details.update_description")
-    @patch("pyartcd.run_details.update_title")
+    @patch("pyartcd.jenkins.update_description")
+    @patch("pyartcd.jenkins.update_title")
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._get_changes", return_value={'rpms': ['rpm1', 'rpm2']})
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._check_changed_child_images")
     async def test_changed_rpms(self, *_):
@@ -200,8 +200,8 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.ocp4.build_plan.rpms_included, ['rpm1', 'rpm2'])
         self.assertEqual(self.ocp4.build_plan.rpms_excluded, [])
 
-    @patch("pyartcd.run_details.update_description")
-    @patch("pyartcd.run_details.update_title")
+    @patch("pyartcd.jenkins.update_description")
+    @patch("pyartcd.jenkins.update_title")
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._get_changes", return_value={'images': ['image1', 'image2']})
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._check_changed_child_images", return_value=[])
     async def test_changed_images(self, *_):
@@ -210,8 +210,8 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.ocp4.build_plan.build_images, True)
         self.assertEqual(self.ocp4.build_plan.images_included, ['image1', 'image2'])
 
-    @patch("pyartcd.run_details.update_description")
-    @patch("pyartcd.run_details.update_title")
+    @patch("pyartcd.jenkins.update_description")
+    @patch("pyartcd.jenkins.update_title")
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._get_changes")
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._check_changed_child_images")
     async def test_changed_child_images(self, check_changed_child_images_mock, get_changes_mock, *_):
@@ -269,7 +269,7 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(children, [])
 
-    @patch("pyartcd.run_details.update_description")
+    @patch("pyartcd.jenkins.update_description")
     @patch("pyartcd.exectools.cmd_gather_async")
     async def test_check_changed_child_images(self, cmd_gather_mock, _):
         cmd_gather_mock.return_value = (0, 'image1:\n  child1:\n    child2: {}\nimage2:\n  child3: {}', '')
@@ -302,8 +302,8 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
         changed_children = await self.ocp4._check_changed_child_images(changes)
         self.assertEqual(sorted(changed_children), [])
 
-    @patch("pyartcd.run_details.update_description")
-    @patch("pyartcd.run_details.update_title")
+    @patch("pyartcd.jenkins.update_description")
+    @patch("pyartcd.jenkins.update_title")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True,
            return_value=(0, 'image1:\n  child1:\n    child2: {}\nimage2:\n  child3: {}', ''))
     async def test_check_changed_images(self, *_):
@@ -376,7 +376,7 @@ class TestInitialize(unittest.IsolatedAsyncioTestCase):
             await self.ocp4._check_assembly()
 
     @patch("pyartcd.exectools.cmd_gather_async", return_value=(0, 'rhaos-4.12-rhel-8', ''))
-    @patch("pyartcd.run_details.update_title")
+    @patch("pyartcd.jenkins.update_title")
     async def test_initialize_version(self, *_):
 
         # Mock datetime.now()
@@ -487,7 +487,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
         return pipeline
 
     @patch("shutil.rmtree")
-    @patch("pyartcd.run_details.update_title")
+    @patch("pyartcd.jenkins.update_title")
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
     @patch("pyartcd.exectools.cmd_assert_async")
@@ -531,8 +531,8 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
 
     @patch("shutil.rmtree")
     @patch("builtins.open")
-    @patch("pyartcd.run_details.update_title")
-    @patch("pyartcd.run_details.update_description")
+    @patch("pyartcd.jenkins.update_title")
+    @patch("pyartcd.jenkins.update_description")
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
     @patch("pyartcd.util.load_group_config", return_value={'software_lifecycle': {'phase': 'release'}})
@@ -609,8 +609,8 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
     @patch("shutil.rmtree")
     @patch("builtins.open")
     @patch("pyartcd.record.parse_record_log", return_value={})
-    @patch("pyartcd.run_details.update_title")
-    @patch("pyartcd.run_details.update_description")
+    @patch("pyartcd.jenkins.update_title")
+    @patch("pyartcd.jenkins.update_description")
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
     @patch("pyartcd.util.load_group_config", return_value={'software_lifecycle': {'phase': 'release'}})

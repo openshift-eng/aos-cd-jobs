@@ -15,8 +15,8 @@ from pyartcd import constants
 
 logger = logging.getLogger(__name__)
 
-current_build_url = os.environ.get('BUILD_URL', None)
-current_job_name = os.environ.get('JOB_NAME', None)
+current_build_url = None
+current_job_name = None
 jenkins_client: Optional[Jenkins] = None
 
 
@@ -58,9 +58,14 @@ def check_env_vars(func):
 
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
+        global current_build_url, current_job_name
+        current_build_url = current_build_url or os.environ.get('BUILD_URL', None)
+        current_job_name = current_job_name or os.environ.get('JOB_NAME', None)
+
         if not current_build_url or not current_job_name:
             logger.error('Env vars BUILD_URL and JOB_NAME must be defined!')
             raise RuntimeError
+
         return func(*args, **kwargs)
 
     return wrapped

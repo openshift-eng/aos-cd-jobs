@@ -678,10 +678,11 @@ class Ocp4Pipeline:
             await exectools.cmd_assert_async(cmd)
 
         # Kick off SAST scans for builds that succeeded using the NVR
-        successful_build_nvrs = [build["nvrs"] for build in success_map.values()]
+        # Gives a comma separated list of NVRs, the filter-lambda function will handle the case of nvrs filed not found
+        successful_build_nvrs = list(filter(lambda x: x, [build.get("nvrs") for build in success_map.values()]))
 
         if successful_build_nvrs:
-            jenkins.start_scan_osh(build_nvrs=",".join(successful_build_nvrs))
+            jenkins.start_scan_osh(build_nvrs=successful_build_nvrs)
 
     async def _sync_images(self):
         if not self.build_plan.build_images:

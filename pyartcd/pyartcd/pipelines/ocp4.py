@@ -356,7 +356,8 @@ class Ocp4Pipeline:
         changed_children = await self._check_changed_child_images(changes)
 
         # Update build plan
-        self.build_plan.images_included = changed_images + [child for child in changed_children if child not in changed_images]
+        self.build_plan.images_included = changed_images + [child for child in changed_children if
+                                                            child not in changed_images]
         self.build_plan.images_excluded.clear()
         jenkins.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
 
@@ -452,6 +453,21 @@ class Ocp4Pipeline:
         except ChildProcessError:
             self.runtime.logger.error('Failed building RPMs')
             raise
+
+        try:
+            with open(f'{self._doozer_working}/record.log', 'r') as file:
+                record_log: dict = record_util.parse_record_log(file)
+
+            success_map = record_util.get_successful_rpms(record_log, full_record=True)
+
+            # Kick off SAST scans for builds that succeeded using the NVR
+            # Gives a comma separated list of NVRs, the filter-lambda function will handle the case of nvrs filed not found
+            successful_rpm_nvrs = list(filter(lambda x: x, [build.get("nvrs") for build in success_map.values()]))
+
+            if successful_rpm_nvrs:
+                jenkins.start_scan_osh(rpm_nvrs=successful_rpm_nvrs)
+        except Exception as e:
+            self.runtime.logger.error(f"Failed to trigger scan-osh job: {e}")
 
     async def _is_compose_build_permitted(self) -> bool:
         """
@@ -842,7 +858,8 @@ class Ocp4Pipeline:
               help='ocp-build-data fork to use (e.g. assembly definition in your own fork)')
 @click.option('--data-gitref', required=False, default='',
               help='Doozer data path git [branch / tag / sha] to use')
-@click.option('--pin-builds', is_flag=True, help='Build only specified rpms/images regardless of whether source has changed')
+@click.option('--pin-builds', is_flag=True,
+              help='Build only specified rpms/images regardless of whether source has changed')
 @click.option('--build-rpms', required=True,
               type=click.Choice(['all', 'only', 'except', 'none'], case_sensitive=False),
               help='Which RPMs are candidates for building? "only/except" refer to --rpm-list param')
@@ -866,7 +883,6 @@ class Ocp4Pipeline:
 async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str, pin_builds: bool,
                build_rpms: str, rpm_list: str, build_images: str, image_list: str, skip_plashets: bool,
                mail_list_failure: str, ignore_locks: bool):
-
     if not await util.is_build_permitted(version):
         jenkins.update_description('Builds not permitted', append=False)
         raise RuntimeError('This build is being terminated because it is not permitted according to current group.yml')

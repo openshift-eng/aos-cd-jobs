@@ -317,13 +317,23 @@ def update_description(description: str, append: bool = True):
     set_build_description(build, description)
 
 
-def start_scan_osh(build_nvrs: list, email: Optional[str] = "", **kwargs):
-    params = {
-        'BUILD_NVRS': ','.join(build_nvrs)
-    }
+def start_scan_osh(build_nvrs: Optional[list] = None,
+                   rpm_nvrs: Optional[list] = None,
+                   email: Optional[str] = "", **kwargs):
+    params = {}
+
+    if build_nvrs or rpm_nvrs:
+        if build_nvrs:
+            params["BUILD_NVRS"] = ",".join(build_nvrs)
+
+        if rpm_nvrs:
+            params["RPM_NVRS"] = ",".join(rpm_nvrs)
+    else:
+        logger.warning("Both BUILD_NVRS and RPMS_NVRS are empty, not triggering scan-osh job")
+        return
 
     if email:
-        params['EMAIL'] = email
+        params["EMAIL"] = email
 
     return start_build(
         job=Jobs.SCAN_OSH,

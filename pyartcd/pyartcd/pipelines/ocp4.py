@@ -2,7 +2,6 @@ import json
 import os.path
 import shutil
 import traceback
-from types import coroutine
 
 import click
 import yaml
@@ -493,29 +492,28 @@ class Ocp4Pipeline:
             return
 
         # Create a Lock manager instance
-        lock = Lock.COMPOSE
-        lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = lock.value.format(version=self.version.stream)
-
+        compose_lock = Lock.COMPOSE
         try:
-            async with await lock_manager.lock(lock_name):
-                # Build compose
-                plashets_built = await plashets.build_plashets(
-                    stream=self.version.stream,
-                    release=self.version.release,
-                    assembly=self.assembly,
-                    doozer_working=self._doozer_working,
-                    data_path=self.data_path,
-                    data_gitref=self.data_gitref,
-                    dry_run=self.runtime.dry_run
-                )
-                self.runtime.logger.info('Built plashets: %s', json.dumps(plashets_built, indent=4))
+            plashets_built = await locks.run_with_lock(
+                coro=plashets.build_plashets(
+                        stream=self.version.stream,
+                        release=self.version.release,
+                        assembly=self.assembly,
+                        doozer_working=self._doozer_working,
+                        data_path=self.data_path,
+                        data_gitref=self.data_gitref,
+                        dry_run=self.runtime.dry_run
+                    ),
+                lock=compose_lock,
+                lock_name=compose_lock.value.format(version=self.version.stream)
+            )
+            self.runtime.logger.info('Built plashets: %s', json.dumps(plashets_built, indent=4))
 
-                # public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
-                if plashets_built.get('rhel-server-ose-rpms', None):
-                    self.rpm_mirror.plashet_dir_name = plashets_built['rhel-server-ose-rpms']['plashetDirName']
-                    self.rpm_mirror.local_plashet_path = plashets_built['rhel-server-ose-rpms']['localPlashetPath']
-                    self.runtime.logger.info('rhel7 plashet to mirror: %s', str(self.rpm_mirror))
+            # public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
+            if plashets_built.get('rhel-server-ose-rpms', None):
+                self.rpm_mirror.plashet_dir_name = plashets_built['rhel-server-ose-rpms']['plashetDirName']
+                self.rpm_mirror.local_plashet_path = plashets_built['rhel-server-ose-rpms']['localPlashetPath']
+                self.runtime.logger.info('rhel7 plashet to mirror: %s', str(self.rpm_mirror))
 
         except ChildProcessError as e:
             error_msg = f'Failed building compose: {e}'
@@ -524,13 +522,6 @@ class Ocp4Pipeline:
             self._slack_client.bind_channel(f'openshift-{self.version.stream}')
             await self._slack_client.say(error_msg)
             raise
-
-        except LockError as e:
-            self.runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-            raise
-
-        finally:
-            await lock_manager.destroy()
 
         if self.assembly == 'stream':
             # Since plashets may have been rebuilt, fire off sync for CI. This will transfer RPMs out to
@@ -578,21 +569,10 @@ class Ocp4Pipeline:
 
     async def _mass_rebuild(self, doozer_cmd: list):
         lock = Lock.MASS_REBUILD
-        lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = lock.value  # version agnostic, only 1 mass rebuild allowed
-
-        try:
-            # Try to acquire mass-rebuild lock for build version
-            async with await lock_manager.lock(lock_name):
-                self.runtime.logger.info('Running command: %s', doozer_cmd)
-                await exectools.cmd_assert_async(doozer_cmd)
-
-        except LockError as e:
-            self.runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-            raise
-
-        finally:
-            await lock_manager.destroy()
+        self.runtime.logger.info('Running command: %s', doozer_cmd)
+        await locks.run_with_lock(coro=exectools.cmd_assert_async(doozer_cmd),
+                                  lock=lock,
+                                  lock_name=lock.value.format(version=self.version.stream))
 
     def _handle_image_build_failures(self):
         with open(f'{self._doozer_working}/record.log', 'r') as file:
@@ -713,28 +693,32 @@ class Ocp4Pipeline:
             return
 
         s3_base_dir = f'/enterprise/enterprise-{self.version.stream}'
-
-        # Create a Lock manager instance
         lock = Lock.MIRRORING_RPMS
-        lock_manager = locks.LockManager.from_lock(lock)
         lock_name = lock.value.format(version=self.version.stream)
 
         # Sync plashets to mirror
         try:
-            async with await lock_manager.lock(lock_name):
-                s3_path = f'{s3_base_dir}/latest/'
-                await sync_repo_to_s3_mirror(
+            s3_path = f'{s3_base_dir}/latest/'
+            await locks.run_with_lock(
+                coro=sync_repo_to_s3_mirror(
                     local_dir=self.rpm_mirror.local_plashet_path,
                     s3_path=s3_path,
                     dry_run=self.runtime.dry_run
-                )
+                ),
+                lock=lock,
+                lock_name=lock_name
+            )
 
-                s3_path = f'/enterprise/all/{self.version.stream}/latest/'
-                await sync_repo_to_s3_mirror(
+            s3_path = f'/enterprise/all/{self.version.stream}/latest/'
+            await locks.run_with_lock(
+                coro=sync_repo_to_s3_mirror(
                     local_dir=self.rpm_mirror.local_plashet_path,
                     s3_path=s3_path,
                     dry_run=self.runtime.dry_run
-                )
+                ),
+                lock=lock,
+                lock_name=lock.value.format(version=self.version.stream)
+            )
 
             self.runtime.logger.info('Finished mirroring OCP %s to openshift mirrors',
                                      f'{self.version.stream}-{self.version.release}')
@@ -746,13 +730,6 @@ class Ocp4Pipeline:
             self._slack_client.bind_channel(f'openshift-{self.version.stream}')
             await self._slack_client.say(error_msg)
             raise
-
-        except LockError as e:
-            self.runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-            raise
-
-        finally:
-            await lock_manager.destroy()
 
     async def _sweep(self):
         if self.all_image_build_failed:
@@ -812,43 +789,30 @@ class Ocp4Pipeline:
             self.runtime.logger.info('Building only where source has changed.')
             await self._plan_builds()
 
-        await self._run_with_distgit_rebase_lock(self._rebase_and_build_rpms())
+        if self.ignore_locks:
+            await self._rebase_and_build_rpms()
+        else:
+            await locks.run_with_lock(coro=self._rebase_and_build_rpms(),
+                                      lock=Lock.DISTGIT_REBASE,
+                                      lock_name=Lock.DISTGIT_REBASE.value.format(version=self.version.stream))
 
         if not self.skip_plashets:
             await self._build_compose()
         else:
             self.runtime.logger.warning('Skipping plashets creation as SKIP_PLASHETS was set to True')
 
-        await self._run_with_distgit_rebase_lock(self._rebase_images())
+        if self.ignore_locks:
+            await self._rebase_images()
+        else:
+            await locks.run_with_lock(coro=self._rebase_images(),
+                                      lock=Lock.DISTGIT_REBASE,
+                                      lock_name=Lock.DISTGIT_REBASE.value.format(version=self.version.stream))
 
         await self._build_images()
         await self._sync_images()
         await self._mirror_rpms()
         await self._sweep()
         self._report_success()
-
-    async def _run_with_distgit_rebase_lock(self, coro: coroutine):
-        """
-        Tries to acquire github-activity-lock-4.y, then executes func()
-        """
-
-        if self.ignore_locks:
-            return await coro
-
-        lock = Lock.DISTGIT_REBASE
-        lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = lock.value.format(version=self.version.stream)
-
-        try:
-            async with await lock_manager.lock(lock_name):
-                return await coro
-
-        except LockError as e:
-            self.runtime.logger.error('Failed acquiring lock %s: %s', e)
-            raise
-
-        finally:
-            await lock_manager.destroy()
 
 
 @cli.command("ocp4",

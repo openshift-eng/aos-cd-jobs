@@ -85,15 +85,25 @@ class RebuildPipeline:
         if get_assembly_type(releases_config, self.assembly) == AssemblyTypes.STREAM:
             raise ValueError("You may not rebuild a component for a stream assembly.")
 
+        lock = Lock.DISTGIT_REBASE
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        lock_name = lock.value.format(version=f'{major}.{minor}')
+
         if self.type == RebuildType.RPM:
-            # Rebases and builds the specified rpm
-            nvrs = await self._run_with_distgit_rebase_lock(self._rebase_and_build_rpm(release))
             if self.runtime.dry_run:
                 # fake rpm nvrs for dry run
                 nvrs = [
                     f"foo-0.0.1-{timestamp}.p0.git.1234567.assembly.{self.assembly}.el8",
                     f"foo-0.0.1-{timestamp}.p0.git.1234567.assembly.{self.assembly}.el7",
                 ]
+            else:
+                # Rebases and builds the specified rpm
+                nvrs = await locks.run_with_lock(
+                    coro=self._rebase_and_build_rpm(release),
+                    lock=lock,
+                    lock_name=lock_name
+                )
+
         elif self.type == RebuildType.IMAGE:
             # Determines RHEL version that the image is based on
             image_config = await self._get_meta_config()
@@ -106,7 +116,11 @@ class RebuildPipeline:
                 # Builds plashet repos
                 self._build_plashets(timestamp, el_version, group_config, image_config),
                 # Rebases distgit repo
-                self._run_with_distgit_rebase_lock(self._rebase_image(release)),
+                locks.run_with_lock(
+                    coro=self._rebase_image(release),
+                    lock=lock,
+                    lock_name=lock_name
+                )
             )
 
             # Generates rebuild.repo
@@ -571,26 +585,6 @@ class RebuildPipeline:
             }
         }
         return schema
-
-    async def _run_with_distgit_rebase_lock(self, coro: coroutine):
-        if self.ignore_locks:
-            return await coro
-
-        lock = Lock.DISTGIT_REBASE
-        lock_manager = locks.LockManager.from_lock(lock)
-        major, minor = util.isolate_major_minor_in_group(self.group)
-        lock_name = lock.value.format(version=f'{major}.{minor}')
-
-        async with await lock_manager.lock(lock_name):
-            try:
-                return await coro
-
-            except LockError as e:
-                self.runtime.logger.error('Failed acquiring lock %s: %s', e)
-                raise
-
-            finally:
-                await lock_manager.destroy()
 
 
 @cli.command("rebuild")

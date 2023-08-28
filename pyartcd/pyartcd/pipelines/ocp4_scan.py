@@ -137,19 +137,10 @@ class Ocp4ScanPipeline:
 async def ocp4_scan(runtime: Runtime, version: str):
     # Create a Lock manager instance
     lock = Lock.DISTGIT_REBASE
-    lock_manager = locks.LockManager.from_lock(lock)
-    lock_name = lock.value.format(version=version)
 
-    try:
-        # Skip the build if already locked
-        if await lock_manager.is_locked(lock_name):
-            runtime.logger.info('Looks like there is another build ongoing for %s -- skipping for this run', version)
-            await lock_manager.destroy()
-            return
-
-        async with await lock_manager.lock(lock_name):
-            await Ocp4ScanPipeline(runtime, version).run()
-
-    except LockError as e:
-        runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-        raise
+    await locks.run_with_lock(
+        coro=Ocp4ScanPipeline(runtime, version).run(),
+        lock=lock,
+        lock_name=lock.value.format(version=version),
+        check_if_locked=True
+    )

@@ -810,6 +810,9 @@ class Ocp4Pipeline:
     async def run(self):
         await self._initialize()
 
+        if self.assembly.lower() == "test":
+            jenkins.update_title(" [TEST]")
+
         if self.build_plan.pin_builds:
             self.runtime.logger.info('Pinned builds (whether source changed or not)')
             self._plan_pinned_builds()

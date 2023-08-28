@@ -12,7 +12,8 @@ def parse_record_log(file: TextIO) -> Dict[str, List[Dict[str, Optional[str]]]]:
     for line in file:
         fields = line.rstrip().split("|")
         type = fields[0]
-        record = {entry_split[0]: entry_split[1] if len(entry_split) > 1 else None for entry_split in map(lambda entry: entry.split("=", 1), fields[1:]) if entry_split[0]}
+        record = {entry_split[0]: entry_split[1] if len(entry_split) > 1 else None for entry_split in
+                  map(lambda entry: entry.split("=", 1), fields[1:]) if entry_split[0]}
         result.setdefault(type, []).append(record)
     return result
 
@@ -119,5 +120,21 @@ def get_successful_builds(record_log: dict, full_record: bool = False) -> dict:
         distgit = build['distgit']
         if build['status'] == '0':
             success_map[distgit] = build if full_record else build['task_url']
+
+    return success_map
+
+
+def get_successful_rpms(record_log: dict, full_record: bool = False) -> dict:
+    """
+    Returns a map of distgit => task_url OR full record.log dict entry IFF the distgit's build succeeded
+    """
+
+    rpms = record_log.get("build_rpm", [])
+    success_map = {}
+
+    for rpm in rpms:
+        distgit = rpm["distgit_key"]
+        if rpm["status"] == "0":
+            success_map[distgit] = rpm if full_record else rpm["task_url"]
 
     return success_map

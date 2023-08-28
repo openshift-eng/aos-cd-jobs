@@ -543,9 +543,7 @@ class Ocp4Pipeline:
             jenkins.start_rhcos(build_version=self.version.stream, new_build=False)
 
     async def _rebase_images(self):
-        if not self.build_plan.build_images:
-            self.runtime.logger.info('Not rebasing images')
-            return
+        self.runtime.logger.info('Rebasing images')
 
         cmd = self._doozer_base_command.copy()
         cmd.extend(self._include_exclude('images', self.build_plan.images_included, self.build_plan.images_excluded))
@@ -574,24 +572,6 @@ class Ocp4Pipeline:
             doozer_working=self._doozer_working,
             mail_client=self._mail_client
         )
-
-    async def _mass_rebuild(self, doozer_cmd: list):
-        lock = Lock.MASS_REBUILD
-        lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = lock.value  # version agnostic, only 1 mass rebuild allowed
-
-        try:
-            # Try to acquire mass-rebuild lock for build version
-            async with await lock_manager.lock(lock_name):
-                self.runtime.logger.info('Running command: %s', doozer_cmd)
-                await exectools.cmd_assert_async(doozer_cmd)
-
-        except LockError as e:
-            self.runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-            raise
-
-        finally:
-            await lock_manager.destroy()
 
     def _handle_image_build_failures(self):
         with open(f'{self._doozer_working}/record.log', 'r') as file:
@@ -631,9 +611,7 @@ class Ocp4Pipeline:
             )
 
     async def _build_images(self):
-        if not self.build_plan.build_images:
-            self.runtime.logger.info('Not building images.')
-            return
+        self.runtime.logger.info('Building images')
 
         # If any arch is GA, use signed for everything. See _build_compose() for details.
         group_config = await util.load_group_config(
@@ -652,10 +630,7 @@ class Ocp4Pipeline:
         # Build images. If more than one version is undergoing mass rebuilds,
         # serialize them to prevent flooding the queue
         try:
-            if self.mass_rebuild:
-                await self._mass_rebuild(cmd)
-            else:
-                await exectools.cmd_assert_async(cmd)
+            await exectools.cmd_assert_async(cmd)
 
         except ChildProcessError:
             self._handle_image_build_failures()
@@ -683,6 +658,37 @@ class Ocp4Pipeline:
 
         if successful_build_nvrs:
             jenkins.start_scan_osh(build_nvrs=successful_build_nvrs)
+
+    async def _rebase_and_build_images(self):
+        if not self.build_plan.build_images:
+            self.runtime.logger.info('Not building images.')
+            return
+
+        # In case of mass rebuilds, rebase and build should happend within the same lock scope
+        # Otherwise we might rebase, then get blocked on the mass rebuild lock
+        # As a consequence, we might be building outdated stuff
+        if self.mass_rebuild:
+            lock = Lock.MASS_REBUILD
+            lock_manager = locks.LockManager.from_lock(lock)
+            lock_name = lock.value  # version agnostic, only 1 mass rebuild allowed
+
+            try:
+                # Try to acquire mass-rebuild lock for build version
+                async with await lock_manager.lock(lock_name):
+                    await self._rebase_images()
+                    await self._build_images()
+
+            except LockError as e:
+                self.runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
+                raise
+
+            finally:
+                await lock_manager.destroy()
+
+        else:
+            # If it's not a mass rebuild, rebase and build without acquiring the lock
+            await self._rebase_images()
+            await self._build_images()
 
     async def _sync_images(self):
         if not self.build_plan.build_images:
@@ -823,9 +829,10 @@ class Ocp4Pipeline:
             await self._build_compose()
         else:
             self.runtime.logger.warning('Skipping plashets creation as SKIP_PLASHETS was set to True')
-        await self._rebase_images()
-        await self._build_images()
+
+        await self._rebase_and_build_images()
         await self._sync_images()
+
         await self._mirror_rpms()
         await self._sweep()
         self._report_success()

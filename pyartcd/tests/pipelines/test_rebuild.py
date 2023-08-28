@@ -327,12 +327,21 @@ images:
         }
         self.assertEqual(actual, expected)
 
+    @patch("pyartcd.locks.LockManager.from_lock", return_value=AsyncMock)
     @patch("pyartcd.pipelines.rebuild.RebuildPipeline._generate_example_schema")
     @patch("pyartcd.pipelines.rebuild.RebuildPipeline._rebase_and_build_rpm")
     @patch("pyartcd.pipelines.rebuild.datetime")
     @patch("pyartcd.pipelines.rebuild.load_releases_config")
     @patch("pyartcd.pipelines.rebuild.load_group_config")
-    async def test_run_rpm(self, load_group_config: AsyncMock, load_releases_config: AsyncMock, mock_datetime: Mock, _rebase_and_build_rpm: Mock, _generate_example_schema: Mock):
+    async def test_run_rpm(self, load_group_config: AsyncMock, load_releases_config: AsyncMock, mock_datetime: Mock,
+                           _rebase_and_build_rpm: Mock, _generate_example_schema: Mock, mocked_lm):
+        mocked_cm = AsyncMock()
+        mocked_cm.__aenter__ = AsyncMock()
+        mocked_cm.__aexit__ = AsyncMock()
+
+        mocked_lm.return_value = AsyncMock()
+        mocked_lm.return_value.lock.return_value = mocked_cm
+
         mock_datetime.utcnow.return_value = datetime(2021, 7, 16, 0, 0, 0, 0, tzinfo=timezone.utc)
         runtime = MagicMock(dry_run=False)
         load_group_config.return_value = {}
@@ -354,6 +363,7 @@ images:
         _rebase_and_build_rpm.assert_called_once_with("202107160000.p?")
         _generate_example_schema.assert_called_once_with(_rebase_and_build_rpm.return_value)
 
+    @patch("pyartcd.locks.LockManager.from_lock", return_value=AsyncMock)
     @patch("pyartcd.pipelines.rebuild.RebuildPipeline._generate_example_schema")
     @patch("pyartcd.pipelines.rebuild.RebuildPipeline._build_image")
     @patch("pyartcd.pipelines.rebuild.RebuildPipeline._copy_plashet_out_to_remote")
@@ -365,9 +375,18 @@ images:
     @patch("pyartcd.pipelines.rebuild.load_group_config")
     @patch("builtins.open")
     @patch("pyartcd.pipelines.rebuild.datetime")
-    async def test_run_image(self, mock_datetime: Mock, open: Mock, load_group_config: AsyncMock, load_releases_config: AsyncMock,
-                             _get_meta_config: AsyncMock, _build_plashets: AsyncMock, _rebase_image: AsyncMock,
-                             _generate_repo_file_for_image: Mock, _copy_plashet_out_to_remote: AsyncMock, _build_image: AsyncMock, _generate_example_schema: Mock):
+    async def test_run_image(self, mock_datetime: Mock, open: Mock, load_group_config: AsyncMock,
+                             load_releases_config: AsyncMock, _get_meta_config: AsyncMock, _build_plashets: AsyncMock,
+                             _rebase_image: AsyncMock, _generate_repo_file_for_image: Mock,
+                             _copy_plashet_out_to_remote: AsyncMock, _build_image: AsyncMock,
+                             _generate_example_schema: Mock, mocked_lm):
+        mocked_cm = AsyncMock()
+        mocked_cm.__aenter__ = AsyncMock()
+        mocked_cm.__aexit__ = AsyncMock()
+
+        mocked_lm.return_value = AsyncMock()
+        mocked_lm.return_value.lock.return_value = mocked_cm
+
         mock_datetime.utcnow.return_value = datetime(2021, 7, 16, 0, 0, 0, 0, tzinfo=timezone.utc)
         timestamp = mock_datetime.utcnow.return_value.strftime("%Y%m%d%H%M")
         runtime = MagicMock(dry_run=False)

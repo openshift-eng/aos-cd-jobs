@@ -1,0 +1,26 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: art-bot-github-token
+spec:
+  data:
+  - remoteRef:
+      key: art-bot-github-token
+      property: token-for-rate-limiting
+    secretKey: token-for-rate-limiting
+  - remoteRef:
+      key: art-bot-github-token
+      property: powerful
+    secretKey: powerful
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: main-secret-store
+  target:
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    name: synced-art-bot-github-token
+    template:
+      engineVersion: v2
+      mergePolicy: Replace
+      type: Opaque

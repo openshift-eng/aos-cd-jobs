@@ -1,0 +1,25 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: exd-ocp-buildvm-bot-prod-keytab
+spec:
+  data:
+  - remoteRef:
+      key: art/prod/exd-ocp-buildvm-bot-prod-keytab-principal
+      property: principal
+    secretKey: principal
+  - remoteRef:
+      key: art/prod/exd-ocp-buildvm-bot-prod-keytab
+    secretKey: keytab
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: main-secret-store
+  target:
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    name: synced-exd-ocp-buildvm-bot-prod-keytab
+    template:
+      engineVersion: v2
+      mergePolicy: Replace
+      type: Opaque

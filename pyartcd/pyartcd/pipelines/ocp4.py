@@ -511,14 +511,14 @@ class Ocp4Pipeline:
         try:
             plashets_built = await locks.run_with_lock(
                 coro=plashets.build_plashets(
-                        stream=self.version.stream,
-                        release=self.version.release,
-                        assembly=self.assembly,
-                        doozer_working=self._doozer_working,
-                        data_path=self.data_path,
-                        data_gitref=self.data_gitref,
-                        dry_run=self.runtime.dry_run
-                    ),
+                    stream=self.version.stream,
+                    release=self.version.release,
+                    assembly=self.assembly,
+                    doozer_working=self._doozer_working,
+                    data_path=self.data_path,
+                    data_gitref=self.data_gitref,
+                    dry_run=self.runtime.dry_run
+                ),
                 lock=compose_lock,
                 lock_name=compose_lock.value.format(version=self.version.stream)
             )

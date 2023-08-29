@@ -202,6 +202,17 @@ class Ocp4Pipeline:
             (not include_count and not exclude_count)
 
     async def _initialize(self):
+        jenkins.init_jenkins()
+
+        if not await util.is_build_permitted(
+                version=self.version.stream,
+                data_path=self.data_path,
+                doozer_working=self._doozer_working,
+                doozer_data_gitref=self.data_gitref):
+            jenkins.update_description('Builds not permitted', append=False)
+            raise RuntimeError(
+                'This build is being terminated because it is not permitted according to current group.yml')
+
         await self._check_assembly()
         await self._initialize_version()
         await self._initialize_build_plan()
@@ -476,7 +487,12 @@ class Ocp4Pipeline:
         If automation is "scheduled", job was triggered by hand and there were RPMs in the build plan: return True
         """
 
-        automation_state: str = await util.get_freeze_automation(self.version.stream)
+        automation_state: str = await util.get_freeze_automation(
+            version=self.version.stream,
+            doozer_data_path=self.data_path,
+            doozer_working=self._doozer_working,
+            doozer_data_gitref=self.data_gitref
+        )
         self.runtime.logger.info('Automation freeze for %s: %s', self.version.stream, automation_state)
 
         if automation_state not in ['scheduled', 'yes', 'True']:
@@ -886,11 +902,6 @@ class Ocp4Pipeline:
 async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str, pin_builds: bool,
                build_rpms: str, rpm_list: str, build_images: str, image_list: str, skip_plashets: bool,
                mail_list_failure: str, ignore_locks: bool):
-    if not await util.is_build_permitted(version):
-        jenkins.update_description('Builds not permitted', append=False)
-        raise RuntimeError('This build is being terminated because it is not permitted according to current group.yml')
-
-    jenkins.init_jenkins()
 
     pipeline = Ocp4Pipeline(
         runtime=runtime,

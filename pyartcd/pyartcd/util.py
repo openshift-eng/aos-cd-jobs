@@ -232,7 +232,7 @@ def get_changes(yaml_data: dict) -> dict:
     return changes
 
 
-async def get_freeze_automation(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
+async def get_freeze_automation(version: str, doozer_data_path: str = constants.OCP_BUILD_DATA_URL,
                                 doozer_working: str = '', doozer_data_gitref: str = '') -> str:
     """
     Returns freeze_automation flag for a specific group
@@ -246,7 +246,7 @@ async def get_freeze_automation(version: str, data_path: str = constants.OCP_BUI
         'doozer',
         f'--working-dir={doozer_working}' if doozer_working else '',
         '--assembly=stream',
-        f'--data-path={data_path}',
+        f'--data-path={doozer_data_path}',
         group_param,
         'config:read-group',
         '--default=no',
@@ -275,8 +275,16 @@ def is_manual_build() -> bool:
     return False
 
 
+def get_weekday() -> str:
+    """
+    Returns the current day of the week as a string
+    """
+
+    return datetime.today().strftime("%A")
+
+
 async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
-                             doozer_working: str = '', doozer_data_path: str = '') -> bool:
+                             doozer_working: str = '', doozer_data_gitref: str = '') -> bool:
     """
     Check whether the group should be built right now.
     This depends on:
@@ -286,7 +294,11 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
     """
 
     # Get 'freeze_automation' flag
-    freeze_automation = await get_freeze_automation(version, data_path, doozer_working, doozer_data_path)
+    freeze_automation = await get_freeze_automation(
+        version=version,
+        doozer_data_path=data_path,
+        doozer_working=doozer_working,
+        doozer_data_gitref=doozer_data_gitref)
     logger.info('Group freeze automation flag is set to: "%s"', freeze_automation)
 
     # Check for frozen automation
@@ -309,7 +321,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
             return True
 
         # Check current day of the week
-        weekday = datetime.today().strftime("%A")
+        weekday = get_weekday()
         if weekday in ['Saturday', 'Sunday']:
             logger.info('Automation is permitted during weekends, and today is %s', weekday)
             return True

@@ -572,7 +572,7 @@ class Ocp4Pipeline:
         self.runtime.logger.info('Running command: %s', doozer_cmd)
         await locks.run_with_lock(coro=exectools.cmd_assert_async(doozer_cmd),
                                   lock=lock,
-                                  lock_name=lock.value.format(version=self.version.stream))
+                                  lock_name=lock.value)  # version agnostic, only 1 mass rebuild allowed
 
     def _handle_image_build_failures(self):
         with open(f'{self._doozer_working}/record.log', 'r') as file:

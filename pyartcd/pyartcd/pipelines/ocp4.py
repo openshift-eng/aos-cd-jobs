@@ -201,14 +201,23 @@ class Ocp4Pipeline:
             (exclude_count and self.build_plan.active_image_count > exclude_count * 2) or \
             (not include_count and not exclude_count)
 
+    async def _is_build_permitted(self):
+        # For assembly != 'stream' always permit ocp4 builds
+        if self.assembly != 'stream':
+            self.runtime.logger.info('Permitting build for assembly %s', self.assembly)
+            return True
+
+        # For assembly = 'stream', we need to check automation freeze state
+        return await util.is_build_permitted(
+            version=self.version.stream,
+            data_path=self.data_path,
+            doozer_working=self._doozer_working,
+            doozer_data_gitref=self.data_gitref)
+
     async def _initialize(self):
         jenkins.init_jenkins()
 
-        if not await util.is_build_permitted(
-                version=self.version.stream,
-                data_path=self.data_path,
-                doozer_working=self._doozer_working,
-                doozer_data_gitref=self.data_gitref):
+        if not await self._is_build_permitted():
             jenkins.update_description('Builds not permitted', append=False)
             raise RuntimeError(
                 'This build is being terminated because it is not permitted according to current group.yml')

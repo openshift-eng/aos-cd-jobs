@@ -1,7 +1,8 @@
 import enum
 import logging
+from types import coroutine
 
-from aioredlock import Aioredlock
+from aioredlock import Aioredlock, LockError
 
 from pyartcd import redis
 
@@ -11,7 +12,7 @@ class Lock(enum.Enum):
     OLM_BUNDLE = 'olm-bundle-lock-{version}'
     MIRRORING_RPMS = 'mirroring-rpms-{version}'
     COMPOSE = 'compose-lock-{version}'
-    GITHUB_ACTIVITY = 'github-activity-lock-{version}'
+    DISTGIT_REBASE = 'distgit-rebase-lock-{version}'
     MASS_REBUILD = 'mass-rebuild-serializer'
     SIGNING = 'signing-lock-{signing_env}'
 
@@ -40,7 +41,7 @@ LOCK_POLICY = {
         'lock_timeout': 60 * 60 * 6,  # 6 hours
     },
     # github-activity-lock: give up after 1 hour
-    Lock.GITHUB_ACTIVITY: {
+    Lock.DISTGIT_REBASE: {
         'retry_count': 36000 * 1,
         'retry_delay_min': 0.1,
         'lock_timeout': 60 * 60 * 6,  # 6 hours
@@ -114,3 +115,31 @@ class LockManager(Aioredlock):
         self.logger.info('Releasing lock "%s"', lock.resource)
         await super().unlock(lock)
         self.logger.info('Lock released')
+
+
+async def run_with_lock(coro: coroutine, lock: Lock, lock_name: str, skip_if_locked: bool = False):
+    """
+    Tries to acquire a lock then awaits the provided coroutine object
+    :param coro: coroutine to be awaited
+    :param lock: enum object of Lock kind
+    :param lock_name: string to be attached to the lock object
+    :param skip_if_locked: do not wait if resource is already locked, just skip the task
+    """
+
+    lock_manager = LockManager.from_lock(lock)
+
+    try:
+        if skip_if_locked and await lock_manager.is_locked(lock_name):
+            lock_manager.logger.info('Looks like there is another task ongoing -- skipping for this run')
+            coro.close()
+            return
+
+        async with await lock_manager.lock(lock_name):
+            return await coro
+
+    except LockError as e:
+        lock_manager.logger.error('Failed acquiring lock %s: %s', e)
+        raise
+
+    finally:
+        await lock_manager.destroy()

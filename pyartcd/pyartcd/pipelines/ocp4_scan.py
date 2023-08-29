@@ -55,7 +55,6 @@ class Ocp4ScanPipeline:
             jenkins.start_ocp4(
                 build_version=self.version,
                 assembly='stream',
-                blocking=False,
                 rpm_list=self.changes.get('rpms', []),
                 image_list=self.changes.get('images', []),
             )
@@ -70,7 +69,7 @@ class Ocp4ScanPipeline:
             # Inconsistency probably means partial failure and we would like to retry.
             # but don't kick off more if already in progress.
             self.logger.info('Triggering a %s RHCOS build for consistency', self.version)
-            jenkins.start_rhcos(build_version=self.version, new_build=True, blocking=False)
+            jenkins.start_rhcos(build_version=self.version, new_build=True)
 
         elif self.rhcos_changed:
             self.logger.info('Detected at least one updated RHCOS')
@@ -83,7 +82,6 @@ class Ocp4ScanPipeline:
             jenkins.start_build_sync(
                 build_version=self.version,
                 assembly="stream",
-                blocking=False
             )
 
     async def _get_changes(self):

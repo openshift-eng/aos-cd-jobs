@@ -1,4 +1,4 @@
-
+import functools
 import logging
 import os
 import time
@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Optional
 
 from jenkinsapi.jenkins import Jenkins
+from jenkinsapi.job import Job
 from jenkinsapi.queue import QueueItem
 from jenkinsapi.build import Build
 from jenkinsapi.utils.crumb_requester import CrumbRequester
@@ -13,6 +14,10 @@ from jenkinsapi.utils.crumb_requester import CrumbRequester
 from pyartcd import constants
 
 logger = logging.getLogger(__name__)
+
+current_build_url = None
+current_job_name = None
+jenkins_client: Optional[Jenkins] = None
 
 
 class Jobs(Enum):
@@ -23,9 +28,7 @@ class Jobs(Enum):
     OLM_BUNDLE = 'aos-cd-builds/build%2Folm_bundle'
     SYNC_FOR_CI = 'scheduled-builds/sync-for-ci'
     MICROSHIFT_SYNC = 'aos-cd-builds/build%2Fmicroshift_sync'
-
-
-jenkins_client: Optional[Jenkins] = None
+    SCAN_OSH = 'aos-cd-builds/build%2Fscan-osh'
 
 
 def init_jenkins():
@@ -49,11 +52,32 @@ def init_jenkins():
     logger.info('Connected to Jenkins %s', jenkins_client.version)
 
 
-def block_until_building(queue_item: QueueItem, delay: int = 5) -> str:
+def check_env_vars(func):
+    """
+    Enforces that BUILD_URL and JOB_NAME are set
+    """
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        global current_build_url, current_job_name
+        current_build_url = current_build_url or os.environ.get('BUILD_URL', None)
+        current_job_name = current_job_name or os.environ.get('JOB_NAME', None)
+
+        if not current_build_url or not current_job_name:
+            logger.error('Env vars BUILD_URL and JOB_NAME must be defined!')
+            raise RuntimeError
+
+        return func(*args, **kwargs)
+
+    return wrapped
+
+
+@check_env_vars
+def wait_until_building(queue_item: QueueItem, job: Job, delay: int = 5) -> Build:
     """
     Watches a queue item and blocks until the scheduled build starts.
-
-    Returns the URL of the new build.
+    Updates the description of the new build with the details of the caller job
+    Returns a jenkinsapi.build.Build object representing the new build.
     """
 
     while True:
@@ -65,48 +89,24 @@ def block_until_building(queue_item: QueueItem, delay: int = 5) -> str:
             logger.info('Build not started yet, sleeping for %s seconds...', delay)
             time.sleep(delay)
 
-    logger.info('Build started: number = %s', build_number)
-    return f"{data['task']['url']}{build_number}"
+    triggered_build_url = f"{data['task']['url']}{build_number}"
+    logger.info('Started new build at %s', triggered_build_url)
+
+    # Update the description of the new build with the details of the caller job
+    triggered_build_url = triggered_build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL)
+    triggered_build = Build(url=triggered_build_url, buildno=get_build_number(triggered_build_url), job=job)
+    description = f'Started by upstream project <b>{current_job_name}</b> ' \
+                  f'build number <a href="{current_build_url}">{get_build_number(current_build_url)}</a><br><br>'
+    set_build_description(triggered_build, description)
+
+    return triggered_build
 
 
-def start_build(job_name: str, params: dict, blocking: bool = False,
-                watch_building_delay: int = 5) -> Optional[str]:
-    """
-    Starts a new Jenkins build
+def get_build_number(build_url: str) -> int:
+    return int(list(filter(None, build_url.split('/')))[-1])
 
-    :param job_name: e.g. "aos-cd-builds/build%2Fbuild-sync"
-    :param params: a key-value collection to be passed to the build
-    :param blocking: if True, will block until the new builds completes; if False,
-                    start a new build in "fire-and-forget" fashion
-    :param watch_building_delay: Poll rate for building state
 
-    Returns the build result if blocking=True, None otherwise
-    """
-
-    init_jenkins()
-    logger.info('Starting new build for job: %s', job_name)
-    job = jenkins_client.get_job(job_name)
-    queue_item = job.invoke(build_params=params)
-
-    build_url = block_until_building(queue_item, watch_building_delay)
-    logger.info('Started new build at %s', build_url)
-
-    # Set build description to allow backlinking
-    try:
-        upstream_build_url = os.environ['BUILD_URL']
-        job_name = os.environ['JOB_NAME']
-    except KeyError:
-        logger.error('BUILD_URL and JOB_NAME env vars must be defined!')
-        raise
-
-    upstream_build_number = list(filter(None, upstream_build_url.split('/')))[-1]
-    build = Build(
-        url=build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL),
-        buildno=int(build_url.split('/')[-1]),
-        job=job
-    )
-    description = f'Started by upstream project <b>{job_name}</b> ' \
-                  f'build number <a href="{upstream_build_url}">{upstream_build_number}</a><br><br>'
+def set_build_description(build: Build, description: str):
     build.job.jenkins.requester.post_and_confirm_status(
         f'{build.baseurl}/submitDescription',
         params={
@@ -117,17 +117,51 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
         valid=[200]
     )
 
-    # If blocking==True, wait for the build to complete; get its status and return it
-    if blocking:
-        logger.info('Waiting for build to complete...')
-        build.block_until_complete()
-        result = build.poll()['result']
-        logger.info('Build completed with result: %s', result)
-        return result
+
+@check_env_vars
+def start_build(job: Jobs, params: dict,
+                block_until_building: bool = True,
+                block_until_complete: bool = False,
+                watch_building_delay: int = 5) -> Optional[str]:
+    """
+    Starts a new Jenkins build
+
+    :param job: one of Jobs enum
+    :param params: a key-value collection to be passed to the build
+    :param block_until_building: True by default. Will block until the new build starts. This ensures
+        triggered jobs are properly backlinked to parent jobs.
+    :param block_until_complete: False by default. Will block until the new build completes
+    :param watch_building_delay: Poll rate for building state
+
+    Returns the build result if block_until_complete is True, None otherwise
+    """
+
+    init_jenkins()
+    job_name = job.value
+    logger.info('Starting new build for job: %s', job_name)
+    job = jenkins_client.get_job(job_name)
+    queue_item = job.invoke(build_params=params)
+
+    if not (block_until_building or block_until_complete):
+        logger.info('Queued new build for job: %s', job_name)
+        return
+
+    # Wait for the build to start
+    triggered_build = wait_until_building(queue_item, job, watch_building_delay)
+
+    if not block_until_complete:
+        return None
+
+    # Wait for the build to complete; get its status and return it
+    logger.info('Waiting for build to complete...')
+    triggered_build.block_until_complete()
+    result = triggered_build.poll()['result']
+    logger.info('Build completed with result: %s', result)
+    return result
 
 
-def start_ocp4(build_version: str, assembly: str, rpm_list: list = [],
-               image_list: list = [], blocking: bool = False) -> Optional[str]:
+def start_ocp4(build_version: str, assembly: str, rpm_list: list,
+               image_list: list, **kwargs) -> Optional[str]:
     params = {
         'BUILD_VERSION': build_version,
         'ASSEMBLY': assembly
@@ -152,22 +186,22 @@ def start_ocp4(build_version: str, assembly: str, rpm_list: list = [],
         params['BUILD_IMAGES'] = 'none'
 
     return start_build(
-        job_name=Jobs.OCP4.value,
+        job=Jobs.OCP4,
         params=params,
-        blocking=blocking
+        **kwargs
     )
 
 
-def start_rhcos(build_version: str, new_build: bool, blocking: bool = False) -> Optional[str]:
+def start_rhcos(build_version: str, new_build: bool, **kwargs) -> Optional[str]:
     return start_build(
-        job_name=Jobs.RHCOS.value,
+        job=Jobs.RHCOS,
         params={'BUILD_VERSION': build_version, 'NEW_BUILD': new_build},
-        blocking=blocking
+        **kwargs
     )
 
 
 def start_build_sync(build_version: str, assembly: str, doozer_data_path: Optional[str] = None,
-                     doozer_data_gitref: Optional[str] = None, blocking: bool = False) -> Optional[str]:
+                     doozer_data_gitref: Optional[str] = None, **kwargs) -> Optional[str]:
     params = {
         'BUILD_VERSION': build_version,
         'ASSEMBLY': assembly,
@@ -178,33 +212,33 @@ def start_build_sync(build_version: str, assembly: str, doozer_data_path: Option
         params['DOOZER_DATA_GITREF'] = doozer_data_gitref
 
     return start_build(
-        job_name=Jobs.BUILD_SYNC.value,
+        job=Jobs.BUILD_SYNC,
         params=params,
-        blocking=blocking
+        **kwargs
     )
 
 
-def start_build_microshift(build_version: str, assembly: str, dry_run: bool, blocking: bool = False) -> Optional[str]:
+def start_build_microshift(build_version: str, assembly: str, dry_run: bool, **kwargs) -> Optional[str]:
     return start_build(
-        job_name=Jobs.BUILD_MICROSHIFT.value,
+        job=Jobs.BUILD_MICROSHIFT,
         params={
             'BUILD_VERSION': build_version,
             'ASSEMBLY': assembly,
             'DRY_RUN': dry_run
         },
-        blocking=blocking
+        **kwargs
     )
 
 
 def start_olm_bundle(build_version: str, assembly: str, operator_nvrs: list,
                      doozer_data_path: str = constants.OCP_BUILD_DATA_URL,
-                     doozer_data_gitref: str = '', blocking: bool = False) -> Optional[str]:
+                     doozer_data_gitref: str = '', **kwargs) -> Optional[str]:
     if not operator_nvrs:
         logger.warning('Empty operator NVR received: skipping olm-bundle')
         return
 
     return start_build(
-        job_name=Jobs.OLM_BUNDLE.value,
+        job=Jobs.OLM_BUNDLE,
         params={
             'BUILD_VERSION': build_version,
             'ASSEMBLY': assembly,
@@ -212,26 +246,97 @@ def start_olm_bundle(build_version: str, assembly: str, operator_nvrs: list,
             'DOOZER_DATA_GITREF': doozer_data_gitref,
             'OPERATOR_NVRS': ','.join(operator_nvrs)
         },
-        blocking=blocking
+        **kwargs
     )
 
 
-def start_sync_for_ci(version: str, blocking: bool = False):
+def start_sync_for_ci(version: str, **kwargs):
     return start_build(
-        job_name=Jobs.SYNC_FOR_CI.value,
+        job=Jobs.SYNC_FOR_CI,
         params={
             'ONLY_FOR_VERSION': version
         },
-        blocking=blocking
+        **kwargs
     )
 
 
-def start_microshift_sync(version: str, assembly: str, blocking: bool = False):
+def start_microshift_sync(version: str, assembly: str, **kwargs):
     return start_build(
-        job_name=Jobs.MICROSHIFT_SYNC.value,
+        job=Jobs.MICROSHIFT_SYNC,
         params={
             'BUILD_VERSION': version,
             'ASSEMBLY': assembly
         },
-        blocking=blocking
+        **kwargs
+    )
+
+
+@check_env_vars
+def update_title(title: str, append: bool = True):
+    """
+    Set build title to <title>. If append is True, retrieve current title,
+    append <title> and update. Otherwise, replace current title
+    """
+
+    job = jenkins_client.get_job(current_job_name)
+    build = Build(
+        url=current_build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL),
+        buildno=int(list(filter(None, current_build_url.split('/')))[-1]),
+        job=job
+    )
+
+    if append:
+        title = build._data['displayName'] + title
+
+    data = {'json': f'{{"displayName":"{title}"}}'}
+    headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Referer': f"{build.baseurl}/configure"}
+    build.job.jenkins.requester.post_url(
+        f'{build.baseurl}/configSubmit',
+        params=data,
+        data='',
+        headers=headers)
+
+
+@check_env_vars
+def update_description(description: str, append: bool = True):
+    """
+    Set build description to <description>. If append is True, retrieve current description,
+    append <description> and update. Otherwise, replace current description
+    """
+
+    job = jenkins_client.get_job(current_job_name)
+    build = Build(
+        url=current_build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL),
+        buildno=int(list(filter(None, current_build_url.split('/')))[-1]),
+        job=job
+    )
+
+    if append:
+        description = build.get_description() + description
+
+    set_build_description(build, description)
+
+
+def start_scan_osh(build_nvrs: Optional[list] = None,
+                   rpm_nvrs: Optional[list] = None,
+                   email: Optional[str] = "", **kwargs):
+    params = {}
+
+    if build_nvrs or rpm_nvrs:
+        if build_nvrs:
+            params["BUILD_NVRS"] = ",".join(build_nvrs)
+
+        if rpm_nvrs:
+            params["RPM_NVRS"] = ",".join(rpm_nvrs)
+    else:
+        logger.warning("Both BUILD_NVRS and RPMS_NVRS are empty, not triggering scan-osh job")
+        return
+
+    if email:
+        params["EMAIL"] = email
+
+    return start_build(
+        job=Jobs.SCAN_OSH,
+        params=params,
+        **kwargs
     )

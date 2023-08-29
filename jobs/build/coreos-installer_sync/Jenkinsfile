@@ -117,7 +117,7 @@ node {
             key_name: "redhatrelease2",
             arch: "x86_64",
             digest: "",
-            client_type: "",
+            client_type: "ocp",
             product: "coreos-installer",
         )
 

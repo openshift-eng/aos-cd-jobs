@@ -55,8 +55,9 @@ class BuildSyncPipeline:
         await self._update_nightly_imagestreams()
 
         #  All good: reset fail count to 0
-        await redis.set_value(self.fail_count_name, 0)
-        self.runtime.logger.info('Fail count "%s" set to 0', self.fail_count_name)
+        if self.assembly == 'stream':
+            await redis.set_value(self.fail_count_name, 0)
+            self.runtime.logger.info('Fail count "%s" set to 0', self.fail_count_name)
 
     async def _retrigger_current_nightly(self):
         """

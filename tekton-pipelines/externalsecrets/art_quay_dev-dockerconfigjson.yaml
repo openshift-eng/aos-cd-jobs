@@ -1,0 +1,21 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: art-quay-dev-dockerconfigjson
+spec:
+  data:
+  - remoteRef:
+      key: art/prod/openshift-release-dev+art_quay_dev@quay.io-dockerconfigjson
+    secretKey: .dockerconfigjson
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: main-secret-store
+  target:
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    name: synced-art-quay-dev-dockerconfigjson
+    template:
+      engineVersion: v2
+      mergePolicy: Replace
+      type: kubernetes.io/dockerconfigjson

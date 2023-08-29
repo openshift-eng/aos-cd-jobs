@@ -77,3 +77,65 @@ class TestUtil(IsolatedAsyncioTestCase):
             sub_path=''
         )
         self.assertEqual(url, 'https///github.com/openshift/ironic-image/blob/release-4.13/')
+
+    @patch("pyartcd.exectools.cmd_gather_async")
+    async def test_get_freeze_automation(self, cmd_gather_async: AsyncMock):
+        cmd_gather_async.return_value = (0, '', '')
+
+        await util.get_freeze_automation(
+            version='4.15'
+        )
+        cmd_gather_async.assert_awaited_once_with(
+            ['doozer', '', '--assembly=stream', '--data-path=https://github.com/openshift-eng/ocp-build-data',
+             '--group=openshift-4.15', 'config:read-group', '--default=no', 'freeze_automation'])
+
+        cmd_gather_async.reset_mock()
+        await util.get_freeze_automation(
+            version='4.15',
+            doozer_data_path='https://github.com/random-fork/ocp-build-data',
+            doozer_working='doozer_working',
+            doozer_data_gitref='random-branch'
+        )
+        cmd_gather_async.assert_awaited_once_with(
+            ['doozer', '--working-dir=doozer_working', '--assembly=stream',
+             '--data-path=https://github.com/random-fork/ocp-build-data',
+             '--group=openshift-4.15@random-branch', 'config:read-group', '--default=no', 'freeze_automation'])
+
+    @patch("pyartcd.util.get_weekday")
+    @patch("pyartcd.util.is_manual_build")
+    @patch("pyartcd.util.get_freeze_automation")
+    async def test_is_build_permitted(self, get_freeze_automation_mock: AsyncMock, is_manual_build_mock, weekday_mock):
+        # Automation is frozen
+        get_freeze_automation_mock.return_value = 'yes'
+        res = await util.is_build_permitted(version='4.15')
+        self.assertFalse(res)
+
+        get_freeze_automation_mock.return_value = 'True'
+        res = await util.is_build_permitted(version='4.15')
+        self.assertFalse(res)
+
+        # Scheduled automation is frozen, scheduled build
+        get_freeze_automation_mock.return_value = 'scheduled'
+        is_manual_build_mock.return_value = False
+        res = await util.is_build_permitted(version='4.15')
+        self.assertFalse(res)
+
+        # Scheduled automation is frozen, manual build
+        is_manual_build_mock.return_value = True
+        res = await util.is_build_permitted(version='4.15')
+        self.assertTrue(res)
+
+        # Automation frozen during weekdays; scheduled builds
+        get_freeze_automation_mock.return_value = 'weekdays'
+        is_manual_build_mock.return_value = False
+        weekday_mock.return_value = 'Sunday'
+        res = await util.is_build_permitted(version='4.15')
+        self.assertTrue(res)
+        weekday_mock.return_value = 'Monday'
+        res = await util.is_build_permitted(version='4.15')
+        self.assertFalse(res)
+
+        # Unknown value for 'freeze_automation'
+        get_freeze_automation_mock.return_value = 'unknown'
+        res = await util.is_build_permitted(version='4.15')
+        self.assertTrue(res)

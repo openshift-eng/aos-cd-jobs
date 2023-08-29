@@ -32,9 +32,13 @@ data:
     # by storing krb5 credential cache into a file rather than kernel keyring.
     # See https://blog.tomecek.net/post/kerberos-in-a-container/
     default_ccache_name = FILE:/tmp/krb5cc_%{uid}
-    rdns = false
-    default_realm = IPA.REDHAT.COM
     dns_lookup_realm = true
     dns_lookup_kdc = true
-    allow_weak_crypto = yes
+    ticket_lifetime = 24h
+    renew_lifetime = 7d
+    forwardable = true
+    rdns = false
+    dns_canonicalize_hostname = false
+    allow_weak_crypto = no
     udp_preference_limit = 0
+    default_realm = IPA.REDHAT.COM

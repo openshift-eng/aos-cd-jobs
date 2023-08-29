@@ -30,6 +30,7 @@ class TestInitialBuildPlan(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 
@@ -134,6 +135,7 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 
@@ -346,6 +348,7 @@ class TestInitialize(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 
@@ -480,6 +483,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
         pipeline._doozer_working = 'doozer_working'
@@ -692,6 +696,7 @@ class TestBuildCompose(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 
@@ -812,6 +817,7 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 
@@ -881,6 +887,7 @@ class TestSyncImages(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 
@@ -925,6 +932,7 @@ class TestSyncImages(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 
@@ -976,6 +984,7 @@ class TestMirrorRpms(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 
@@ -1030,6 +1039,7 @@ class TestUtils(unittest.IsolatedAsyncioTestCase):
             build_images='all',
             image_list='',
             skip_plashets=False,
+            ignore_locks=False,
             mail_list_failure=''
         )
 

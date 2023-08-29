@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipeline
+secrets:
+- name: synced-art-publish-ci-dockerconfigjson
+- name: synced-art-quay-dev-dockerconfigjson
+- name: synced-openshift-bot-ssh-private-key

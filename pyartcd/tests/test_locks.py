@@ -54,7 +54,7 @@ class TestLocks(IsolatedAsyncioTestCase):
             coro=task(1, 2, 3),
             lock=Lock.DISTGIT_REBASE,
             lock_name='bogus',
-            check_if_locked=True
+            skip_if_locked=True
         )
         task.assert_awaited_once_with(1, 2, 3)
 
@@ -65,6 +65,6 @@ class TestLocks(IsolatedAsyncioTestCase):
             coro=task(1, 2, 3),
             lock=Lock.DISTGIT_REBASE,
             lock_name='bogus',
-            check_if_locked=True
+            skip_if_locked=True
         )
         task.assert_not_awaited()

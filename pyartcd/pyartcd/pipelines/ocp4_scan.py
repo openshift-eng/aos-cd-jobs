@@ -142,5 +142,5 @@ async def ocp4_scan(runtime: Runtime, version: str):
         coro=Ocp4ScanPipeline(runtime, version).run(),
         lock=lock,
         lock_name=lock.value.format(version=version),
-        check_if_locked=True
+        skip_if_locked=True
     )

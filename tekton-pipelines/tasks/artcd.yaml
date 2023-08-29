@@ -1,0 +1,79 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: artcd
+  labels:
+    app: "artcd"
+spec:
+  params:
+    - name: script
+      description: The artcd script to run
+      type: string
+      default: "artcd $@"
+    - name: args
+      description: artcd arguments to be passed
+      type: array
+      default: []
+  stepTemplate:
+    env:
+      - name: "TASKRUN_NAMESPACE"
+        value: "$(context.taskRun.namespace)"
+      - name: "TASKRUN_NAME"
+        value: "$(context.taskRun.name)"
+      - name: "TASKRUN_UID"
+        value: "$(context.taskRun.uid)"
+  steps:
+    - env:
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: api_token
+              name: synced-art-bot-slack-api-token
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: powerful
+              name: synced-art-bot-github-token
+      image: image-registry.openshift-image-registry.svc:5000/$(context.taskRun.namespace)/artcd:latest  # This is a test image
+      name: invoke-artcd
+      script: "$(params.script)"
+      args: ["$(params.args[*])"]
+      computeResources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 100m
+          memory: 384Mi
+      volumeMounts:
+        - mountPath: /etc/artcd/
+          name: artcd-config
+        - mountPath: /home/dev/.config/doozer/
+          name: doozer-config
+        - mountPath: /etc/kerberos-keytab
+          name: kerberos-keytab
+        - mountPath: /etc/krb5.conf.d/krb5-redhat.conf
+          name: kerberos-config
+          subPath: krb5-redhat.conf
+        - mountPath: /home/dev/.gitconfig
+          name: git-config
+          subPath: .gitconfig
+  volumes:
+    - configMap:
+        name: artcd-config
+      name: artcd-config
+    - configMap:
+        name: doozer-config
+      name: doozer-config
+    - configMap:
+        name: kerberos-config
+      name: kerberos-config
+    - name: kerberos-keytab
+      secret:
+        secretName: synced-exd-ocp-buildvm-bot-prod-keytab
+    - name: art-bot-slack-api-token
+      secret:
+        secretName: synced-exd-ocp-buildvm-bot-prod-keytab
+    - configMap:
+        name: git-config
+      name: git-config

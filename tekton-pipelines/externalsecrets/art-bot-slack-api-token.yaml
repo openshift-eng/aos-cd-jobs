@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: art-bot-slack-api-token
+spec:
+  data:
+  - remoteRef:
+      key: art/prod/art-bot-slack-api-token
+      property: api_token
+    secretKey: api_token
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: main-secret-store
+  target:
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    name: synced-art-bot-slack-api-token
+    template:
+      engineVersion: v2
+      mergePolicy: Replace
+      type: Opaque

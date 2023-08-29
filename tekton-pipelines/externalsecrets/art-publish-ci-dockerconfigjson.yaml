@@ -1,0 +1,21 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: art-publish-ci-dockerconfigjson
+spec:
+  data:
+  - remoteRef:
+      key: art/prod/art-publish@ci-dockerconfigjson
+    secretKey: .dockerconfigjson
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: main-secret-store
+  target:
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    name: synced-art-publish-ci-dockerconfigjson
+    template:
+      engineVersion: v2
+      mergePolicy: Replace
+      type: kubernetes.io/dockerconfigjson

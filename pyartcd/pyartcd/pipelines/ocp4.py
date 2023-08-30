@@ -932,7 +932,7 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, da
 
     else:
         # Create a Lock manager instance
-        lock = Lock.GITHUB_ACTIVITY
+        lock = Lock.BUILD
         lock_manager = locks.LockManager.from_lock(lock)
         lock_name = lock.value.format(version=version)
 

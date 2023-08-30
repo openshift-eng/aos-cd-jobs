@@ -79,6 +79,7 @@ class Ocp4Pipeline:
         self._doozer_working = os.path.abspath(f'{self.runtime.working_dir / "doozer_working"}')
         self.data_path = data_path
         self.data_gitref = data_gitref
+        self.success_nvrs = []
 
         group_param = f'--group=openshift-{version}'
         if data_gitref:
@@ -485,9 +486,9 @@ class Ocp4Pipeline:
             successful_rpm_nvrs = list(filter(lambda x: x, [build.get("nvrs") for build in success_map.values()]))
 
             if successful_rpm_nvrs:
-                jenkins.start_scan_osh(rpm_nvrs=successful_rpm_nvrs)
+                self.success_nvrs += successful_rpm_nvrs
         except Exception as e:
-            self.runtime.logger.error(f"Failed to trigger scan-osh job: {e}")
+            self.runtime.logger.error(f"Failed to get successfully build RPM NVRs: {e}")
 
     async def _is_compose_build_permitted(self) -> bool:
         """
@@ -723,7 +724,7 @@ class Ocp4Pipeline:
         successful_build_nvrs = list(filter(lambda x: x, [build.get("nvrs") for build in success_map.values()]))
 
         if successful_build_nvrs:
-            jenkins.start_scan_osh(build_nvrs=successful_build_nvrs)
+            self.success_nvrs += successful_build_nvrs
 
     async def _sync_images(self):
         if not self.build_plan.build_images:
@@ -848,6 +849,12 @@ class Ocp4Pipeline:
 
         jenkins.update_description(f'<hr />Build results:<br/><br/>{timing_report}<br/>')
 
+    def _trigger_osh_scans(self):
+        try:
+            jenkins.start_scan_osh(nvrs=self.success_nvrs)
+        except Exception as e:
+            self.runtime.logger.error(f"Failed to trigger scan-osh job: {e}")
+
     async def run(self):
         await self._initialize()
 
@@ -873,6 +880,9 @@ class Ocp4Pipeline:
         await self._mirror_rpms()
         await self._sweep()
         self._report_success()
+
+        if self.success_nvrs:  # Trigger osh scans for successfully built images and RPMs
+            self._trigger_osh_scans()
 
 
 @cli.command("ocp4",
@@ -911,7 +921,6 @@ class Ocp4Pipeline:
 async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str, pin_builds: bool,
                build_rpms: str, rpm_list: str, build_images: str, image_list: str, skip_plashets: bool,
                mail_list_failure: str, ignore_locks: bool):
-
     pipeline = Ocp4Pipeline(
         runtime=runtime,
         assembly=assembly,

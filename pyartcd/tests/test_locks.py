@@ -15,7 +15,7 @@ class TestLocks(TestCase):
     def test_lock_name(self):
         lock: Lock = Lock.BUILD
         lock_name = lock.value.format(version='4.14')
-        self.assertEqual(lock_name, 'github-activity-lock-4.14')
+        self.assertEqual(lock_name, 'build-lock-4.14')
 
     @patch("pyartcd.redis.redis_url", return_value='fake_url')
     @patch("aioredlock.algorithm.Aioredlock.__attrs_post_init__")

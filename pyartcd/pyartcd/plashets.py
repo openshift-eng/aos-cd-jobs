@@ -31,6 +31,14 @@ previous_packages = [
     "python3-openvswitch",
 ]
 
+ironic_previous_packages = [
+    "openstack-ironic",
+    "openstack-ironic-inspector",
+    "openstack-ironic-python-agent",
+    "python-ironic-lib",
+    "python-sushy",
+]
+
 
 def plashet_config_for_major_minor(major, minor):
     return {
@@ -56,7 +64,7 @@ def plashet_config_for_major_minor(major, minor):
             "product_version": f"OSE-IRONIC-{major}.{minor}-RHEL-9",
             "include_embargoed": False,
             "embargoed_tags": [],  # unlikely to exist until we begin using -gating tag
-            "include_previous_packages": [],
+            "include_previous_packages": ironic_previous_packages,
         },
         "rhel-8-server-ose-rpms-embargoed": {
             "slug": "el8-embargoed",

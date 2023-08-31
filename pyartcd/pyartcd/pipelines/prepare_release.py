@@ -16,7 +16,7 @@ import semver
 from doozerlib.assembly import AssemblyTypes
 from doozerlib.util import go_suffix_for_arch
 from elliottlib.assembly import assembly_group_config
-from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory, set_blocking_advisory, get_blocking_advisories
+from elliottlib.errata import set_blocking_advisory, get_blocking_advisories
 from elliottlib.model import Model
 from jira.resources import Issue
 from pyartcd import exectools, constants
@@ -211,14 +211,6 @@ class PrepareReleasePipeline:
         # currently for rpm advisory and cves only
         _LOGGER.info("Sweep bugs into the the advisories...")
         self.sweep_bugs()
-
-        _LOGGER.info("Adding placeholder bugs...")
-        for impetus, advisory in advisories.items():
-            bug_ids = get_bug_ids(advisory)
-            jira_ids = get_jira_issue_from_advisory(advisory)
-            if not bug_ids and not jira_ids:  # Only create placeholder bug if the advisory has no attached bugs
-                _LOGGER.info("Create placeholder bug for %s advisory %s...", impetus, advisory)
-                self.create_and_attach_placeholder_bug(impetus, advisory)
 
         _LOGGER.info("Processing attached Security Trackers")
         for _, advisory in advisories.items():
@@ -430,22 +422,6 @@ class PrepareReleasePipeline:
             _LOGGER.warn("Would have run %s", cmd)
             _LOGGER.warn("Would have pushed changes to upstream")
         return True
-
-    def create_and_attach_placeholder_bug(self, impetus: str, advisory: int):
-        cmd = [
-            "elliott",
-            f"--working-dir={self.elliott_working_dir}",
-            f"--group={self.group_name}",
-            "--assembly", self.assembly,
-            "create-placeholder",
-            f"--kind={impetus}",  # --kind in this command is actually `impetus`
-            f"--attach={advisory}",
-        ]
-        _LOGGER.info("Running command: %s", cmd)
-        if self.dry_run:
-            _LOGGER.warn("Would have run: %s", cmd)
-        else:
-            subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def sweep_bugs(

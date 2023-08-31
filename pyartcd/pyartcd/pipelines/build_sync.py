@@ -43,7 +43,7 @@ class BuildSyncPipeline:
 
         # Should we retrigger current nightly?
         if self.retrigger_current_nightly:
-            await self._retrigger_current_nightly()
+            await self._retrigger_current_nightlies()
             return
 
         # Backup imagestreams
@@ -59,33 +59,44 @@ class BuildSyncPipeline:
             await redis.set_value(self.fail_count_name, 0)
             self.runtime.logger.info('Fail count "%s" set to 0', self.fail_count_name)
 
-    async def _retrigger_current_nightly(self):
+    async def _retrigger_current_nightlies(self):
         """
-        Forces the release controller to re-run with existing images, by marking the current ImageStream as new
-        again for Release Controller. No change will be made to payload images in the release.
-        The purpose of triggering current nightly again is to run tests again on an already existing nightly.
+        Forces the release controllers to re-run with existing images, by marking the current ImageStreams as new
+        again for Release Controllers. No change will be made to payload images in the release.
+        The purpose of triggering current nightlies again is to run tests again on an already existing nightlies.
         """
 
         if self.assembly != 'stream':
             raise RuntimeError('Cannot use with assembly other than stream. Exiting.')
 
         if self.runtime.dry_run:
-            self.logger.info('Would have triggered new release cut in release controller.')
+            self.logger.info('Would have triggered new release cut in release controllers.')
             return
 
-        self.logger.info('Triggering release controller to cut new release using previously synced builds...')
-        cmd = f'oc --kubeconfig {os.environ["KUBECONFIG"]} -n ocp tag registry.access.redhat.com/ubi8 ' \
-              f'{self.version}-art-latest:trigger-release-controller'
-        _, out, _, = await exectools.cmd_gather_async(cmd)
-        self.logger.info('oc output: %s', out)
+        major, minor = map(int, self.version.split(".", maxsplit=1))
+        arches = {"x86_64"}
+        if (major, minor) >= (4, 11):
+            # 4.11+ aarch64 nightlies have blocking tests
+            arches.add("aarch64")
+        arches -= set(self.exclude_arches)
 
-        self.logger.info('Sleeping so that release controller has time to react...')
-        await asyncio.sleep(60)
+        async def _retrigger_arch(arch: str):
+            self.logger.info('Triggering %s release controller to cut new release using previously synced builds...', arch)
+            suffix = go_suffix_for_arch(arch, is_private=False)
+            cmd = f'oc --kubeconfig {os.environ["KUBECONFIG"]} -n ocp{suffix} tag registry.access.redhat.com/ubi8 ' \
+                f'{self.version}-art-latest{suffix}:trigger-release-controller'
+            _, out, _, = await exectools.cmd_gather_async(cmd)
+            self.logger.info('oc output: %s', out)
 
-        cmd = f'oc --kubeconfig {os.environ["KUBECONFIG"]} -n ocp tag ' \
-              f'{self.version}-art-latest:trigger-release-controller -d'
-        _, out, _, = await exectools.cmd_gather_async(cmd)
-        self.logger.info('oc output: %s', out)
+            self.logger.info('Sleeping so that release controller has time to react...')
+            await asyncio.sleep(60)
+
+            cmd = f'oc --kubeconfig {os.environ["KUBECONFIG"]} -n ocp{suffix} tag ' \
+                f'{self.version}-art-latest{suffix}:trigger-release-controller -d'
+            _, out, _, = await exectools.cmd_gather_async(cmd)
+            self.logger.info('oc output: %s', out)
+
+        await asyncio.gather(*(_retrigger_arch(arch) for arch in arches))
 
     async def _backup_all_imagestreams(self):
         """

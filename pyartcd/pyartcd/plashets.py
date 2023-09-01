@@ -66,7 +66,7 @@ def plashet_config_for_major_minor(major, minor):
             "embargoed_tags": [],  # unlikely to exist until we begin using -gating tag
             # FIXME: This is a short-term workaround for 4.15+ until prevalidation repo is in use
             # For more info about why this is needed, see https://github.com/openshift-eng/aos-cd-jobs/pull/3920
-            "include_previous_packages": ironic_previous_packages_for_4_15_plus if (major, minor) >= (4, 15) else [],
+            "include_previous_packages": ironic_previous_packages_for_4_15_plus if (int(major), int(minor)) >= (4, 15) else [],
         },
         "rhel-8-server-ose-rpms-embargoed": {
             "slug": "el8-embargoed",

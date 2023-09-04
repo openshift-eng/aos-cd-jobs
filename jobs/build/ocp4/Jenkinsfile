@@ -1,8 +1,14 @@
 #!/usr/bin/env groovy
 
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
+
 def compressBrewLogs() {
     echo "Compressing brew logs.."
     commonlib.shell(script: "./find-and-compress-brew-logs.sh")
+}
+
+def isMassRebuild() {
+    return currentBuild.displayName.contains("[mass rebuild]")
 }
 
 node {
@@ -227,6 +233,22 @@ node {
                 }
             }
         }
+
+    } catch (FlowInterruptedException interruptEx) {
+        // In case of manual interruption, we need to clean up locks
+        // that have possibly been created by the job run, including mass-rebuild-serializer
+        echo "***** Interrupted by user; will clean up"
+        locksToBeRemoved = [
+            "compose-lock-${params.BUILD_VERSION}",
+            "build-lock-${params.BUILD_VERSION}",
+            "mirroring-rpms-${params.BUILD_VERSION}"
+        ]
+
+        if (isMassRebuild()) {
+            locksToBeRemoved << "mass-rebuild-serializer"
+        }
+
+        build job: '../maintenance/maintenance%2Fcleanup-locks', parameters: [string(name: 'LOCKS', value: locksToBeRemoved.join(','))], propagate: false
 
     } catch (err) {
         if (params.MAIL_LIST_FAILURE.trim()) {

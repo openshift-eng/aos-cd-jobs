@@ -540,13 +540,13 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
     @patch("pyartcd.oc.registry_login")
     @patch("pyartcd.record.parse_record_log")
     @patch("pyartcd.exectools.cmd_assert_async")
-    async def test_build_images(self, cmd_assert_mock: AsyncMock, parse_record_log_mock, registry_login_mock, *_):
+    async def test_build_and_rebase_images(self, cmd_assert_mock: AsyncMock, parse_record_log_mock, registry_login_mock, *_):
         parse_record_log_mock.return_value = {}
         await self.ocp4._initialize_version()
 
         # no images
         self.assertFalse(self.ocp4.build_plan.build_images)
-        await self.ocp4._build_images()
+        await self.ocp4._rebase_and_build_images()
         cmd_assert_mock.assert_not_awaited()
 
         # Include images
@@ -615,61 +615,46 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
     @patch("pyartcd.util.load_group_config", return_value={'software_lifecycle': {'phase': 'release'}})
-    @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._mass_rebuild")
     @patch("pyartcd.exectools.cmd_assert_async")
-    async def test_mass_rebuild(self, cmd_assert_async_mock: AsyncMock, mass_rebuild_mock: AsyncMock, *_):
+    async def test_mass_rebuild(self, cmd_assert_async_mock: AsyncMock, *_):
         # Build plan includes more than half of the images: it's a mass rebuild
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = ['image1', 'image2', 'image3']
         self.ocp4.build_plan.images_excluded = []
         self.ocp4.check_mass_rebuild()
-        await self.ocp4._build_images()
-        mass_rebuild_mock.assert_awaited_once()
-        cmd_assert_async_mock.assert_not_awaited()
+        self.assertTrue(self.ocp4.mass_rebuild)
 
         # Build plan includes less than half of the images: not a mass rebuild
-        mass_rebuild_mock.reset_mock()
         cmd_assert_async_mock.reset_mock()
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = ['image1', 'image2']
         self.ocp4.build_plan.images_excluded = []
         self.ocp4.check_mass_rebuild()
-        await self.ocp4._build_images()
-        mass_rebuild_mock.assert_not_awaited()
-        cmd_assert_async_mock.assert_awaited_once()
+        self.assertFalse(self.ocp4.mass_rebuild)
 
         # Build plan excludes less than half of the images: it's a mass rebuild
-        mass_rebuild_mock.reset_mock()
         cmd_assert_async_mock.reset_mock()
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = []
         self.ocp4.build_plan.images_excluded = ['image1']
         self.ocp4.check_mass_rebuild()
-        await self.ocp4._build_images()
-        mass_rebuild_mock.assert_awaited_once()
-        cmd_assert_async_mock.assert_not_awaited()
+        self.assertTrue(self.ocp4.mass_rebuild)
 
         # Build plan excludes more than half of the images: not a mass rebuild
-        mass_rebuild_mock.reset_mock()
         cmd_assert_async_mock.reset_mock()
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = []
         self.ocp4.build_plan.images_excluded = ['image1', 'image2', 'image3']
         self.ocp4.check_mass_rebuild()
-        await self.ocp4._build_images()
-        mass_rebuild_mock.assert_not_awaited()
-        cmd_assert_async_mock.assert_awaited_once()
+        self.assertFalse(self.ocp4.mass_rebuild)
 
         # Build plan rebuilds everything: it's a mass rebuild
-        mass_rebuild_mock.reset_mock()
         cmd_assert_async_mock.reset_mock()
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = []
         self.ocp4.build_plan.images_excluded = []
         self.ocp4.check_mass_rebuild()
-        await self.ocp4._build_images()
-        mass_rebuild_mock.assert_awaited_once()
-        cmd_assert_async_mock.assert_not_awaited()
+        self.assertTrue(self.ocp4.mass_rebuild)
 
 
 class TestBuildCompose(unittest.IsolatedAsyncioTestCase):
@@ -795,11 +780,12 @@ class TestBuildCompose(unittest.IsolatedAsyncioTestCase):
 
 
 class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
+    @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._build_images")
     @patch("os.path.abspath", return_value='doozer_working')
     @patch("pyartcd.util.notify_dockerfile_reconciliations")
     @patch("pyartcd.util.notify_bz_info_missing")
     @patch("pyartcd.exectools.cmd_assert_async")
-    async def test_update_distgit(self, cmd_assert_mock: AsyncMock, bz_info_missing_mock, reconciliations_mock, _):
+    async def test_update_distgit(self, cmd_assert_mock: AsyncMock, bz_info_missing_mock, reconciliations_mock, *_):
         pipeline = ocp4.Ocp4Pipeline(
             runtime=MagicMock(dry_run=False),
             assembly='stream',
@@ -819,7 +805,7 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
 
         # No images to build
         pipeline.build_plan.build_images = False
-        await pipeline._rebase_images()
+        await pipeline._rebase_and_build_images()
         cmd_assert_mock.assert_not_awaited()
         bz_info_missing_mock.assert_not_called()
         reconciliations_mock.assert_not_called()
@@ -830,7 +816,7 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
         bz_info_missing_mock.reset_mock()
         reconciliations_mock.reset_mock()
         pipeline.build_plan.build_images = True
-        await pipeline._rebase_images()
+        await pipeline._rebase_and_build_images()
         cmd_assert_mock.assert_awaited_once_with(
             [
                 'doozer', '--assembly=stream', '--working-dir=doozer_working',
@@ -849,7 +835,7 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
         reconciliations_mock.reset_mock()
         pipeline.build_plan.build_images = True
         pipeline.runtime.dry_run = True
-        await pipeline._rebase_images()
+        await pipeline._rebase_and_build_images()
         cmd_assert_mock.assert_not_awaited()
         bz_info_missing_mock.assert_not_called()
         reconciliations_mock.assert_not_called()

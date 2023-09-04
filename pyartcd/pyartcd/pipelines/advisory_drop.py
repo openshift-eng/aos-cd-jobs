@@ -21,7 +21,6 @@ async def advisory_drop(runtime: Runtime, group: str, advisory: str, comment: st
         '--advisory', advisory,
         '--auto',
         '--comment', comment,
-        '--close-placeholder',
         '--from', 'RELEASE_PENDING',
         '--to', 'VERIFIED',
     ]

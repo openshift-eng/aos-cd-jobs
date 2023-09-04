@@ -75,10 +75,11 @@ async def get_keys(conn: aioredis.commands.Redis, pattern: str):
 
 
 @handle_connection
-async def delete_key(conn: aioredis.commands.Redis, key: str):
+async def delete_key(conn: aioredis.commands.Redis, key: str) -> int:
     """
     Deletes given key from Redis DB
+    Returns: 1 if successful, 0 otherwise
     """
 
     logger.debug('Deleting key %s', key)
-    await conn.delete(key)
+    return await conn.delete(key)

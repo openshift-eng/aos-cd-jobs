@@ -84,6 +84,7 @@ node {
                             "except",
                             "none",
                         ].join("\n"),
+                        defaultValue: "none",
                     ),
                     string(
                         name: 'RPM_LIST',
@@ -100,6 +101,7 @@ node {
                             "except",
                             "none",
                         ].join("\n"),
+                        defaultValue: "only",
                     ),
                     string(
                         name: 'IMAGE_LIST',

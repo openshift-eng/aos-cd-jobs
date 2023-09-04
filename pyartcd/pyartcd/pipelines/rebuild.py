@@ -599,7 +599,7 @@ async def rebuild(runtime: Runtime, ocp_build_data_url: str, version: str, assem
 
     else:
         # Create a Lock manager instance
-        lock = locks.Lock.GITHUB_ACTIVITY
+        lock = locks.Lock.BUILD
         lock_manager = locks.LockManager.from_lock(lock)
         lock_name = lock.value.format(version=version)
 

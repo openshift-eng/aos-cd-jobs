@@ -814,8 +814,8 @@ class PromotePipeline:
             return
 
         major, minor = util.isolate_major_minor_in_group(self.group)
-        if major == 4 and minor < 12:
-            self._logger.info("Skip microshift build for version < 4.12")
+        if major == 4 and minor < 13:
+            self._logger.info("Skip microshift build for version < 4.13")
             return
 
         if not util.is_rpm_pinned(releases_config, self.assembly, 'microshift'):

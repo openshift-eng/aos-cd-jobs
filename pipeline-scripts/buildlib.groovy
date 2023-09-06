@@ -160,7 +160,7 @@ def setup_venv(use_python38=false) {
         commonlib.shell(script: "rm -rf art-tools;  git clone https://github.com/${where[0]}/art-tools.git; cd art-tools; git checkout ${where[1]}")
     }
 
-    commonlib.shell(script: "pip install -e art-tools/elliott/ -e art-tools/doozer/ -e pyartcd/")
+    commonlib.shell(script: "pip install -e art-tools/elliott/ -e art-tools/doozer/ -e art-tools/pyartcd/")
     out = sh(
         script: 'pip list | grep "doozer\\|elliott"',
         returnStdout: true

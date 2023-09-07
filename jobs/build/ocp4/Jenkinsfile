@@ -152,6 +152,8 @@ node {
         currentBuild.description = ""
     }
 
+    def job_id = "ocp4-${currentBuild.number}"
+
     try {
 
         sshagent(["openshift-bot"]) {
@@ -194,8 +196,8 @@ node {
 
                 // Needed to detect manual builds
                 wrap([$class: 'BuildUser']) {
-                        builderEmail = env.BUILD_USER_EMAIL
-                    }
+                    builderEmail = env.BUILD_USER_EMAIL
+                }
 
                 buildlib.withAppCiAsArtPublish() {
                     withCredentials([
@@ -213,7 +215,7 @@ node {
                                 file(credentialsId: 'art-jenkins-ldap-serviceaccount-private-key', variable: 'RHSM_PULP_KEY'),
                                 file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
                             ]) {
-                        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", "JOB_ID=${job_id}", 'DOOZER_DB_NAME=art_dash']) {
                             sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
                             sh(script: cmd.join(' '), returnStdout: true)
                         }
@@ -248,7 +250,10 @@ node {
             locksToBeRemoved << "mass-rebuild-serializer"
         }
 
-        build job: '../maintenance/maintenance%2Fcleanup-locks', parameters: [string(name: 'LOCKS', value: locksToBeRemoved.join(','))], propagate: false
+        build job: 'maintenance/maintenance%2Fcleanup-locks',
+              parameters: [string(name: 'LOCKS', value: locksToBeRemoved.join(',')),
+                           string(name: 'JOB_ID', value: job_id)],
+              propagate: false
 
     } catch (err) {
         if (params.MAIL_LIST_FAILURE.trim()) {

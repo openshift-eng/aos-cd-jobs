@@ -25,6 +25,11 @@ node {
                         name: "LOCKS",
                         description: 'Comma/space-separated list of locks to be removed',
                         trim: true,
+                    ),
+                    string(
+                        name: "JOB_ID",
+                        description: 'Unique identifier of the job that supposedly created the locks to be removed',
+                        trim: true,
                     )
                 ]
             ]
@@ -43,7 +48,8 @@ node {
             "--working-dir=./artcd_working",
             "--config=./config/artcd.toml",
             "cleanup-locks",
-            "--locks=${commonlib.cleanCommaList(params.LOCKS)}"
+            "--locks=${commonlib.cleanCommaList(params.LOCKS)}",
+            "--job-id=${params.JOB_ID}"
         ]
 
         withCredentials([

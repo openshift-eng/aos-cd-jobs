@@ -131,7 +131,7 @@ node {
 
     stage("Sync to mirror") {
         if (params.LOCATION.startsWith("rcm-guest")) {
-            source_path = params.LOCATION.substring(10)
+            source_path = "${params.LOCATION.substring(10)}/"
             commonlib.shell(
                 script:
                 """

@@ -25,6 +25,8 @@ node() {
 
     commonlib.checkMock()
 
+    currentBuild.displayName += " [${params.BUILD_VERSION}]"
+
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     def doozer_working = "${WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)
@@ -62,7 +64,7 @@ node() {
                 }
             }
         } catch (exception) {
-            releaseChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")
+            releaseChannel.say(":alert: Failed checking for alignment PRs:\n${BUILD_URL}")
             currentBuild.result = "FAILURE"
             throw exception  // gets us a stack trace FWIW
         }

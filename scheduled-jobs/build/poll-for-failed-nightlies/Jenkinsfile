@@ -120,7 +120,7 @@ node() {
                         currentBuild.description += "\nNotifying for ${stream_name}"
 
                         // Notify ART internal channels
-                        msg = "ART automation has detected that the latest ${rejects} nightlies have been rejected in [${stream_name}](https://amd64.ocp.releases.ci.openshift.org/#${stream_name})"
+                        msg = "ART automation has detected that the latest ${rejects} nightlies have been rejected in <https://amd64.ocp.releases.ci.openshift.org/#${stream_name}|${stream_name}>"
                         commonlib.slacklib.to(stream_name).failure(msg)
 
                         // Get build version from stream name

@@ -21,11 +21,7 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.mockParam(),
-                    string(
-                        name: "LOCKS",
-                        description: 'Comma/space-separated list of locks to be removed',
-                        trim: true,
-                    )
+                    commonlib.artToolsParam()
                 ]
             ]
         ]
@@ -43,13 +39,14 @@ node {
             "--working-dir=./artcd_working",
             "--config=./config/artcd.toml",
             "cleanup-locks",
-            "--locks=${commonlib.cleanCommaList(params.LOCKS)}"
         ]
 
         withCredentials([
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                     string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                     string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
                 ]) {
             sh(script: cmd.join(' '), returnStdout: true)
         }

@@ -188,9 +188,11 @@ node {
                              string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                              string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                             ]) {
-                def out = sh(script: cmd.join(' '), returnStdout: true).trim()
-                echo "artcd returns:\n$out"
-                release_info = readJSON(text: out)
+                withEnv("BUILD_URL=${BUILD_URL}") {
+                    def out = sh(script: cmd.join(' '), returnStdout: true).trim()
+                    echo "artcd returns:\n$out"
+                    release_info = readJSON(text: out)
+                }
             }
         }
     }

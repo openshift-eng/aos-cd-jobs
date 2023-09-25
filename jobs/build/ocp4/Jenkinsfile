@@ -183,7 +183,7 @@ node {
                     "--build-rpms=${params.BUILD_RPMS}",
                     "--rpm-list=${params.RPM_LIST}",
                     "--build-images=${params.BUILD_IMAGES}",
-                    "--image-list=${params.IMAGE_LIST}"
+                    "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
                 ]
                 if (params.SKIP_PLASHETS) {
                     cmd << "--skip-plashets"

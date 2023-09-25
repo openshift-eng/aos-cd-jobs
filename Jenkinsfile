@@ -56,9 +56,10 @@ node('covscan') {
                 ),
                 booleanParam(
                     name        : 'EMERGENCY_IGNORE_ISSUES',
-                    description : ['Ignore all issues with constructing payload. ',
-                                   'In gen-payload, viable will be true whatever is the case, ',
-                                   'making internal consistencies in the nightlies possible.<br/>',
+                    description : ['Ignore all issues with constructing payload.',
+                                   'In gen-payload, viable will be true whatever is the case,',
+                                   'allowing internal inconsistencies.',
+                                   'Only supported for assemblies of type Stream.<br/>',
                                    '<b/>Do not use without approval.</b>'].join(' '),
                     defaultValue: false,
                 ),

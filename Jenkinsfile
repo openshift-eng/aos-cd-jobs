@@ -38,7 +38,7 @@ node() {
     def out = buildlib.doozer("${doozerOpts} config:read-group --yaml software_lifecycle", [capture: true]).trim()
     def software_lifecycle_phase = readYaml(text: out)["phase"]
 
-    if (phase != 'release') {
+    if (software_lifecycle_phase != 'release') {
         currentBuild.displayName += " [skipped]"
     } else {
         timestamps {

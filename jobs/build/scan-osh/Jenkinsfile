@@ -1,4 +1,4 @@
-node('ocp-artifacts') {
+node("ocp-artifacts") {
     wrap([$class: "BuildUser"]) {
         // gomod created files have filemode 444. It will lead to a permission denied error in the next build.
         sh "chmod u+w -R ."
@@ -7,7 +7,7 @@ node('ocp-artifacts') {
         def commonlib = buildlib.commonlib
 
         commonlib.describeJob("scan-osh", """
-            <h2>Kick off SAST scans for builds</h2>
+            <h2>Kick off SAST scans for builds in candidate tags for a particular version</h2>
         """)
 
         properties(
@@ -22,19 +22,26 @@ node('ocp-artifacts') {
                 [
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
+                        commonlib.dryrunParam(),
+                        commonlib.mockParam(),
+                        commonlib.artToolsParam(),
                         string(
                             name: "NVRS",
                             description: "The list of image and RPM NVRS for which we need to kick off the scans for",
                             defaultValue: "",
                             trim: true
                         ),
-                        string(
-                            name: "EMAIL",
-                            description: "Additional email to which the results of the scan should be sent out to",
-                            defaultValue: "",
-                            trim: true
+                        commonlib.ocpVersionParam("BUILD_VERSION", "4"),
+                        booleanParam(
+                            name: "CHECK_TRIGGERED",
+                            description: "Kick off scans for NVRs that haven't been triggered for. Can be used alongside ALL_BUILDS and NVRS param",
+                            defaultValue: false,
                         ),
-                        commonlib.mockParam(),
+                        booleanParam(
+                            name: "ALL_BUILDS",
+                            description: "Trigger scans for all builds in all candidate tags. Cannot be used if NVRS param is set",
+                            defaultValue: false,
+                        ),
                     ]
                 ],
             ]
@@ -43,8 +50,8 @@ node('ocp-artifacts') {
         commonlib.checkMock()
 
         stage("initialize") {
-            if (!params.NVRS) {
-                error("NVRS field should not be empty")
+            if (params.NVRS && params.ALL_BUILDS) {
+                error("Both NVRS and ALL_BUILDS value can't be set")
             }
 
             buildlib.cleanWorkdir("./artcd_working")
@@ -52,53 +59,41 @@ node('ocp-artifacts') {
         }
 
         stage("kick-off-scans") {
-            def nvrs = params.NVRS.split(',')
-            def cmd = []
-            for (String nvr : nvrs) {
-                if (nvr.contains("container")) {
-                    cmd = [
-                        "osh-cli",
-                        "mock-build",
-                        "--config=cspodman",
-                        "--brew-build",
-                        "${nvr}",
-                        "--nowait"
-                    ]
-                } else {
-                    def match = nvr =~ /(el[789])$/
-                    def rhelVersion = ""
+            def cmd = [
+                    "artcd",
+                    "-vv",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+            ]
 
-                    if (match) {
-                        def endingPattern = match[0][1]
-                        if (endingPattern == "el7") {
-                            rhelVersion = "7"
-                        } else if (endingPattern == "el8") {
-                            rhelVersion = "8"
-                        } else if (endingPattern == "el9") {
-                            rhelVersion = "9"
-                        } else {
-                            error("Invalid RHEL version")
-                        }
-                    } else {
-                        error("No regex match for RHEL version in RPM NVR: ${nvr}")
-                    }
+            if (params.DRY_RUN) {
+                cmd << "--dry-run"
+            }
 
-                    cmd = [
-                        "osh-cli",
-                        "mock-build",
-                        "--config=rhel-${rhelVersion}-x86_64",
-                        "--brew-build",
-                        "${nvr}",
-                        "--nowait"
-                    ]
+            cmd += [
+                "scan-osh",
+                "--version=${params.BUILD_VERSION}",
+            ]
+
+            if (params.NVRS) {
+                cmd << "--nvrs ${params.NVRS}"
+            } else {
+                if (params.ALL_BUILDS) {
+                    cmd << "--all-builds"
                 }
+            }
+            if (params.CHECK_TRIGGERED) {
+                    cmd << "--check-triggered"
+            }
 
-                if (params.EMAIL) {
-                        cmd << "--email-to ${EMAIL}"
-                }
-
+            withCredentials([
+                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                        string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                        string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+             ]) {
                 echo "Will run ${cmd}"
-                commonlib.shell(script: cmd.join(' '))
+                commonlib.shell(script: cmd.join(" "))
+
             }
         }
     }

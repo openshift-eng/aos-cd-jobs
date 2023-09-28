@@ -166,6 +166,11 @@ node {
                     "-v",
                     "--working-dir=./artcd_working",
                     "--config=./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
                     "ocp4",
                     "--version=${params.BUILD_VERSION}",
                     "--assembly=${params.ASSEMBLY}",

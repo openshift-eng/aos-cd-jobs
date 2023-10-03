@@ -201,52 +201,6 @@ node {
 
     def justifications =release_info.justifications ?: []
 
-    stage("sync RHCOS") {
-
-        /*
-         * This has inappropriate logic, disabling it for now.
-         * Current behavior is to look up rhcos version of machine-os-content
-         * under some circumstances, and to put the result on mirror.
-         * Behavior should be to look up the rhcos version in
-         * https://github.com/openshift/installer/blob/release-4.10/data/data/coreos/rhcos.json
-         * from the commit of installer, and ensure `latest-<version>` points to there.
-
-        def is_prerelease = release_info.type == "candidate"
-        if (release_info.type == "custom") {
-            echo "Skipping RHCOS sync for a custom release."
-            return
-        }
-        if (!is_prerelease && !params.FORCE_RHCOS_SYNC) {
-            echo "Skipping RHCOS sync for a ${release_info.type} release."
-            return
-        }
-        def rhcos_mirror_prefix = is_prerelease ? "pre-release" : "$major.$minor"
-        for (arch in arches) {
-            arch = commonlib.brewArchForGoArch(arch)
-            def rhcos_build = release_info.content[arch].rhcos_version
-            if (!rhcos_build) {
-                echo "Skip mirroring RHCOS for $arch"
-                continue
-            }
-            print("RHCOS build for $arch: $rhcos_build")
-            def sync_params = [
-                buildlib.param('String','OCP_VERSION', "$major.$minor"),
-                buildlib.param('String','OVERRIDE_NAME', release_info.name),
-                buildlib.param('String','ARCH', arch),
-                buildlib.param('String','MIRROR_PREFIX', rhcos_mirror_prefix),
-                buildlib.param('String','OVERRIDE_BUILD', rhcos_build),
-                booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
-                booleanParam(name: 'MOCK', value: params.MOCK)
-            ]
-            build(
-                job: '/aos-cd-builds/build%252Frhcos_sync',
-                propagate: false,
-                parameters: sync_params
-            )
-        }
-        */
-    }
-
     stage("send release message") {
         if (release_info.type == "custom") {
             echo "Don't send release messages for a custom release."
@@ -272,40 +226,6 @@ node {
             currentBuild.result = "UNSTABLE"
             slacklib.to(params.VERSION).say("@release-artists Sending Release Complete informational message has failed for ${umb_failures}, please investigate")
         }
-    }
-
-    stage("channel prs") {
-        if (release_info.type == "custom") {
-            echo "Skipping PR creation for custom (hotfix) release."
-            return
-        }
-        if (params.SKIP_CINCINNATI_PR_CREATION) {
-            echo "Don't create Cincinnati PRs because SKIP_CINCINNATI_PR_CREATION is set"
-            return
-        }
-        if (params.DRY_RUN) {
-            echo "[DRY RUN] Would have created Cincinnati PRs."
-            return
-        }
-        def candidate_pr_note = ""
-        if (justifications) {
-            candidate_pr_note += ""
-            for (String justification: justifications) {
-                candidate_pr_note += "${justification}\n"
-            }
-        }
-        def from_releases = release_info.content.findAll{ k, v -> v.from_release }.collect {k, v -> v.from_release.split(":")[-1] }
-        build(
-            job: '/aos-cd-builds/build%2Fcincinnati-prs',  propagate: true,
-            parameters: [
-                buildlib.param('String', 'FROM_RELEASE_TAG', from_releases.join(",")),
-                buildlib.param('String', 'RELEASE_NAME', release_info.name),
-                buildlib.param('String', 'ADVISORY_NUM', "${release_info.advisory?: 0}"),
-                buildlib.param('String', 'GITHUB_ORG', 'openshift'),
-                buildlib.param('String', 'CANDIDATE_PR_NOTE', candidate_pr_note),
-                booleanParam(name: 'SKIP_OTA_SLACK_NOTIFICATION', value: params.SKIP_OTA_SLACK_NOTIFICATION)
-            ]
-        )
     }
 
     stage("validate RHSAs") {

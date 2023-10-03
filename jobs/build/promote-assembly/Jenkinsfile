@@ -158,6 +158,9 @@ node {
         if (params.SKIP_SIGNING) {
             cmd << "--skip-signing"
         }
+        if (params.SKIP_CINCINNATI_PR_CREATION) {
+            cmd << "--skip-cincinnati-prs"
+        }
         if (params.NO_MULTI) {
             cmd << "--no-multi"
         }

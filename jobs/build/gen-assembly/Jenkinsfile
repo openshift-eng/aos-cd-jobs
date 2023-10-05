@@ -64,7 +64,7 @@ node {
                         ),
                         string(
                             name: 'LIMIT_ARCHES',
-                            description: '(Optional) (for custom assemblies only) Limit included arches to this list',
+                            description: '(Optional) Limit included arches to this list',
                             defaultValue: "",
                             trim: true,
                         ),

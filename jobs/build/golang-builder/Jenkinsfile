@@ -1,3 +1,8 @@
+def compressBrewLogs() {
+    echo "Compressing brew logs.."
+    commonlib.shell(script: "./find-and-compress-brew-logs.sh")
+}
+
 node {
     cleanWs(cleanWhenFailure: false)
     checkout scm
@@ -115,7 +120,7 @@ pipeline {
     post {
         always {
             script {
-                commonlib.compressBrewLogs()
+                compressBrewLogs()
                 commonlib.safeArchiveArtifacts([
                     "doozer_working/*.log",
                     "doozer_working/*.yaml",

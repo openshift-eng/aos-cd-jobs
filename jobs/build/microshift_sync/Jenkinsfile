@@ -179,6 +179,10 @@ node {
                                 commonlib.shell(script:"""
                                 aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "${latest_path}/*"
                                 """)
+
+                                commonlib.shell(script:"""
+                                aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "${mirror_path}/*"
+                                """)
                             }
                         }
                     }

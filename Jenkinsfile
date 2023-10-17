@@ -96,7 +96,7 @@ node {
             cmd += [
                 "rebuild",
                 "--ocp-build-data-url", params.OCP_BUILD_DATA_URL,
-                "-g", "openshift-$params.BUILD_VERSION",
+                "--version", params.BUILD_VERSION,
                 "--assembly", params.ASSEMBLY,
                 "--type", params.TYPE
             ]
@@ -120,6 +120,9 @@ node {
                     file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
                 ]) {
                     echo "Will run ${cmd}"
+                    wrap([$class: 'BuildUser']) {
+                        builderEmail = env.BUILD_USER_EMAIL
+                    }
                     withEnv([
                         "BUILD_USER_EMAIL=${builderEmail?: ''}",
                         "BUILD_URL=${BUILD_URL}",

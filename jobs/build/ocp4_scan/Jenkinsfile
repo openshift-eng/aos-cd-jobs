@@ -101,6 +101,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                             string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                             string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                         ]) {
                         // There is a vanishingly small race condition here, but it is not dangerous;
                         // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).

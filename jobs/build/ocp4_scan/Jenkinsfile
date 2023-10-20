@@ -81,7 +81,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                 sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
                 cmd = [
                     "artcd",
-                    "-v",
+                    "-vv",
                     "--working-dir=${artcd_working}",
                     "--config=./config/artcd.toml",
                 ]

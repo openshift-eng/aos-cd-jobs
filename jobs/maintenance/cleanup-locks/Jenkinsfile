@@ -48,7 +48,9 @@ node {
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
                 ]) {
-            sh(script: cmd.join(' '), returnStdout: true)
+            withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                sh(script: cmd.join(' '), returnStdout: true)
+            }
         }
     }
 }

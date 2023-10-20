@@ -152,7 +152,7 @@ def setup_venv(use_python38=false) {
     env.VIRTUAL_ENV = "${VIRTUAL_ENV}"
     env.PATH = "${VIRTUAL_ENV}/bin:${env.WORKSPACE}/art-tools/elliott:${env.WORKSPACE}/art-tools/doozer:${env.PATH}"
 
-    commonlib.shell(script: "pip install --upgrade pip")
+    commonlib.shell(script: "pip install --upgrade pip setuptools")
 
     // Override art-tools submodule
     if (params.ART_TOOLS_COMMIT) {

@@ -1,0 +1,38 @@
+FROM registry.access.redhat.com/ubi9/ubi:latest AS builder
+
+# Set metadata
+LABEL name="openshift-art/artcd-base" \
+  maintainer="OpenShift Team Automated Release Tooling <aos-team-art@redhat.com>"
+
+# Trust Red Hat IT Root CA certificates and add repos
+RUN curl -fLo /etc/pki/ca-trust/source/anchors/2022-IT-Root-CA.pem https://certs.corp.redhat.com/certs/2022-IT-Root-CA.pem \
+ && curl -fLo /etc/pki/ca-trust/source/anchors/2015-IT-Root-CA.pem https://certs.corp.redhat.com/certs/2015-IT-Root-CA.pem \
+ && update-ca-trust extract 
+
+# Copy repository configurations for software installations
+COPY tekton-pipelines/images/artcd/files/etc/yum.repos.d /etc/yum.repos.d/
+
+# Install necessary packages and Python libraries
+RUN dnf -y install python3 python3-pip python3-wheel python3-devel gcc krb5-devel wget tar gzip git krb5-workstation \
+brewkoji rhpkg \
+&& python3 -m pip install --upgrade setuptools
+
+# Set ARG for OC_VERSION
+ARG OC_VERSION=latest
+
+# Install oc client
+RUN wget -O "openshift-client-linux-${OC_VERSION}.tar.gz" "https://mirror.openshift.com/pub/openshift-v4/$(arch)/clients/ocp/${OC_VERSION}/openshift-client-linux.tar.gz" \
+  && tar -xzvf "openshift-client-linux-$OC_VERSION.tar.gz" oc kubectl
+
+# Install repos directly from their sources
+RUN python3 -m pip install "git+https://github.com/openshift-eng/art-tools.git#egg=rh-doozer&subdirectory=doozer" \
+ "git+https://github.com/openshift-eng/art-tools.git#egg=rh-elliott&subdirectory=elliott" \
+ "git+https://github.com/openshift-eng/art-tools.git#egg=pyartcd&subdirectory=pyartcd"
+
+# Clean up
+RUN dnf clean all
+
+# Create a non-root user and set as current
+RUN useradd -m -d /home/dev -u 1000 dev
+USER 1000
+WORKDIR /home/dev

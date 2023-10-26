@@ -67,7 +67,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
         buildlib.registry_quay_dev_login()
 
         stage("Initialize") {
-            currentBuild.displayName = "#${currentBuild.number} Scanning version ${params.VERSION}"
+            currentBuild.displayName = "#${currentBuild.number} ${params.VERSION}"
 
             if (params.DRY_RUN) {
                 currentBuild.displayName += "[DRY_RUN]"

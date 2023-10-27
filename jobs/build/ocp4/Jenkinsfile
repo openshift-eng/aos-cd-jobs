@@ -85,10 +85,10 @@ node {
                         name: 'BUILD_RPMS',
                         description: 'Which RPMs are candidates for building? "only/except" refer to list below',
                         choices: [
+                            "none",
                             "all",
                             "only",
                             "except",
-                            "none",
                         ].join("\n"),
                         defaultValue: "none",
                     ),
@@ -102,10 +102,10 @@ node {
                         name: 'BUILD_IMAGES',
                         description: 'Which images are candidates for building? "only/except" refer to list below',
                         choices: [
+                            "none",
                             "all",
                             "only",
                             "except",
-                            "none",
                         ].join("\n"),
                         defaultValue: "only",
                     ),

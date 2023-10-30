@@ -20,6 +20,7 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.mockParam(),
+                    commonlib.artToolsParam(),
                     string(
                         name: "SLACK_CHANNEL",
                         description: 'Slack channel to be notified in case of failures. ' +

@@ -14,7 +14,7 @@ RUN wget -O "openshift-client-linux-${OC_VERSION}.tar.gz" "https://mirror.opensh
 COPY pyartcd pyartcd
 COPY art-tools art-tools
 RUN python3 -m pip wheel --wheel-dir /usr/local/src/wheels \
-  ./art-tools/elliott ./art-tools/doozer ./pyartcd
+  ./art-tools/elliott ./art-tools/doozer ./art-tools/pyartcd
 
 FROM registry.access.redhat.com/ubi9/ubi:9.2
 LABEL name="openshift-art/art-cd" \

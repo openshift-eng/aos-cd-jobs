@@ -160,9 +160,9 @@ def setup_venv(use_python38=false) {
         commonlib.shell(script: "rm -rf art-tools;  git clone https://github.com/${where[0]}/art-tools.git; cd art-tools; git checkout ${where[1]}")
     }
 
-    commonlib.shell(script: "pip install -e art-tools/elliott/ -e art-tools/doozer/ -e art-tools/pyartcd/")
+    commonlib.shell(script: "cd art-tools && ./install.sh")
     out = sh(
-        script: 'pip list | grep "doozer\\|elliott"',
+        script: 'pip list | grep "doozer\\|elliott\\|pyartcd"',
         returnStdout: true
     )
     echo "Installed pyartcd:"

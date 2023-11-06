@@ -7,14 +7,14 @@ LABEL name="openshift-art/artcd-base" \
 # Trust Red Hat IT Root CA certificates and add repos
 RUN curl -fLo /etc/pki/ca-trust/source/anchors/2022-IT-Root-CA.pem https://certs.corp.redhat.com/certs/2022-IT-Root-CA.pem \
  && curl -fLo /etc/pki/ca-trust/source/anchors/2015-IT-Root-CA.pem https://certs.corp.redhat.com/certs/2015-IT-Root-CA.pem \
- && update-ca-trust extract 
+ && update-ca-trust extract
 
 # Copy repository configurations for software installations
 COPY tekton-pipelines/images/artcd/files/etc/yum.repos.d /etc/yum.repos.d/
 
 # Install necessary packages and Python libraries
 RUN dnf -y install python3 python3-pip python3-wheel python3-devel gcc krb5-devel wget tar gzip git krb5-workstation \
-brewkoji rhpkg \
+brewkoji rhpkg podman go \
 && python3 -m pip install --upgrade setuptools
 
 # Set ARG for OC_VERSION
@@ -32,7 +32,26 @@ RUN python3 -m pip install "git+https://github.com/openshift-eng/art-tools.git#e
 # Clean up
 RUN dnf clean all
 
-# Create a non-root user and set as current
-RUN useradd -m -d /home/dev -u 1000 dev
-USER 1000
+# Create a non-root user - see https://aka.ms/vscode-remote/containers/non-root-user.
+ARG USERNAME=dev
+# On Linux, replace with your actual UID, GID if not the default 1000
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create the "dev" user
+RUN groupadd --gid "$USER_GID" "$USERNAME" \
+ && useradd --uid "$USER_UID" --gid "$USER_GID" -m "$USERNAME" \
+ && mkdir -p /home/"$USERNAME"/.docker \
+ && chown -R "${USER_UID}:${USER_GID}" /home/"$USERNAME" \
+ && chmod -R 0755 /home/"$USERNAME" \
+ && mkdir -p /home/"$USERNAME"/.docker \
+ # and allow it passwordless sudo \
+ && mkdir /etc/sudoers.d/ \
+ && echo "$USERNAME" ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/"$USERNAME" \
+ && chmod 0440 /etc/sudoers.d/"$USERNAME"
+
+# install dependencies (allow even openshift's random user to see)
+ENV PATH=/home/"$USERNAME"/.local/bin:/home/"$USERNAME"/bin:"$PATH"
+
+USER "$USER_UID"
 WORKDIR /home/dev

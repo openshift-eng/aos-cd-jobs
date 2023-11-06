@@ -22,7 +22,7 @@ ARG OC_VERSION=latest
 
 # Install oc client
 RUN wget -O "openshift-client-linux-${OC_VERSION}.tar.gz" "https://mirror.openshift.com/pub/openshift-v4/$(arch)/clients/ocp/${OC_VERSION}/openshift-client-linux.tar.gz" \
-  && tar -xzvf "openshift-client-linux-$OC_VERSION.tar.gz" oc kubectl
+  && tar -C /usr/local/bin -xzvf "openshift-client-linux-$OC_VERSION.tar.gz" oc kubectl
 
 # Install repos directly from their sources
 RUN python3 -m pip install "git+https://github.com/openshift-eng/art-tools.git#egg=rh-doozer&subdirectory=doozer" \

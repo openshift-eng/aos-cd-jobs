@@ -1,3 +1,0 @@
-[submodule "art-tools"]
-	path = art-tools
-	url = https://github.com/openshift-eng/art-tools.git

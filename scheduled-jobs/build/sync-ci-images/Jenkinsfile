@@ -111,24 +111,26 @@ node {
             currentBuild.displayName += " ${version}"
 
             doozerWorking = "${env.WORKSPACE}/wd-${version}"
+            def doozerOpts = "--working-dir ${doozer_working} --group ${group} "
+
             rc = 0
             try {
                 sshagent(["openshift-bot"]) {
                     sh "rm -rf ${doozerWorking}"
-                    buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply")
+                    buildlib.doozer("${doozerOpts} images:streams gen-buildconfigs -o ${group}.yaml --apply")
                     mirror_args = ""
                     if ( params.UPDATE_IMAGES_ONLY_WHEN_MISSING ) {
                         mirror_args += "--only-if-missing "
                     }
-                    buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams mirror ${mirror_args}")
-                    buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams start-builds")
+                    buildlib.doozer("${doozerOpts} images:streams mirror ${mirror_args}")
+                    buildlib.doozer("${doozerOpts} images:streams start-builds")
 
                     if (!params.SKIP_WAITS) {
                         // Allow the builds to run for about 20 minutes
                         sleep time: 20, unit: 'MINUTES'
                     }
                     // Print out status of builds for posterity
-                    buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams check-upstream")
+                    buildlib.doozer("${doozerOpts} images:streams check-upstream")
                     withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                         if ( (major == 4 && minor >= 6) || major > 4 ) {
                             other_args = '--add-label "bugzilla/valid-bug" --add-label "cherry-pick-approved" --add-label "backport-risk-assessed"'
@@ -136,7 +138,7 @@ node {
                                 other_args += " --add-label '${label}'"
                             }
                             // Only open PRs on >= 4.6 to leave well enough alone.
-                            rc = sh script:"${buildlib.DOOZER_BIN} --assembly stream --working-dir ${doozerWorking} --group ${group} images:streams prs open --interstitial 840 --add-auto-labels ${other_args} --github-access-token ${GITHUB_TOKEN}", returnStatus: true
+                            rc = sh script:"doozer ${doozerOpts} --assembly stream images:streams prs open --interstitial 840 --add-auto-labels ${other_args} --github-access-token ${GITHUB_TOKEN}", returnStatus: true
                             // rc=50 is used to indicate some errors raised during PR openings
                             // rc=25 is used to indicate PR openings were skipped and to try again later.
                             if ( rc != 0 && rc != 25 && rc != 50) {

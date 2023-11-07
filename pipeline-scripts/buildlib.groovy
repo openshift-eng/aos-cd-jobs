@@ -11,7 +11,7 @@ GITHUB_BASE = "git@github.com:openshift"
 
 def initialize(test=false, regAws=false) {
     this.proxy_setup()
-    this.setup_venv(true)
+    this.setup_venv()
     this.path_setup()
 
     // don't bother logging into a registry or getting a krb5 ticket for tests
@@ -126,46 +126,42 @@ def cleanWhitespace(cmd) {
     )
 }
 
-def setup_venv(use_python38=false) {
-    // Preparing venv for ART tools (doozer and elliott)
+def setup_venv() {
+    // Preparing venv for ART tools
     // The following commands will run automatically every time one of our jobs
     // loads buildlib (ideally, once per pipeline)
     VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
     commonlib.shell(script: "rm -rf ${VIRTUAL_ENV}")
 
-    // Used by tools that don't use buildlib.doozer() / .elliott()
-    DOOZER_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/doozer/doozer"
-    ELLIOTT_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/elliott/elliott"
+    commonlib.shell(script: """
+    if [[ -f /bin/scl ]]; then
+        scl enable rh-python38 -- python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
+    else
+        python3.8 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
+    fi
+    """)
 
-    if (use_python38) {
-        commonlib.shell(script: """
-        if [[ -f /bin/scl ]]; then
-            scl enable rh-python38 -- python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
-        else
-            python3.8 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
-        fi
-        """)
-    } else {
-        commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
-    }
-
-    env.VIRTUAL_ENV = "${VIRTUAL_ENV}"
-    env.PATH = "${VIRTUAL_ENV}/bin:${env.WORKSPACE}/art-tools/elliott:${env.WORKSPACE}/art-tools/doozer:${env.PATH}"
+    env.PATH = "${VIRTUAL_ENV}/bin:${env.PATH}"
 
     commonlib.shell(script: "pip install --upgrade pip setuptools")
 
-    // Override art-tools submodule
+    // Install art-tools
+    def owner = "openshift-eng"
+    def branch_name = "main"
     if (params.ART_TOOLS_COMMIT) {
         where = ART_TOOLS_COMMIT.split('@')
-        commonlib.shell(script: "rm -rf art-tools;  git clone https://github.com/${where[0]}/art-tools.git; cd art-tools; git checkout ${where[1]}")
+        owner = where[0]
+        branch_name = where[1]
     }
 
+    commonlib.shell(script: "rm -rf art-tools;  git clone -b ${branch_name} https://github.com/${owner}/art-tools.git")
     commonlib.shell(script: "cd art-tools && ./install.sh")
+
     out = sh(
         script: 'pip list | grep "doozer\\|elliott\\|pyartcd"',
         returnStdout: true
     )
-    echo "Installed pyartcd:"
+    echo "Installed art-tools:"
     echo "${out}"
 }
 

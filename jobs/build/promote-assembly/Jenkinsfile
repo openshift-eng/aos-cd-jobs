@@ -251,7 +251,7 @@ node {
             }
             advisory_id = "$v"
             res = commonlib.shell(
-                script: "${buildlib.ELLIOTT_BIN} validate-rhsa ${advisory_id}",
+                script: "elliott validate-rhsa ${advisory_id}",
                 returnAll: true,
             )
             if (res.returnStatus != 0) {

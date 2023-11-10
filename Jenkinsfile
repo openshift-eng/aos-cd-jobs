@@ -146,8 +146,6 @@ node('covscan') {
             echo("Only syncing specified images: ${imageList}")
             currentBuild.description += "<br>Images: ${imageList}"
         }
-
-        failCountFile = "${BUILD_VERSION}-assembly.${ASSEMBLY}.count"
     }
 
     stage("Version dumps") {
@@ -207,7 +205,8 @@ node('covscan') {
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                     string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
+                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
                 ]) {
                     sh(script: cmd.join(' '), returnStdout: true)
                 }

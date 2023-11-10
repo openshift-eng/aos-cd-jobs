@@ -111,7 +111,7 @@ node {
             currentBuild.displayName += " ${version}"
 
             doozerWorking = "${env.WORKSPACE}/wd-${version}"
-            def doozerOpts = "--working-dir ${doozer_working} --group ${group} "
+            def doozerOpts = "--working-dir ${doozerWorking} --group ${group} "
 
             rc = 0
             try {

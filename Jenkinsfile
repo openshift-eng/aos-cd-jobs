@@ -79,11 +79,6 @@ node('covscan') {
                     trim: true,
                 ),
                 booleanParam(
-                    name        : 'DEBUG',
-                    description : 'Run "oc" commands with greater logging',
-                    defaultValue: false,
-                ),
-                booleanParam(
                     name        : 'DRY_RUN',
                     description : 'Run "oc" commands with the dry-run option set to true',
                     defaultValue: false,
@@ -137,10 +132,6 @@ node('covscan') {
         }
         currentBuild.description += "Arches: ${arches.join(', ')}"
 
-        if ( params.DEBUG ) {
-            logLevel = " --loglevel=5 "
-        }
-
         imageList = commonlib.cleanCommaList(params.IMAGES)
         if ( imageList ) {
             echo("Only syncing specified images: ${imageList}")
@@ -182,9 +173,6 @@ node('covscan') {
         }
         if (params.DOOZER_DATA_GITREF) {
             cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
-        }
-        if (params.DEBUG) {
-            cmd << "--debug"
         }
         if (params.IMAGES) {
             cmd << "--images=${params.IMAGES}"

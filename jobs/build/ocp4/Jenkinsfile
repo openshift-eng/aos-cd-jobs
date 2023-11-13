@@ -118,6 +118,11 @@ node {
                         description: 'Do not build plashets (for example to save time when running multiple builds against test assembly)',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'COMMENT_ON_PR',
+                        description: 'Comment on source PR after successful build',
+                        defaultValue: false,
+                    ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
@@ -181,6 +186,9 @@ node {
                 }
                 if (params.PIN_BUILDS) {
                     cmd << "--pin-builds"
+                }
+                if (params.COMMENT_ON_PR) {
+                    cmd << "--comment-on-pr"
                 }
                 cmd += [
                     "--build-rpms=${params.BUILD_RPMS}",

@@ -42,6 +42,11 @@ node("ocp-artifacts") {
                             description: "Trigger scans for all builds in all candidate tags. Cannot be used if NVRS param is set",
                             defaultValue: false,
                         ),
+                        booleanParam(
+                            name: "CREATE_JIRA_TICKETS",
+                            description: "Will raise OCPBUGS ticket if scan issues are found",
+                            defaultValue: false,
+                        ),
                     ]
                 ],
             ]
@@ -85,11 +90,15 @@ node("ocp-artifacts") {
             if (params.CHECK_TRIGGERED) {
                     cmd << "--check-triggered"
             }
+            if (params.CREATE_JIRA_TICKETS) {
+                    cmd << "--create-jira-tickets"
+            }
 
             withCredentials([
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                         string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                         string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
              ]) {
                 echo "Will run ${cmd}"
                 commonlib.shell(script: cmd.join(" "))

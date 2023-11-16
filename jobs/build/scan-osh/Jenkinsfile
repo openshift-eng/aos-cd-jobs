@@ -42,6 +42,11 @@ node("ocp-artifacts") {
                             description: "Trigger scans for all builds in all candidate tags. Cannot be used if NVRS param is set",
                             defaultValue: false,
                         ),
+                        booleanParam(
+                            name: "CREATE_JIRA_TICKETS",
+                            description: "Will raise OCPBUGS ticket if scan issues are found",
+                            defaultValue: false,
+                        ),
                     ]
                 ],
             ]
@@ -84,6 +89,9 @@ node("ocp-artifacts") {
             }
             if (params.CHECK_TRIGGERED) {
                     cmd << "--check-triggered"
+            }
+            if (params.CREATE_JIRA_TICKETS) {
+                    cmd << "--create-jira-tickets"
             }
 
             withCredentials([

@@ -73,12 +73,16 @@ node("ocp-artifacts") {
 
             if (params.DRY_RUN) {
                 cmd << "--dry-run"
+
+                currentBuild.displayName += " [DRY_RUN]"
             }
 
             cmd += [
                 "scan-osh",
                 "--version=${params.BUILD_VERSION}",
             ]
+
+            currentBuild.displayName += " $params.BUILD_VERSION"
 
             if (params.NVRS) {
                 cmd << "--nvrs ${params.NVRS}"

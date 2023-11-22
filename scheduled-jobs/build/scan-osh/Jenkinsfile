@@ -17,7 +17,7 @@ node {
         // Trigger SAST scan for ${version}
         versionJobs["scan-v${version}"] = {
             try {
-                timeout(activity: true, time: 30, unit: 'MINUTES') {
+                timeout(activity: true, time: 300, unit: 'MINUTES') {
                     build job: '../aos-cd-builds/build%2Fscan-osh',
                     parameters: [
                         string(name: 'BUILD_VERSION', value: "${cv}"),

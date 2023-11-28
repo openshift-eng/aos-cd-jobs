@@ -133,7 +133,7 @@ node {
                     buildlib.doozer("${doozerOpts} images:streams check-upstream")
                     withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                         if ( (major == 4 && minor >= 6) || major > 4 ) {
-                            other_args = '--add-label "bugzilla/valid-bug" --add-label "cherry-pick-approved" --add-label "backport-risk-assessed"'
+                            other_args = '--add-label "jira/valid-bug" --add-label "jira/valid-reference" --add-label "cherry-pick-approved" --add-label "backport-risk-assessed"'
                             for ( label in params.ADD_LABELS.split() ) {
                                 other_args += " --add-label '${label}'"
                             }

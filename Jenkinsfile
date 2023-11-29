@@ -60,6 +60,7 @@ node {
         if (!params.VERSION) {
             error "VERSION must be specified"
         }
+        currentBuild.displayName = "${params.VERSION}"
     }
 
     stage("Download RPM") {

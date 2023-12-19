@@ -90,7 +90,7 @@ def registry_login() {
     // Login to new registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'oc login -u $USERNAME -p $PASSWORD https://api.reg-aws.openshift.com'
+        // sh 'oc login -u $USERNAME -p $PASSWORD https://api.reg-aws.openshift.com'  // Disabled because the certificate has expired
 
         // Writing the file out is all to avoid displaying the token in the Jenkins console
         writeFile file:"docker_login.sh", text:'''#!/bin/bash

@@ -149,9 +149,14 @@ def setup_venv() {
     def owner = "openshift-eng"
     def branch_name = "main"
     if (params.ART_TOOLS_COMMIT) {
-        where = ART_TOOLS_COMMIT.split('@')
-        owner = where[0]
-        branch_name = where[1]
+        try {
+            where = ART_TOOLS_COMMIT.split('@')
+            owner = where[0]
+            branch_name = where[1]
+        } catch(err) {
+            echo "Invalid ART_TOOLS_COMMIT: ${ART_TOOLS_COMMIT}"
+            throw err
+        }
     }
 
     commonlib.shell(script: "rm -rf art-tools;  git clone -b ${branch_name} https://github.com/${owner}/art-tools.git")

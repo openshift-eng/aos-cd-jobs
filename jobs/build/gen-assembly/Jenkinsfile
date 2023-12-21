@@ -58,6 +58,11 @@ node {
                             defaultValue: false,
                         ),
                         booleanParam(
+                            name: 'PRERELEASE',
+                            description: 'Prepare the assembly for a prerelease operator advisory. Only valid for preview and candidate assemblies',
+                            defaultValue: false,
+                        ),
+                        booleanParam(
                             name: 'CUSTOM',
                             description: 'Custom assemblies are not for official release. They can, for example, not have all required arches for the group.',
                             defaultValue: false,
@@ -145,6 +150,9 @@ node {
             }
             if (params.ALLOW_INCONSISTENCY) {
                 cmd << "--allow-inconsistency"
+            }
+            if (params.PRERELEASE) {
+                cmd << "--prerelease"
             }
             if (params.CUSTOM) {
                 cmd << "--custom"

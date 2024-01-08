@@ -27,7 +27,11 @@ mkdir "$VERSION"
 
 for rpm in *.rpm; do
   arch="$(awk -F'[.]' '{a = $(NF-1); print a=="x86_64" ? "amd64" : a=="aarch64" ? "arm64" : a}' <<<"$rpm")"
-  rpm2cpio "${rpm}" | cpio -idm --quiet ./usr/bin/coreos-installer
+  if [[ "$rpm" == *el9* ]]; then
+    rpm2cpio "${rpm}" | zstd -d | cpio -idm --quiet ./usr/bin/coreos-installer
+  else
+    rpm2cpio "${rpm}" | cpio -idm --quiet ./usr/bin/coreos-installer
+  fi
   mv usr/bin/coreos-installer "$VERSION/coreos-installer_$arch"
 done
 

@@ -25,6 +25,9 @@ ARG OC_VERSION=latest
 RUN wget -O "openshift-client-linux-${OC_VERSION}.tar.gz" "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz" \
   && tar -C /usr/local/bin -xzvf "openshift-client-linux-$OC_VERSION.tar.gz" oc kubectl
 
+RUN wget -O "awscliv2.zip" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+  && unzip awscliv2.zip &&  ./aws/install
+
 # Set workspace
 WORKDIR /home/dev
 

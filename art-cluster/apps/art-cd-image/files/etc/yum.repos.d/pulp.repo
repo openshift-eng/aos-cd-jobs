@@ -1,0 +1,13 @@
+[pulp-dist-baseos]
+name = Dist repo - BaseOS
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel$releasever/$releasever/$basearch/baseos/os
+enabled = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+gpgcheck = 1
+
+[pulp-dist-appstream]
+name = Dist repo - AppStream
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel$releasever/$releasever/$basearch/appstream/os/
+enabled = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+gpgcheck = 1

@@ -1,0 +1,60 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: doomsday-script-task
+spec:
+  params:
+    - description: 'OCP major version, eg: 4.15'
+      name: major
+      type: string
+    - description: 'Full version, eg: 4.15.5'
+      name: version
+      type: string
+  steps:
+    - env:
+        - name: DOCKER_CONFIG
+          value: /tmp/.docker
+      image: default-route-openshift-image-registry.apps.artc2023.pc3z.p1.openshiftapps.com/art-cd/art-cd:base
+      name: run-script
+      resources: {}
+      script: |
+        #!/usr/bin/env bash
+
+        set -e
+
+        mkdir -p workspace 
+        cd workspace
+
+        arches=(x86_64 s390x ppc64le aarch64 multi)
+
+        for arch in "${arches[@]}"; do
+            path=$(params.major)/$(params.version)/$arch
+            command="oc adm release mirror quay.io/openshift-release-dev/ocp-release:$(params.version)-$arch --keep-manifest-list --to-dir=$path"
+            echo "Running command: $command"
+            $command
+            sleep 5
+
+            awscommand="aws s3 sync $path s3://ocp-doomsday-registry/$path"
+            echo Running aws command: $awscommand
+            $awscommand
+            sleep 5
+
+
+            echo "Cleaning dir: $(params.major)/$(params.version)"
+            rm -rf $path
+        done
+      securityContext:
+        runAsGroup: 0
+        runAsUser: 0
+      volumeMounts:
+        - mountPath: /tmp/.docker
+          name: synced-art-publish-ci-dockerconfigjson
+        - mountPath: /root/.aws
+          name: synced-aws-doomsday-readonly
+  volumes:
+    - name: synced-art-publish-ci-dockerconfigjson
+      secret:
+        secretName: synced-art-publish-ci-dockerconfigjson
+    - name: synced-aws-doomsday-readonly
+      secret:
+        secretName: synced-aws-doomsday-readonly

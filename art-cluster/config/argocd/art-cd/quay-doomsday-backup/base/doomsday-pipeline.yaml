@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: doomsday-pipeline
+spec:
+  params:
+    - description: 'OCP major version, eg: 4.15'
+      name: major
+      type: string
+    - description: 'Full version, eg: 4.15.5'
+      name: version
+      type: string
+  tasks:
+    - name: run-script
+      params:
+        - name: major
+          value: $(params.major)
+        - name: version
+          value: $(params.version)
+      taskRef:
+        kind: Task
+        name: doomsday-script-task

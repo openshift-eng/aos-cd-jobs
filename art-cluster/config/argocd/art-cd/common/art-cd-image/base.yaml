@@ -1,0 +1,26 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    build: art-cd
+  name: art-cd-base
+spec:
+  source:
+    dockerfile: art-cluster/apps/art-cd-image/Containerfile.base
+    git:
+      ref: master
+      uri: https://github.com/openshift-eng/aos-cd-jobs
+    type: Git
+  strategy:
+    dockerStrategy:
+      dockerfilePath: art-cluster/apps/art-cd-image/Containerfile.base
+    type: Docker
+  output:
+    to:
+      kind: ImageStreamTag
+      name: art-cd:base
+  successfulBuildsHistoryLimit: 10
+  failedBuildsHistoryLimit: 5
+  runPolicy: Serial
+  triggers:
+    - type: ConfigChange

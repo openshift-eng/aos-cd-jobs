@@ -31,12 +31,10 @@ RUN wget -O "awscliv2.zip" "https://awscli.amazonaws.com/awscli-exe-linux-x86_64
 # Set workspace
 WORKDIR /home/dev
 
-# Clone art-tools into a specific directory and run the install script
+# Clone art-tools and run the install script
 RUN git clone https://github.com/openshift-eng/art-tools.git art-tools \
     && cd art-tools \
-    && ./install.sh \
-# Clean art-tools
-RUN rm -rf art-tools
+    && ./install.sh
 
 # Create a non-root user and set as current
 RUN useradd -m -d /home/dev -u 1000 dev

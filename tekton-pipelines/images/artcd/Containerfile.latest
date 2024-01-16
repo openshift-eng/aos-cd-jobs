@@ -1,0 +1,13 @@
+# Start from the base image which contains the environment and basic tooling
+FROM localhost/artcd:base
+
+# Elevate to root
+USER 0
+
+# Update art-tools and run the install script again
+RUN cd art-tools \
+    && git pull \
+    && ./install.sh
+
+# Switch back to the non-root user
+USER 1000

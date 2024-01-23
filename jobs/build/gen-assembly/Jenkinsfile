@@ -57,10 +57,10 @@ node {
                             description: 'Allow matching nightlies built from matching commits but with inconsistent RPMs',
                             defaultValue: false,
                         ),
-                        booleanParam(
-                            name: 'PRERELEASE',
-                            description: 'Prepare the assembly for a prerelease operator advisory. Only valid for preview and candidate assemblies',
-                            defaultValue: false,
+                        choice(
+                            name: 'PRE_GA_MODE',
+                            description: 'Prepare the advisory for "prerelease" or "advance" operator release',
+                            choices: ["none", "prerelease", "advance"].join("\n"),
                         ),
                         booleanParam(
                             name: 'CUSTOM',
@@ -151,8 +151,8 @@ node {
             if (params.ALLOW_INCONSISTENCY) {
                 cmd << "--allow-inconsistency"
             }
-            if (params.PRERELEASE) {
-                cmd << "--prerelease"
+            if (params.PRE_GA_MODE && params.PRE_GA_MODE != "none") {
+                cmd << "--pre-ga-mode=${params.PRE_GA_MODE}"
             }
             if (params.CUSTOM) {
                 cmd << "--custom"

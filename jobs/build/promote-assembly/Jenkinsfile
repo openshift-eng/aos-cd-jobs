@@ -193,7 +193,7 @@ node {
                              string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                              string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                              string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
-                             file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
+                             string(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
                             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}"]) {
                     def out = sh(script: cmd.join(' '), returnStdout: true).trim()

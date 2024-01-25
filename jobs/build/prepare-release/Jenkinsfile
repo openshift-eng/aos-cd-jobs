@@ -38,7 +38,7 @@ node {
                         ),
                         string(
                             name: "DATE",
-                            description: "Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
+                            description: "(Optional) Leave empty to use auto-fetched release date. Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
                             trim: true
                         ),
                         string(

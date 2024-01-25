@@ -75,7 +75,7 @@ node {
                         ),
                         string(
                             name: 'IN_FLIGHT_PREV',
-                            description: 'This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".',
+                            description: '[Optional] Leave empty to use auto-fetched in-flight version. This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".',
                             defaultValue: "",
                             trim: true,
                         ),

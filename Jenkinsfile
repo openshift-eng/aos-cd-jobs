@@ -75,7 +75,7 @@ node {
                         ),
                         string(
                             name: 'IN_FLIGHT_PREV',
-                            description: 'This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".',
+                            description: '[Optional] Leave empty to use auto-fetched in-flight version. This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".',
                             defaultValue: "",
                             trim: true,
                         ),
@@ -105,9 +105,6 @@ node {
         stage("initialize") {
             buildlib.registry_quay_dev_login()
             currentBuild.displayName += " - ${params.BUILD_VERSION} - ${params.ASSEMBLY_NAME}"
-            if (!params.IN_FLIGHT_PREV) {
-                error('IN_FLIGHT_PREV is required. If there is no in-flight release, use "none".')
-            }
             if (!params.ASSEMBLY_NAME) {
                 error('ASSEMBLY_NAME is required.')
             }

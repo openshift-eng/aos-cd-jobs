@@ -6,9 +6,6 @@ node {
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
 
-        def dateFormat = new SimpleDateFormat("yyyy-MMM-dd")
-        def date = new Date()
-
         commonlib.describeJob("prepare-release", """
             <h2>This job will perform an assortment of release tasks for creating a release from scratch.</h2>
             <b>Timing</b>: On the prepare-the-release day (Monday).
@@ -41,8 +38,7 @@ node {
                         ),
                         string(
                             name: "DATE",
-                            description: "Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
-                            defaultValue: "${dateFormat.format(date)}",
+                            description: "(Optional) Leave empty to use auto-fetched release date. Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
                             trim: true
                         ),
                         string(
@@ -109,8 +105,10 @@ node {
                     "prepare-release",
                     "--group", "openshift-${params.VERSION}",
                     "--assembly", params.ASSEMBLY,
-                    "--date", params.DATE,
                 ]
+                if (params.DATE) {
+                    cmd << "--date" << params.DATE
+                }
                 if (params.NAME) {
                     cmd << "--name" << params.NAME
                 }

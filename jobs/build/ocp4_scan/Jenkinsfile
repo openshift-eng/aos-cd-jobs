@@ -37,6 +37,11 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                         commonlib.artToolsParam(),
                         commonlib.ocpVersionParam('VERSION', '4'),
                         commonlib.suppressEmailParam(),
+                        booleanParam(
+                            name: 'IGNORE_LOCKS',
+                            description: 'Do not wait for other builds in this version to complete (allowed only if DRY_RUN is true)',
+                            defaultValue: false
+                        ),
                         string(
                             name: 'MAIL_LIST_SUCCESS',
                             description: 'Success Mailing List',
@@ -71,6 +76,10 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
 
             if (params.DRY_RUN) {
                 currentBuild.displayName += "[DRY_RUN]"
+            } else {
+                if (params.IGNORE_LOCKS) {
+                    error("IGNORE_LOCKS can be used only with dry run mode")
+                }
             }
 
             buildlib.cleanWorkdir(artcd_working, true)
@@ -92,6 +101,9 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                     "ocp4-scan",
                     "--version=${params.VERSION}"
                 ]
+                if (params.IGNORE_LOCKS) {
+                    cmd << "--ignore-locks"
+                }
 
                 // Run pipeline
                 buildlib.withAppCiAsArtPublish() {

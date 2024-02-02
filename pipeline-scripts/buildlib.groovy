@@ -17,9 +17,10 @@ def initialize(test=false, regAws=false) {
     // don't bother logging into a registry or getting a krb5 ticket for tests
     if (!test) {
         this.kinit()
-        if (regAws) {
-            this.registry_login()
-        }
+        // Disabled because the certificate for reg-aws has expired
+        // if (regAws) {
+        //     this.registry_login()
+        // }
     }
 }
 
@@ -90,7 +91,7 @@ def registry_login() {
     // Login to new registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        // sh 'oc login -u $USERNAME -p $PASSWORD https://api.reg-aws.openshift.com'  // Disabled because the certificate has expired
+        sh 'oc login -u $USERNAME -p $PASSWORD https://api.reg-aws.openshift.com'
 
         // Writing the file out is all to avoid displaying the token in the Jenkins console
         writeFile file:"docker_login.sh", text:'''#!/bin/bash

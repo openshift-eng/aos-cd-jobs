@@ -69,7 +69,7 @@ node {
                         ),
                         string(
                             name: 'LIMIT_ARCHES',
-                            description: '(Optional) Limit included arches to this list',
+                            description: '(Optional) Limit included arches to this list. Valid values are (aarch64, ppc64le, s390x, x86_64)',
                             defaultValue: "",
                             trim: true,
                         ),

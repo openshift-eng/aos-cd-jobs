@@ -37,16 +37,17 @@ node() {
     // Skip the build for versions in eol/pre-release state
     def out = buildlib.doozer("${doozerOpts} config:read-group --yaml software_lifecycle", [capture: true]).trim()
     def software_lifecycle_phase = readYaml(text: out)["phase"]
-
-    if (software_lifecycle_phase != 'release') {
+    def include_master = software_lifecycle_phase == "pre-release" ? '--include-master' : ''
+    if !(software_lifecycle_phase in ["release", "pre-release"]){
         currentBuild.displayName += " [skipped]"
     } else {
         timestamps {
             releaseChannel = slacklib.to(BUILD_VERSION)
             try {
                 withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-                    report = buildlib.doozer("${doozerOpts} images:streams prs list", [capture: true]).trim()
+                    report = buildlib.doozer("${doozerOpts} images:streams prs list ${include_master}", [capture: true]).trim()
                     if (report) {
+                        echo report
                         data = readYaml text: report
                         text = ""
                         data.each { email, repos ->

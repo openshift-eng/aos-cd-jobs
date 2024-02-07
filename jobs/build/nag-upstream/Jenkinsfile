@@ -49,16 +49,29 @@ node() {
                     if (report) {
                         echo report
                         data = readYaml text: report
+
+                        // Since we're using section block, text cannot exceed 3000 chars
+                        // so chunk every 2000 chars
+                        // https://api.slack.com/reference/block-kit/blocks#section
+                        char_chunk_size = 2000
+                        def blocks = []
                         text = ""
                         data.each { email, repos ->
+                            if (text.length() >= char_chunk_size) {
+                                blocks << [type: "section", text: [type: "mrkdwn", text: text]]
+                                text = ""
+                            }
                             text += "*${email} is a contact for these PRs:*\n"
                             repos.each { _, prs ->
                                 prs.each { pr -> text += ":black_small_square:${pr.pr_url}\n" }
                             }
                         }
+                        if (text.length() > 0) {
+                            blocks << [type: "section", text: [type: "mrkdwn", text: text]]
+                        }
                         def attachment = [
                             color: "#f2c744",
-                            blocks: [[type: "section", text: [type: "mrkdwn", text: text]]]
+                            blocks: blocks
                         ]
                         releaseChannel.pinAttachment(attachment)
                         if (params.SEND_TO_SLACK) {

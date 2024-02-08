@@ -126,7 +126,11 @@ def notifySlack(channel, as_user, text, attachments=[], thread_ts=null, replyBro
         }
 
          //print "Received slack response: ${response}\n\n"
-         return readJSON(text: response.content)
+        def responseJson = readJSON(text: response.content)
+        if (!responseJson.ok) {
+            error("slack response not ok:\n ${response.content}\n")
+        }
+        return responseJson
     }
 }
 

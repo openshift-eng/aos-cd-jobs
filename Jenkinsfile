@@ -235,40 +235,6 @@ node {
         }
     }
 
-    stage("validate RHSAs") {
-        if (release_info.type == "custom" || release_info.type == "preview") {
-            echo "Skipping RHSA check for custom (hotfix) or preview release."
-            return
-        }
-
-        if (params.DRY_RUN) {
-            return
-        }
-
-        def advisory_map = release.getAdvisories("openshift-${params.VERSION}")?: [:]
-        advisory_map.each { k, v ->
-            if (v <= 0) {
-                return
-            }
-            advisory_id = "$v"
-            res = commonlib.shell(
-                script: "elliott validate-rhsa ${advisory_id}",
-                returnAll: true,
-            )
-            if (res.returnStatus != 0) {
-                msg = """
-                    Review of CVE situation required for advisory <https://errata.devel.redhat.com/advisory/${advisory_id}|${advisory_id}>.
-                    Report:
-                    ```
-                    ${res.stdout}
-                    ```
-                    Note: For GA image advisories this is expected to fail.
-                """.stripIndent()
-                slacklib.to(params.VERSION).say(msg)
-            }
-        }
-    }
-
     stage("clean and mail") {
         dry_subject = ""
         if (params.DRY_RUN) { dry_subject = "[DRY RUN] "}

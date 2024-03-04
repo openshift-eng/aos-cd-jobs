@@ -116,7 +116,7 @@ node {
                     booleanParam(
                         name: 'SKIP_PLASHETS',
                         description: 'Do not build plashets (for example to save time when running multiple builds against test assembly)',
-                        defaultValue: false,
+                        defaultValue: true,
                     ),
                     booleanParam(
                         name: 'COMMENT_ON_PR',

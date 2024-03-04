@@ -28,6 +28,12 @@ pipeline {
     }
 
     parameters {
+        string(
+            name: 'ART_TOOLS_COMMIT',
+            description: 'Override the art-tools submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+            defaultValue: "",
+            trim: true
+        )
         choice(
             name: 'BUILD_VERSION',
             choices: commonlib.ocpVersions,

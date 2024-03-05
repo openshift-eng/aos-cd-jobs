@@ -47,7 +47,7 @@ node('ocp-artifacts') {
                             defaultValue: false
                         ),
                         string(
-                            name: 'OCP_BUILD_DATA_URL',
+                            name: 'DOOZER_DATA_PATH',
                             description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
                             defaultValue: "https://github.com/openshift-eng/ocp-build-data",
                             trim: true,
@@ -91,7 +91,7 @@ node('ocp-artifacts') {
                 }
                 cmd += [
                     "build-microshift",
-                    "--ocp-build-data-url", params.OCP_BUILD_DATA_URL,
+                    "--data-path", params.DOOZER_DATA_PATH,
                     "-g", "openshift-$params.BUILD_VERSION",
                     "--assembly", params.ASSEMBLY,
                 ]

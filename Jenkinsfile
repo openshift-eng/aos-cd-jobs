@@ -80,7 +80,7 @@ node {
             }
         } catch (err) {
             currentBuild.result = "FAILURE"
-            throw
+            throw err
         } finally {
             commonlib.safeArchiveArtifacts([
                 "artcd_working/email/**",

@@ -23,6 +23,7 @@ node {
                 [
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
+                        commonlib.artToolsParam(),
                         commonlib.ocpVersionParam('VERSION'),
                         booleanParam(
                             name: "DRY_RUN",
@@ -64,14 +65,22 @@ node {
                 if (params.DOOZER_DATA_PATH) {
                     cmd << "--data-path=${params.DOOZER_DATA_PATH}"
                 }
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                withCredentials([
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                        string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                        string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                    ]) {
                     echo "Will run ${cmd}"
-                    commonlib.shell(script: cmd.join(' '))
+                    withEnv(["BUILD_URL=${BUILD_URL}"]) {
+                        commonlib.shell(script: cmd.join(' '))
+                    }
                 }
             }
         } catch (err) {
             currentBuild.result = "FAILURE"
-            throw err
+            throw
         } finally {
             commonlib.safeArchiveArtifacts([
                 "artcd_working/email/**",

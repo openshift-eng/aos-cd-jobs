@@ -10,7 +10,7 @@ RUN curl -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt --fail -L \
 RUN dnf install -y \
     # runtime dependencies
     krb5-workstation git tig rsync koji skopeo podman rpmdevtools \
-    python3.8 python3 python3-certifi awscli manifest-tool \
+    python3.9 python3 python3-certifi awscli manifest-tool \
     # development dependencies
     gcc gcc-c++ krb5-devel \
     python3-devel python3-pip python3-wheel python3-autopep8 python3-flake8 \

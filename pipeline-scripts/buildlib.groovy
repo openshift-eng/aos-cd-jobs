@@ -138,7 +138,7 @@ def setup_venv() {
     if [[ -f /bin/scl ]]; then
         scl enable rh-python38 -- python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
     else
-        python3.8 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
+        python3.9 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
     fi
     """)
 

@@ -16,7 +16,13 @@ node() {
                             string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
                         ]) {
             retry(10) {
-                commonlib.shell(script: "scl enable rh-python38 -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py")
+                commonlib.shell(script: """
+                    if [[ -f /bin/scl ]]; then
+                        scl enable rh-python38 -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py
+                    else
+                        python3.9 -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py
+                    fi
+                """)
             }
         }
     } catch (e) {

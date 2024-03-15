@@ -37,7 +37,9 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(ocpVersion)
     if (major > 4 || (major == 4 && minor >=9)) {
         baseUrl = "https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/$ocpVersion/builds/$rhcosBuild/$arch"
-        if (minor >= 13) {
+        if (minor >= 16) {
+            baseUrl = "https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/$ocpVersion-9.4/builds/$rhcosBuild/$arch"
+        } else if (minor >= 13) {
             baseUrl = "https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/$ocpVersion-9.2/builds/$rhcosBuild/$arch"
         }
     }

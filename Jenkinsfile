@@ -65,7 +65,11 @@ node {
     buildlib.withAppCiAsArtPublish() {
         commonlib.shell(
             script: """
-                scl enable rh-python38 -- python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context art-publish@app.ci ${confirm_param} ${action} ${params.RELEASE_NAME}
+                if [[ -f /bin/scl ]]; then
+                  scl enable rh-python38 -- python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context art-publish@app.ci ${confirm_param} ${action} ${params.RELEASE_NAME}
+                else
+                  python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context art-publish@app.ci ${confirm_param} ${action} ${params.RELEASE_NAME}
+                fi
                 """,
         )
     }

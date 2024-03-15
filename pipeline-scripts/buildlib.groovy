@@ -10,7 +10,13 @@ GITHUB_BASE_PATHS = [:]
 GITHUB_BASE = "git@github.com:openshift"
 
 def initialize(test=false, regAws=false) {
-    this.proxy_setup()
+    def hostname = env['HOSTNAME']
+
+    // Proxy is needed only on PSI RHV
+    if (hostname.indexOf(".hosts.prod.psi.bos.redhat.com") >= 0 || hostname.indexOf(".hosts.prod.psi.rdu2.redhat.com") >= 0) {
+        this.proxy_setup()
+    }
+
     this.setup_venv()
     this.path_setup()
 
@@ -108,7 +114,7 @@ def registry_quay_dev_login() {
 
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'docker login -u openshift-release-dev+art_quay_dev -p "$PASSWORD" quay.io'
+        sh 'podman login -u openshift-release-dev+art_quay_dev -p "$PASSWORD" quay.io'
     }
 }
 

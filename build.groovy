@@ -7,7 +7,7 @@ commonlib = buildlib.commonlib
 
 backupPlan = [
     srcHost: 'buildvm.hosts.prod.psi.bos.redhat.com',
-    backupPath: '/mnt/workspace/backups/buildvm', // must exist on both src and dest host
+    backupPath: '/mnt/jenkins-workspace/backups/buildvm', // must exist on both src and dest host
     files: [
         '/etc/sysconfig/jenkins',  // config file for jenkins server
         '/etc/sysconfig/docker', // insecure registries

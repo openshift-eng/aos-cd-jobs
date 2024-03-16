@@ -17,7 +17,7 @@ node() {
             mkdir .config
             export CLOUDSDK_CONFIG=$PWD/.config
             gcloud auth activate-service-account --key-file=$FILE
-            DEST=/mnt/workspace/buckets/rhacs-openshift-mirror-src
+            DEST=/mnt/jenkins-workspace/buckets/rhacs-openshift-mirror-src
             mkdir -p $DEST
             gsutil rsync -r gs://rhacs-openshift-mirror-src $DEST
             '''
@@ -25,7 +25,7 @@ node() {
     }
 
     stage('push to mirror') {
-        LOCAL_SYNC_DIR="/mnt/workspace/buckets/rhacs-openshift-mirror-src"
+        LOCAL_SYNC_DIR="/mnt/jenkins-workspace/buckets/rhacs-openshift-mirror-src"
 
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
             commonlib.shell(

@@ -144,7 +144,7 @@ enabled_metadata=1
                         ${params.IGNORE_WAIVED?'--ignore-waived':''}
                         ${params.FORCE_ANALYSIS?'--force-analysis':''}
                         "--https-proxy=${env.https_proxy}"
-                        --podman-tmpdir=/mnt/workspace/podman_tmp/jenkins
+                        --podman-tmpdir=/mnt/jenkins-workspace/podman_tmp/jenkins
                     """
                 }
             }

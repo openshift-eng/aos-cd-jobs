@@ -75,7 +75,7 @@ node {
     )
 
     currentBuild.displayName = "${GROUP} - ${ARCH}"
-    REPOSYNC_BASE_DIR="/mnt/workspace/reposync"
+    REPOSYNC_BASE_DIR="/mnt/jenkins-workspace/reposync"
     LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${REPOSYNC_DIR}"
     MIRROR_RELATIVE_REPOSYNC = "reposync/${REPOSYNC_DIR}"
 

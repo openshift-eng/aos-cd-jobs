@@ -6,7 +6,7 @@ node {
         -----------------------------
         Sync Camel-K client to mirror
         -----------------------------
-        http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/camel-k/
+        https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/camel-k/
 
         Timing: This is only ever run by humans, upon request.
     """)
@@ -25,19 +25,19 @@ pipeline {
         )
         string(
             name: "LINUX_BINARIES_LOCATION",
-            description: "Example: hhttp://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/linux-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            description: "Example: https://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/linux-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
             defaultValue: "",
             trim: true,
         )
         string(
             name: "MACOS_BINARIES_LOCATION",
-            description: "Example: http://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/mac-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            description: "Example: https://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/mac-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
             defaultValue: "",
             trim: true,
         )
         string(
             name: "WINDOWS_BINARIES_LOCATION",
-            description: "Example: http://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/windows-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            description: "Example: https://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/windows-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
             defaultValue: "",
             trim: true,
         )

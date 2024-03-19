@@ -249,7 +249,7 @@ export -f gbr::get_rpm_path
 
 gbr::get_rpm_url() {
     rpm_path="$1"
-    echo "${rpm_path}" | sed -e 's|/mnt/redhat|http://download.eng.bos.redhat.com|'
+    echo "${rpm_path}" | sed -e 's|/mnt/redhat|https://download.eng.bos.redhat.com|'
 }
 export -f gbr::get_rpm_url
 

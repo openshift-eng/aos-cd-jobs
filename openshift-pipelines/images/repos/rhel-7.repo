@@ -1,32 +1,32 @@
 [rhel-7-brew]
 name=Red Hat Enterprise Linux $releasever - $basearch
-baseurl=http://download.devel.redhat.com/brewroot/repos/rhel-7-build/latest/$basearch
+baseurl=https://download.devel.redhat.com/brewroot/repos/rhel-7-build/latest/$basearch
 enabled=0
 gpgcheck=0
 
 [rhel-7.3.z-brew]
 name=Red Hat Enterprise Linux 7.3.z Brew
-baseurl=http://download.devel.redhat.com/brewroot/repos/rhel-7.3-z-build/latest/$basearch/
+baseurl=https://download.devel.redhat.com/brewroot/repos/rhel-7.3-z-build/latest/$basearch/
 enabled=0
 gpgcheck=0
 
 [rhel-7-server-rpms]
 name = Red Hat Enterprise Linux 7
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/os/
 enabled = 1
 gpgcheck = 1
 gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 
 [rhel-7-server-optional-rpms]
 name = Red Hat Enterprise Linux 7 Optional
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/optional/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/optional/os/
 enabled = 1
 gpgcheck = 1
 gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 
 [rhel-7-server-extras-rpms]
 name = Red Hat Enterprise Linux 7 Extras
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/extras/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/extras/os/
 enabled = 1
 gpgcheck = 1
 gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release

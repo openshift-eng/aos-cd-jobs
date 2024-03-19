@@ -42,8 +42,8 @@ def convert(record_log, output):
                     types = set()
                     for issue in issues:
                         types.add(issue['checkerName'])
-                    report_url = f'http://download.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/coverity/results/{component}/{commit_hash}/stage_{build_stage}/all_results.html'
-                    data_url = f'http://download.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/coverity/results/{component}/{commit_hash}/stage_{build_stage}/all_results.js'
+                    report_url = f'https://download.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/coverity/results/{component}/{commit_hash}/stage_{build_stage}/all_results.html'
+                    data_url = f'https://download.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/coverity/results/{component}/{commit_hash}/stage_{build_stage}/all_results.js'
                     sink.write(f'|{component}|{build_stage}|{count}|[Report]({report_url})|[Data]({data_url})|{", ".join(types)}|\n')
 
     if sink != sys.stdout:

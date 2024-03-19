@@ -5,7 +5,7 @@
 Sync butane binaries to mirror.openshift.com.
 (formerly the Fedora CoreOS Config Transpiler, FCCT)
 
-<http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/>
+<https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/>
 
 ## Timing
 

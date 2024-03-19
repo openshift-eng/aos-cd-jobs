@@ -33,7 +33,7 @@ node {
         Sync developer client binaries to mirror
         --------------------------
         From: https://download.eng.bos.redhat.com/
-        To: http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/
+        To: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/
 
         Supported clients:
         ${kinds.each { println "${it}" }}

@@ -57,7 +57,7 @@ properties(
 )
 
 def mail_success() {
-    distgit_link = "http://pkgs.devel.redhat.com/cgit/rpms/jenkins/?h=${OCP_BRANCH}"
+    distgit_link = "https://pkgs.devel.redhat.com/cgit/rpms/jenkins/?h=${OCP_BRANCH}"
 
     mail(
         to: "${MAIL_LIST_SUCCESS}",

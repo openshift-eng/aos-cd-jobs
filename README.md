@@ -127,7 +127,7 @@ starting the job.
 ### Push Credentials
 
 Note: the `sjb/push-update{,-automatic}.sh` scripts expect `$USERNAME` and `$PASSWORD` to be set as envars when they are run.
-`$USERNAME` is your user with which you log in to the Jenkins master at [ci.openshift](http://ci.openshift.redhat.com/).
+`$USERNAME` is your user with which you log in to the Jenkins master at [ci.openshift](https://ci.openshift.redhat.com/).
 `$PASSWORD` is a Jenkins API token you have to generate through the Jenkins UI. As a logged-in user, click your username in the upper right hand of the UI. After the account page loads, click "Configure" on the right hand side, and after the configuration page loads, you will see an option to generate a new token. Copy this to your password store, since it is only displayed for copy/pasting when you first generate it.
 The `$USERNAME` and `$PASSWORD` are used for basic auth against the server on push actions.
 
@@ -205,7 +205,7 @@ approve.sh "${REPO}" "${TARGET_BRANCH}" "${MERGE_SEVERITY:-"none"}"
 
 To configure a branch status, run the [`configure_approver`](https://ci.dev.openshift.redhat.com/jenkins/job/configure_approver/)
 job on the [ci.dev](https://ci.dev.openshift.redhat.com/jenkins/) Jenkins master. This job will configure the approver you ask
-for as well as propagate the changes to the [ci.openshift](http://ci.openshift.redhat.com/) server. The job runs the
+for as well as propagate the changes to the [ci.openshift](https://ci.openshift.redhat.com/) server. The job runs the
 [`configure_approver`](approvers/configure_approver.sh) script:
 
 ```shell

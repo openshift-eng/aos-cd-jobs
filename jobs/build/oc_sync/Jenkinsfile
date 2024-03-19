@@ -9,8 +9,8 @@ node {
     commonlib.describeJob("oc_sync", """
         <h2>Sync the oc, installer, and opm clients to mirror</h2>
         Extracts the clients from the payload cli-artifacts and operator-registry images and publishes them to
-        <a href="http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp" target="_blank">the mirror</a>
-        or <a href="http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp-dev-preview" target="_blank">ocp-dev-preview</a>
+        <a href="https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp" target="_blank">the mirror</a>
+        or <a href="https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp-dev-preview" target="_blank">ocp-dev-preview</a>
 
         <b>Timing</b>: This is only ever run by humans, typically when the release job
         fails somehow. Normally the release job syncs these clients itself.

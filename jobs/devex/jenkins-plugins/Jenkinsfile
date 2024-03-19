@@ -66,7 +66,7 @@ def mail_success() {
 
     jenkins_major = JENKINS_VERSION.tokenize('.')[0].toString()
 
-    distgit_link = "http://pkgs.devel.redhat.com/cgit/rpms/jenkins-${jenkins_major}-plugins/?h=${OCP_BRANCH}"
+    distgit_link = "https://pkgs.devel.redhat.com/cgit/rpms/jenkins-${jenkins_major}-plugins/?h=${OCP_BRANCH}"
 
     mail(
         to: "${MAIL_LIST_SUCCESS}",

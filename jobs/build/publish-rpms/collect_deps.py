@@ -118,7 +118,7 @@ gpgcheck = 0
 
 [rhel-server-8-fast-datapath]
 name = rhel-server-8-fast-datapath
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/{ARCH}/fast-datapath/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/{ARCH}/fast-datapath/os/
 enabled = 1
 gpgcheck = 0
 
@@ -155,7 +155,7 @@ gpgcheck = 0
 
 [rhel-server-{EL}-fast-datapath]
 name = rhel-server-{EL}-fast-datapath
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel{EL}/{ARCH}/fast-datapath/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel{EL}/{ARCH}/fast-datapath/os/
 enabled = 1
 gpgcheck = 0
 

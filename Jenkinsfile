@@ -11,6 +11,7 @@ node {
     // Expose properties for a parameterized build
     properties(
         [
+            disableResume(),
             buildDiscarder(
                 logRotator(
                     artifactDaysToKeepStr: '7',
@@ -49,29 +50,35 @@ node {
 
     commonlib.checkMock()
 
-    if (!params.RELEASE_NAME) {
-        error("You must provide a release name")
+    stage('Accept release') {
+        if (!params.RELEASE_NAME) {
+            error("You must provide a release name")
+        }
+
+        def dry_run = params.CONFIRM ? '' : '[DRY_RUN]'
+        currentBuild.displayName = "${params.RELEASE_NAME} ${dry_run}"
+
+        def action = params.REJECT ? "reject" : 'accept'
+        def message = "Manually ${action}ed by ART"
+        def confirm_param = params.CONFIRM ? "--execute" : ''
+
+        script {
+            sh "wget https://raw.githubusercontent.com/openshift/release-controller/master/hack/release-tool.py"
+            buildlib.withAppCiAsArtPublish() {
+                commonlib.shell(
+                    script: """
+                        if [[ -f /bin/scl ]]; then
+                        scl enable rh-python38 -- python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context art-publish@app.ci ${confirm_param} ${action} ${params.RELEASE_NAME}
+                        else
+                        python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context art-publish@app.ci ${confirm_param} ${action} ${params.RELEASE_NAME}
+                        fi
+                        """,
+                )
+            }
+        }
     }
 
-    def dry_run = params.CONFIRM ? '' : '[DRY_RUN]'
-    currentBuild.displayName = "${params.RELEASE_NAME} ${dry_run}"
-
-    def action = params.REJECT ? "reject" : 'accept'
-    def message = "Manually ${action}ed by ART"
-    def confirm_param = params.CONFIRM ? "--execute" : ''
-
-    sh "wget https://raw.githubusercontent.com/openshift/release-controller/master/hack/release-tool.py"
-    
-    buildlib.withAppCiAsArtPublish() {
-        commonlib.shell(
-            script: """
-                if [[ -f /bin/scl ]]; then
-                  scl enable rh-python38 -- python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context art-publish@app.ci ${confirm_param} ${action} ${params.RELEASE_NAME}
-                else
-                  python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context art-publish@app.ci ${confirm_param} ${action} ${params.RELEASE_NAME}
-                fi
-                """,
-        )
+    stage('Clean up') {
+        buildlib.cleanWorkspace()
     }
-    buildlib.cleanWorkspace()
 }

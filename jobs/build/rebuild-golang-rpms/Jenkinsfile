@@ -64,7 +64,7 @@ node {
     }
 
     stage('Rebuild golang rpms') {
-        def golang_nvrs = commonlib.cleanCommaList(params.GOLANG_NVRS)
+        def golang_nvrs = commonlib.cleanSpaceList(params.GOLANG_NVRS)
 
         script {
             // Prepare working dir
@@ -89,9 +89,10 @@ node {
 
             // Run pipeline
             timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
-                echo "Will run ${cmd}"
+                echo "Will run ${cmd.join(' ')}"
                 withCredentials([
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
+                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                         ]) {
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
                         try {

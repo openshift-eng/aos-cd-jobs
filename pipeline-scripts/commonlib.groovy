@@ -146,6 +146,11 @@ def cleanCommaList(str) {
     return parseList(str).join(',')
 }
 
+def cleanSpaceList(str) {
+    // turn the string list separated by commas or spaces into a comma-separated string
+    return parseList(str).join(' ')
+}
+
 // A reusable way to generate a working build URL. Translates it into
 // localhost for us. Then later when we get rid of that localhost
 // thing we'll be able to undo this all at once. This can be directly

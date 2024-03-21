@@ -147,7 +147,7 @@ def cleanCommaList(str) {
 }
 
 def cleanSpaceList(str) {
-    // turn the string list separated by commas or spaces into a comma-separated string
+    // turn the string list separated by commas or spaces into a space-separated string
     return parseList(str).join(' ')
 }
 

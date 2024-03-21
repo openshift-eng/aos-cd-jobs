@@ -12,12 +12,6 @@ node {
     properties(
         [
             disableResume(),
-            buildDiscarder(
-                logRotator(
-                    artifactDaysToKeepStr: '7',
-                    daysToKeepStr: '7'
-                )
-            ),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [

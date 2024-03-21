@@ -1,7 +1,7 @@
 node {
     checkout scm
-    buildlib = load("pipeline-scripts/buildlib.groovy")
-    commonlib = buildlib.commonlib
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
     commonlib.describeJob("operator-sdk_sync", """
         <h2>Sync operator-sdk to mirror</h2>
         <b>Timing</b>: Manually, upon request. Expected to happen once every y-stream and
@@ -9,6 +9,7 @@ node {
     """)
 
     properties([
+        disableResume(),
         [
             $class: 'ParametersDefinitionProperty',
             parameterDefinitions: [
@@ -44,57 +45,43 @@ node {
             ]
         ],
     ])
-}
-
-pipeline {
-    agent any
-
-    options {
-        disableResume()
-        skipDefaultCheckout()
-    }
-
-    stages {
-        stage('operator-sdk-sync') {
-            steps {
-                script {
-                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
-                    currentBuild.displayName += " ${params.ASSEMBLY}"
-                    def cmd = [
-                        "artcd",
-                        "-v",
-                        "--working-dir=./artcd_working",
-                        "--config=./config/artcd.toml",
-                        "operator-sdk-sync",
-                        "--group=openshift-${params.BUILD_VERSION}",
-                        "--assembly=${params.ASSEMBLY}",
-                    ]
-                    if (params.BUILD_NVR) {
-                        cmd << "--nvr" << params.BUILD_NVR
-                    }
-                    if (params.USE_PRE_RELEASE) {
-                        cmd << "--prerelease"
-                    }
-                    if (params.UPDATE_LATEST_SYMLINK) {
-                        cmd << "--updatelatest"
-                    }
-                    if (params.ARCHES) {
-                        def arches = commonlib.cleanCommaList(params.ARCHES)
-                        cmd << "--arches=${arches}"
-                    }
-
-                    buildlib.withAppCiAsArtPublish() {
-                        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                            def out = sh(script: cmd.join(' '), returnStdout: true).trim()
-                            echo out
-                            if (out.contains('failed with')) {
-                                currentBuild.result = "FAILURE"
-                            }
-                        }
-                    }
-                }
+    stage('operator-sdk-sync') {
+        script {
+            sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+            currentBuild.displayName += " ${params.ASSEMBLY}"
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=./artcd_working",
+                "--config=./config/artcd.toml",
+                "operator-sdk-sync",
+                "--group=openshift-${params.BUILD_VERSION}",
+                "--assembly=${params.ASSEMBLY}",
+            ]
+            if (params.BUILD_NVR) {
+                cmd << "--nvr" << params.BUILD_NVR
             }
-        }
-    }
-}
+            if (params.USE_PRE_RELEASE) {
+                cmd << "--prerelease"
+            }
+            if (params.UPDATE_LATEST_SYMLINK) {
+                cmd << "--updatelatest"
+            }
+            if (params.ARCHES) {
+                def arches = commonlib.cleanCommaList(params.ARCHES)
+                cmd << "--arches=${arches}"
+            }
+
+            buildlib.withAppCiAsArtPublish() {
+                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                    def out = sh(script: cmd.join(' '), returnStdout: true).trim()
+                    echo out
+                    if (out.contains('failed with')) {
+                        currentBuild.result = "FAILURE"
+                    }
+                } // withCredentials
+            } // withAppCiAsArtPublish
+        } //script
+    } // stage
+} // node

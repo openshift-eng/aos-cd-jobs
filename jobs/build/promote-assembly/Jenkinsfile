@@ -218,7 +218,7 @@ node {
             return
         }
 
-        String[] umb_failures = []
+        List<String> umb_failures = []
         release_info.content.each { arch, info ->
             // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
             // Using the real per-arch release name in $info instead of the one defined by release artists.

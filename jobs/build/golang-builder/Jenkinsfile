@@ -1,162 +1,122 @@
+#!/usr/bin/env groovy
+
 node {
-    cleanWs(cleanWhenFailure: false)
     checkout scm
-    buildlib = load("pipeline-scripts/buildlib.groovy")
-    commonlib = buildlib.commonlib
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
     commonlib.describeJob("golang-builder", """
         <h2>Build golang-builder images</h2>
         <b>Timing</b>: This is only ever run by humans, as needed. No job should be calling it.
     """)
-    properties([
+
+    // Expose properties for a parameterized build
+    properties(
         [
-            $class: 'ParametersDefinitionProperty',
-            parameterDefinitions: [
-                commonlib.dryrunParam(),
-                commonlib.mockParam(),
-                commonlib.artToolsParam(),
-                string(
-                    name: 'DOOZER_DATA_PATH',
-                    description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
-                    defaultValue: "https://github.com/openshift-eng/ocp-build-data",
-                    trim: true,
-                ),
-                string(
-                    name: 'GOLANG_VERSION',
-                    description: 'Golang version (e.g. 1.16.12)',
-                    trim: true,
-                ),
-                string(
-                    name: 'RELEASE',
-                    description: '(Optional) Release string for build instead of default (timestamp.el8 or timestamp.el7)',
-                    trim: true,
-                ),
-                booleanParam(
-                    name: 'SCRATCH',
-                    description: 'Perform a scratch build (will not use an NVR or update tags)',
-                ),
-                choice(
-                    name: 'RHEL_VERSION',
-                    description: 'for which RHEL version (7/8/9)',
-                    choices: ['9', '8', '7'].join('\n'),
-                ),
-                commonlib.suppressEmailParam(),
-                string(
-                    name: 'MAIL_LIST_SUCCESS',
-                    description: '(Optional) Success Mailing List',
-                    defaultValue: "",
-                    trim: true,
-                ),
-                string(
-                    name: 'MAIL_LIST_FAILURE',
-                    description: 'Failure Mailing List',
-                    defaultValue: [
-                        'aos-art-automation+failed-custom-build@redhat.com',
-                    ].join(','),
-                    trim: true,
-                ),
+            disableResume(),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.dryrunParam(),
+                    commonlib.mockParam(),
+                    commonlib.artToolsParam(),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'GOLANG_VERSION',
+                        description: 'Golang version (e.g. 1.16.12)',
+                        trim: true,
+                    ),
+                    string(
+                        name: 'RELEASE',
+                        description: '(Optional) Release string for build instead of default (timestamp.el8 or timestamp.el7)',
+                        trim: true,
+                    ),
+                    booleanParam(
+                        name: 'SCRATCH',
+                        description: 'Perform a scratch build (will not use an NVR or update tags)',
+                    ),
+                    choice(
+                        name: 'RHEL_VERSION',
+                        description: 'for which RHEL version (7/8/9)',
+                        choices: ['9', '8', '7'].join('\n'),
+                    ),
+                    commonlib.suppressEmailParam(),
+                    string(
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: '(Optional) Success Mailing List',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        defaultValue: [
+                            'aos-art-automation+failed-custom-build@redhat.com',
+                        ].join(','),
+                        trim: true,
+                    ),
+                ]
             ],
-        ],
-    ])
+        ]
+    )
+
     commonlib.checkMock()
-}
 
-pipeline {
-    agent any
-
-    options {
-        disableResume()
-        skipDefaultCheckout()
-        timestamps()
-        buildDiscarder(
-            logRotator(
-                artifactDaysToKeepStr: '30',
-                daysToKeepStr: '30')
-        )
-    }
-    stages {
-        stage('set build info') {
-            steps {
-                script {
-                    if (!(params.GOLANG_VERSION ==~ /\d+\.\d+\.\d+/))
-                        error("Invalid Golang version ${params.GOLANG_VERSION}")
-                    env._GOLANG_MAJOR_MINOR = commonlib.extractMajorMinorVersion(params.GOLANG_VERSION)
-                    def group = params.RHEL_VERSION == "7" ? "golang-${env._GOLANG_MAJOR_MINOR}" : "rhel-${params.RHEL_VERSION}-golang-${env._GOLANG_MAJOR_MINOR}"
-                    env._DOOZER_OPTS = "--data-path ${params.DOOZER_DATA_PATH} --working-dir ${WORKSPACE}/doozer_working --group $group"
-                    currentBuild.displayName = "${params.GOLANG_VERSION}"
-                }
-            }
+    stage('set build info') {
+        script {
+            if (!(params.GOLANG_VERSION ==~ /\d+\.\d+\.\d+/))
+                error("Invalid Golang version ${params.GOLANG_VERSION}")
+            env._GOLANG_MAJOR_MINOR = commonlib.extractMajorMinorVersion(params.GOLANG_VERSION)
+            def group = params.RHEL_VERSION == "7" ? "golang-${env._GOLANG_MAJOR_MINOR}" : "rhel-${params.RHEL_VERSION}-golang-${env._GOLANG_MAJOR_MINOR}"
+            env._DOOZER_OPTS = "--data-path ${params.DOOZER_DATA_PATH} --working-dir ${WORKSPACE}/doozer_working --group $group"
+            currentBuild.displayName = "${params.GOLANG_VERSION}"
         }
-        stage('build') {
-            steps {
-                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
-                    withCredentials([
-                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                        string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                        string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
-                        string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
-                    ]) {
-                        script {
-                            lock("golang-builder-lock-${env._GOLANG_MAJOR_MINOR}-el${params.RHEL_VERSION}") {
-                                echo "Rebasing..."
-                                def opts = "${env._DOOZER_OPTS} images:rebase --version v${params.GOLANG_VERSION}"
-                                release = params.RELEASE ?: "${new Date().format("yyyyMMddHHmm")}.el${params.RHEL_VERSION}"
-                                currentBuild.displayName += "-${release}"
-                                opts += " --release ${release}  -m 'bumping to ${params.GOLANG_VERSION}-${release}'"
-                                if (!params.DRY_RUN)
-                                    opts += " --push"
-                                buildlib.doozer(opts)
-                                echo "Building..."
-                                opts = "${env._DOOZER_OPTS} images:build --repo-type unsigned --push-to-defaults"
-                                if (params.DRY_RUN)
-                                    opts += " --dry-run"
-                                if (params.SCRATCH)
-                                    opts += " --scratch"
-                                buildlib.doozer(opts)
-                            }
-                        }
+    }
+
+    stage('build') {
+        withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+            withCredentials([
+                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
+            ]) {
+                script {
+                    lock("golang-builder-lock-${env._GOLANG_MAJOR_MINOR}-el${params.RHEL_VERSION}") {
+                        echo "Rebasing..."
+                        def opts = "${env._DOOZER_OPTS} images:rebase --version v${params.GOLANG_VERSION}"
+                        release = params.RELEASE ?: "${new Date().format("yyyyMMddHHmm")}.el${params.RHEL_VERSION}"
+                        currentBuild.displayName += "-${release}"
+                        opts += " --release ${release}  -m 'bumping to ${params.GOLANG_VERSION}-${release}'"
+                        if (!params.DRY_RUN)
+                            opts += " --push"
+                        buildlib.doozer(opts)
+
+                        echo "Building..."
+                        opts = "${env._DOOZER_OPTS} images:build --repo-type unsigned --push-to-defaults"
+                        if (params.DRY_RUN)
+                            opts += " --dry-run"
+                        if (params.SCRATCH)
+                            opts += " --scratch"
+                        buildlib.doozer(opts)
+
+                        commonlib.safeArchiveArtifacts([
+                            "doozer_working/*.log",
+                            "doozer_working/*.yaml",
+                            "doozer_working/brew-logs/**",
+                        ])
                     }
                 }
             }
         }
     }
-    post {
-        always {
-            script {
-                commonlib.safeArchiveArtifacts([
-                    "doozer_working/*.log",
-                    "doozer_working/*.yaml",
-                    "doozer_working/brew-logs/**",
-                ])
-            }
-        }
-        success {
-            script {
-                if (params.MAIL_LIST_SUCCESS.trim()) {
-                    commonlib.email(
-                        to: params.MAIL_LIST_SUCCESS,
-                        from: "aos-team-art@redhat.com",
-                        subject: "Successful golang-builder build: ${currentBuild.displayName}",
-                        body: "Jenkins job: ${commonlib.buildURL()}\n${currentBuild.description}",
-                    )
-                }
-            }
-        }
-        failure {
-            script {
-                currentBuild.description += "\nerror occurred, see log:\n${currentBuild.rawBuild.getLog(10)}"
-                commonlib.email(
-                    to: "${params.MAIL_LIST_FAILURE}",
-                    from: "aos-team-art@redhat.com",
-                    subject: "Error building golang-builder: ${currentBuild.displayName}",
-                    body: """Encountered an error while running OCP pipeline:
 
-${currentBuild.description}
-
-Jenkins job: ${commonlib.buildURL()}
-Job console: ${commonlib.buildURL('console')}
-                """)
-            }
-        }
+    stage('Clean up') {
+        buildlib.cleanWorkspace()
     }
 }

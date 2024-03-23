@@ -67,21 +67,28 @@ node {
             disableConcurrentBuilds()
         ]
     )   // Please update README.md if modifying parameter names or semantics
-    commonlib.checkMock()
-    workdir = "${env.WORKSPACE}/workdir"
-    buildlib.cleanWorkdir(workdir, true)
-    currentBuild.displayName = params.RELEASE_NAME
-    currentBuild.description = ""
-    dir(workdir) {
-        def releaseName = params.RELEASE_NAME.trim()
-        def ghorg = params.GITHUB_ORG.trim()
-        def noSlackOutput = params.SKIP_OTA_SLACK_NOTIFICATION
-        def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), ghorg, params.CANDIDATE_PR_NOTE)
-        if ( prs ) {  // did we open any?
-            release.sendCincinnatiPRsSlackNotification(releaseName, params.FROM_RELEASE_TAG.trim(), prs, ghorg, noSlackOutput, params.CANDIDATE_PR_NOTE)
-        }
 
+    commonlib.checkMock()
+
+    stage('send cincinnati prs') {
+        workdir = "${env.WORKSPACE}/workdir"
+        buildlib.cleanWorkdir(workdir, true)
+        currentBuild.displayName = params.RELEASE_NAME
+        currentBuild.description = ""
+        dir(workdir) {
+            def releaseName = params.RELEASE_NAME.trim()
+            def ghorg = params.GITHUB_ORG.trim()
+            def noSlackOutput = params.SKIP_OTA_SLACK_NOTIFICATION
+            def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), ghorg, params.CANDIDATE_PR_NOTE)
+            if ( prs ) {  // did we open any?
+                release.sendCincinnatiPRsSlackNotification(releaseName, params.FROM_RELEASE_TAG.trim(), prs, ghorg, noSlackOutput, params.CANDIDATE_PR_NOTE)
+            }
+
+        }
     }
-    buildlib.cleanWorkdir(workdir)
-    buildlib.cleanWorkspace()
+
+    stage('clean up') {
+        buildlib.cleanWorkdir(workdir)
+        buildlib.cleanWorkspace()
+    }
 }

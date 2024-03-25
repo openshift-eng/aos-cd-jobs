@@ -90,8 +90,8 @@ node {
                     lock("golang-builder-lock-${env._GOLANG_MAJOR_MINOR}-el${params.RHEL_VERSION}") {
                         echo "Rebasing..."
                         def opts = "${env._DOOZER_OPTS} images:rebase --version v${params.GOLANG_VERSION}"
-                        release = params.RELEASE ?: "${new Date().format("yyyyMMddHHmm")}.el${params.RHEL_VERSION}"
-                        currentBuild.displayName += "-${release}"
+                        release = params.RELEASE ?: "${new Date().format("yyyyMMddHHmm")}"
+                        currentBuild.displayName += "${release} - el${params.RHEL_VERSION}"
                         opts += " --release ${release}  -m 'bumping to ${params.GOLANG_VERSION}-${release}'"
                         if (!params.DRY_RUN)
                             opts += " --push"

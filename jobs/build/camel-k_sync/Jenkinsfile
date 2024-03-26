@@ -56,11 +56,11 @@ node {
     }
 
     stage("Download artifacts") {
-        parallel {
-            stage("linux")   { sh "curl -sLf ${params.LINUX_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-linux-64bit.tar.gz" }
-            stage("macos")   { sh "curl -sLf ${params.MACOS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-mac-64bit.tar.gz" }
-            stage("windows") { sh "curl -sLf ${params.WINDOWS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-windows-64bit.tar.gz" }
-        }
+        parallel (
+            "linux":   { sh "curl -sLf ${params.LINUX_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-linux-64bit.tar.gz" }
+            "macos":   { sh "curl -sLf ${params.MACOS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-mac-64bit.tar.gz" }
+            "windows": { sh "curl -sLf ${params.WINDOWS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-windows-64bit.tar.gz" }
+        )
     }
 
     stage("Generate MD5 sum") {

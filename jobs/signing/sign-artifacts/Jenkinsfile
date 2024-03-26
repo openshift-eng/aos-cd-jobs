@@ -481,14 +481,14 @@ node {
         //       consider for syncing if they are already on the remote
         def logCopyOpts = "--verbose copy --s3-chunk-size 5M --exclude 'program.dat' --no-traverse --max-age 24h --retries-sleep 10s --ignore-existing --local-no-check-updated --low-level-retries 1 --retries 5 ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
 
-	sh "/bin/rclone version"
+	    buildlib.rclone("version")
 
         if ( !params.DRY_RUN ) {
-            sh "/bin/rclone ${logCopyOpts}"
+            buildlib.rclone("${logCopyOpts}")
         } else {
             echo "DRY-RUN, not syncing logs (but this would have happened):"
             echo "Artifact path (source to sync): ${buildArtifactPath}"
-            sh "/bin/rclone --dry-run ${logCopyOpts}"
+            buildlib.rclone("--dry-run ${logCopyOpts}")
         }
     }
 

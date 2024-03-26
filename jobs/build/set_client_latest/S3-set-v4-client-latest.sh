@@ -45,7 +45,16 @@ if [[ "${MODE}" == "all" || "${MODE}" == "any" ]]; then
     ARCHES="x86_64 s390x ppc64le aarch64 multi"
 fi
 
+# Point rclone to the local config file
+function rclone() {
+    command rclone --config=${env.WORKSPACE}/rclone.conf "$@"
+}
+
 function transferClientIfNeeded() {
+    # Generate rclone config file from the template
+    echo "Rendering rclone config file at ${env.WORKSPACE}/rclone.conf"
+    cat /home/jenkins/.config/rclone/rclone.conf.template | envsubst > ${env.WORKSPACE}/rclone.conf
+
     # Don't use "aws s3 sync" as it only pays attention to filesize. For files like 'sha256sum.txt' which are
     # usually the same size, it will not update them. rclone can use checksums.
 
@@ -66,6 +75,10 @@ function transferClientIfNeeded() {
         # CloudFront will cache files of the same name (e.g. sha256sum.txt), so we need to explicitly invalidate
         aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "/${S3_DEST_PATH}*"
     fi
+
+    # Remove the rendered rclone config file
+    echo "Removing rclone config file ${env.WORKSPACE}/rclone.conf"
+    rm rclone.conf
 }
 
 for arch in ${ARCHES}; do

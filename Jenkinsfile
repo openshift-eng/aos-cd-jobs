@@ -83,7 +83,11 @@ node {
             error("Released ocp client links are managed automatically by polling Cincinnati. See set_cincinnati_links in scheduled-jobs")
         }
 
-        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        withCredentials([
+                aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                aws(credentialsId: 'aws-s3-signing-logs', accessKeyVariable: 'SIGNING_LOGS_ACCESS_KEY', secretKeyVariable: 'SIGNING_LOGS_SECRET_ACCESS_KEY'),
+                aws(credentialsId: 'aws-s3-osd-art-account', accessKeyVariable: 'OSD_ART_ACCOUNT_ACCESS_KEY', secretKeyVariable: 'OSD_ART_ACCOUNT_SECRET_ACCESS_KEY')]) {
+
             withEnv(["FORCE_UPDATE=${params.FORCE_UPDATE? '1' : '0'}"]){
                 commonlib.shell("./S3-set-v4-client-latest.sh ${params.CHANNEL_OR_RELEASE} ${params.CLIENT_TYPE} ${params.LINK_NAME} ${params.ARCHES}")
             }

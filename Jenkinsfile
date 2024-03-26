@@ -72,7 +72,7 @@ node('openshift-build-1') {
                         // Want to see what's in the snapshots directory?
                         //   $ rclone tree s3SigningLogs:art-build-artifacts/buildvm-snapshots/
                         try {
-                            sh("/bin/rclone -v copyto /home/jenkins/new_snapshot.txt s3SigningLogs:art-build-artifacts/buildvm-snapshots/`date '+%Y%m%d'`.txt")
+                            buildlib.rclone("-v copyto /home/jenkins/new_snapshot.txt s3SigningLogs:art-build-artifacts/buildvm-snapshots/`date '+%Y%m%d'`.txt")
                         } catch ( snapErr ) {
                             errors[4] = snapErr
                             def snapshot = readFile("/home/jenkins/new_snapshot.txt")

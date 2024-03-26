@@ -708,6 +708,34 @@ String extractAdvisoryId(String elliottOut) {
     matches[0][1]
 }
 
+// Replace placeholders with AWS credentials to render a rclone.conf template configuration file.
+// Remove the generate file after the closure is complete
+def rclone(cmd, opts=[:]) {
+    withCredentials([
+            aws(credentialsId: 'aws-s3-signing-logs', accessKeyVariable: 'SIGNING_LOGS_ACCESS_KEY', secretKeyVariable: 'SIGNING_LOGS_SECRET_ACCESS_KEY'),
+            aws(credentialsId: 'aws-s3-osd-art-account', accessKeyVariable: 'OSD_ART_ACCOUNT_ACCESS_KEY', secretKeyVariable: 'OSD_ART_ACCOUNT_SECRET_ACCESS_KEY')]) {
+
+        // Generate rclone config file from the template
+        echo "Rendering rclone config file at ${env.WORKSPACE}/rclone.conf"
+        sh("cat /home/jenkins/.config/rclone/rclone.conf.template | envsubst > rclone.conf")
+
+        // Run rclone with passed options
+        try {
+            commonlib.shell(
+                returnStdout: opts.capture ?: false,
+                alwaysArchive: opts.capture ?: false,
+                script: "rclone --config=rclone.conf ${cleanWhitespace(cmd)}"
+            )
+        } catch(err) {
+            throw err
+        } finally {
+            // Remove the rendered configuration file
+            echo "Removing rclone config file ${env.WORKSPACE}/rclone.conf"
+            sh("rm ${env.WORKSPACE}/rclone.conf")
+        }
+    }
+}
+
 this.initialize()
 
 return this

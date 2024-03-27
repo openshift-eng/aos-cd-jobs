@@ -647,10 +647,10 @@ node {
                         sh "tito tag --debug --accept-auto-changelog --keep-version --debug"
 
                     }
-                    if (!IS_TEST_MODE) {
-                        sh "git push"
-                        sh "git push --tags"
-                    }
+                    //if (!IS_TEST_MODE) {
+                    //    sh "git push"
+                    //    sh "git push --tags"
+                    //}
                     OA_CHANGELOG = buildlib.read_changelog("openshift-ansible.spec")
                 }
             }
@@ -713,7 +713,6 @@ node {
                         --release ${NEW_DOCKERFILE_RELEASE}
                         --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
                     """
-                    buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, params.BUILD_VERSION)
                 }
             }
 
@@ -813,6 +812,7 @@ node {
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
             final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
+            record_log = buildlib.parse_record_log(DOOZER_WORKING)
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG, commonlib)
         }
     } catch (err) {

@@ -47,13 +47,13 @@ fi
 
 # Point rclone to the local config file
 function rclone() {
-    command rclone --config=${env.WORKSPACE}/rclone.conf "$@"
+    command rclone --config=${WORKSPACE}/rclone.conf "$@"
 }
 
 function transferClientIfNeeded() {
     # Generate rclone config file from the template
-    echo "Rendering rclone config file at ${env.WORKSPACE}/rclone.conf"
-    cat /home/jenkins/.config/rclone/rclone.conf.template | envsubst > ${env.WORKSPACE}/rclone.conf
+    echo "Rendering rclone config file at ${WORKSPACE}/rclone.conf"
+    cat /home/jenkins/.config/rclone/rclone.conf.template | envsubst > ${WORKSPACE}/rclone.conf
 
     # Don't use "aws s3 sync" as it only pays attention to filesize. For files like 'sha256sum.txt' which are
     # usually the same size, it will not update them. rclone can use checksums.
@@ -77,7 +77,7 @@ function transferClientIfNeeded() {
     fi
 
     # Remove the rendered rclone config file
-    echo "Removing rclone config file ${env.WORKSPACE}/rclone.conf"
+    echo "Removing rclone config file ${WORKSPACE}/rclone.conf"
     rm rclone.conf
 }
 

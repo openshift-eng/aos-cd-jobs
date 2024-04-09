@@ -144,7 +144,7 @@ node {
                     # we just want proof of a key.
                     sign_result=`rpm -K $rpm`
                     set -e
-                    echo "$sign_result" | grep -i pgp   # fail if RPM does not appear signed now
+                    echo "$sign_result" | grep -i "digests signatures OK"   # fail if RPM does not appear signed now
                 ''' + """
                 done
 

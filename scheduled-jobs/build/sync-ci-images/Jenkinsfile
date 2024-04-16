@@ -88,13 +88,16 @@ node {
     }
 
     def streamParam = ""
+    def skip_prs = params.SKIP_PRS
     if (params.ONLY_STREAM) {
         if (!params.ONLY_RELEASE) {
             error("ONLY_STREAM can only be used with ONLY_RELEASE")
         }
-        echo "Setting SKIP_PRS to true because ONLY_STREAM is set"
-        params.SKIP_PRS = true
-        def streamParam = "--stream ${params.ONLY_STREAM}"
+        if (!skip_prs) {
+            echo "Setting SKIP_PRS to true because ONLY_STREAM is set"
+            skip_prs = true
+        }
+        streamParam = "--stream ${params.ONLY_STREAM}"
     }
 
     buildlib.withAppCiAsArtPublish() {
@@ -155,7 +158,7 @@ node {
                     buildlib.doozer("${doozerOpts} images:streams check-upstream")
 
                     // Open reconciliation PRs
-                    if (params.SKIP_PRS) {
+                    if (skip_prs) {
                         echo "Skipping opening PRs"
                     } else {
                         withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {

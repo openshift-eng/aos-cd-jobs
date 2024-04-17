@@ -134,6 +134,9 @@ node {
 
             echo "Changes detected in ocp-build-data group: ${group}"
             currentBuild.displayName += " ${version}"
+            if (params.ONLY_STREAM) {
+                currentBuild.displayName += " ${params.ONLY_STREAM}"
+            }
 
             doozerWorking = "${env.WORKSPACE}/wd-${version}"
             def doozerOpts = "--working-dir ${doozerWorking} --group ${group} "

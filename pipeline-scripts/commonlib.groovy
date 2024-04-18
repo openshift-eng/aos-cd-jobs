@@ -138,7 +138,7 @@ def sanitizeInvisible(str) {
 def parseList(str) {
     // turn the string of a list separated by commas or spaces into a list
     str = (str == null) ? "" : str
-    return sanitizeInvisible(str).replaceAll(',', ' ').split()
+    return sanitizeInvisible(str).replaceAll(',', ' ').tokenize()
 }
 
 def cleanCommaList(str) {

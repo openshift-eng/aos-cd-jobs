@@ -1,66 +1,93 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+#!/usr/bin/env groovy
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+node {
+    checkout scm
+    def release = load("pipeline-scripts/release.groovy")
+    def buildlib = release.buildlib
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("sigstore-sign", """
+        Sign a release with the sigstore method.
+    """)
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.ocpVersionParam('VERSION', '4'),
+                    commonlib.artToolsParam(),
+                    string(
+                        name: 'RELEASE',
+                        description: 'The name of a release assembly to sign.',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'IMAGE_PULLSPECS',
+                        description: 'List of images to recursively sign (must correspond to RELEASE)',
+                        trim: true,
+                    ),
+                    choice(
+                        name: 'SIGNING_KEY',
+                        description: 'Which key to sign with',
+                        choices: ["stage", "production"].join("\n"),
+                    ),
+                    commonlib.dryrunParam('Do not actually sign anything'),
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.VERSION)
+    currentBuild.displayName += " ${params.VERSION} - ${params.RELEASE}"
+
+    stage("initialize") {
+        // must be able to access and update quay registry
+        buildlib.registry_quay_dev_login()
+        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    stage("sign") {
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+        ]
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        }
+        cmd += [
+            "sigstore-sign",
+            "--group=openshift-${params.VERSION}",
+            "--assembly=${params.RELEASE}",
+            "--",
+        ]
+        cmd += commonlib.parseList(params.IMAGE_PULLSPECS)
+        def signing_creds_file = params.SIGNING_KEY == "production" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
+        def signing_key_id = params.SIGNING_KEY == "production" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
+        withCredentials([
+            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+            file(credentialsId: signing_creds_file, variable: 'KMS_CRED_FILE'),
+            string(credentialsId: signing_key_id, variable: 'KMS_KEY_ID'),
+        ]) {
+            commonlib.shell(cmd.join(" "))
+        }
+    }
+
+    stage("clean") {
+        buildlib.cleanWorkspace()
+    }
+
 }

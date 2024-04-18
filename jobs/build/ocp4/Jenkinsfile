@@ -198,6 +198,8 @@ node {
                 ]
                 if (params.SKIP_PLASHETS) {
                     cmd << "--skip-plashets"
+                } else {
+                    cmd << "--copy-links"
                 }
                 if (params.IGNORE_LOCKS) {
                     cmd << "--ignore-locks"

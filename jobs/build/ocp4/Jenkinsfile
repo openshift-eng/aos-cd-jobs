@@ -198,8 +198,6 @@ node {
                 ]
                 if (params.SKIP_PLASHETS) {
                     cmd << "--skip-plashets"
-                } else {
-                    cmd << "--copy-links" // FIXME: should be removed when remote vm ocp-artifacts gets access to up to date brewroot
                 }
                 if (params.IGNORE_LOCKS) {
                     cmd << "--ignore-locks"

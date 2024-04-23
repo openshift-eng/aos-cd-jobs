@@ -59,66 +59,63 @@ node {
         if (!params.ART_JIRA) {
             error("You must provide an ART jira ticket id for reference.")
         }
-
-        def dry_run = params.DRY_RUN ? '[DRY_RUN]' : ''
-        currentBuild.displayName = "${params.BUILD_VERSION} ${dry_run}"
     }
 
     stage('Build golang-builder images') {
         def golang_nvrs = commonlib.cleanSpaceList(params.GOLANG_NVRS)
+        withCredentials([
+            string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')
+            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+            string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+            string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
+        ]) {
+            withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                script {
+                    // Prepare working dir
+                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
 
-        withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
-            withCredentials([
-                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
-                string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
-            ]) {
-                withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
-                    script {
-                        // Prepare working dir
-                        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
-
-                        // Create artcd command
-                        def cmd = [
-                            "artcd",
-                            "-v",
-                            "--working-dir=./artcd_working",
-                            "--config=./config/artcd.toml",
-                        ]
-                        if (params.DRY_RUN) {
-                            cmd << "--dry-run"
-                        }
-                        cmd += [
-                            "update-golang",
-                            "--ocp-version=${params.BUILD_VERSION}",
-                            "--art-jira=${params.ART_JIRA}",
-                            "${golang_nvrs}"
-                        ]
-                        if (params.CREATE_TAGGING_TICKET) {
-                            cmd << "--create-tagging-ticket"
-                        }
-                        if (params.SCRATCH) {
-                            cmd << "--scratch"
-                        }
-
-                        // Run pipeline
-                        timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
-                            echo "Will run ${cmd.join(' ')}"
-                            try {
-                                sh(script: cmd.join(' '), returnStdout: true)
-                            } catch (err) {
-                                throw err
-                            }
-                        } // timeout
-
-                        commonlib.safeArchiveArtifacts([
-                            "doozer-working/*.log",
-                            "doozer-working/*.yaml",
-                            "doozer-working/brew-logs/**",
-                        ])
+                    // Create artcd command
+                    def cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                    ]
+                    if (params.DRY_RUN) {
+                        cmd << "--dry-run"
                     }
+                    cmd += [
+                        "update-golang",
+                        "--ocp-version=${params.BUILD_VERSION}",
+                        "--art-jira=${params.ART_JIRA}",
+                        "${golang_nvrs}"
+                    ]
+                    if (params.CREATE_TAGGING_TICKET) {
+                        cmd << "--create-tagging-ticket"
+                    }
+                    if (params.SCRATCH) {
+                        cmd << "--scratch"
+                    }
+
+                    // Run pipeline
+                    timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
+                        echo "Will run ${cmd.join(' ')}"
+                        try {
+                            sh(script: cmd.join(' '), returnStdout: true)
+                        } catch (err) {
+                            throw err
+                        }
+                    } // timeout
+
+                    commonlib.safeArchiveArtifacts([
+                        "doozer-working/*.log",
+                        "doozer-working/*.yaml",
+                        "doozer-working/brew-logs/**",
+                    ])
                 }
             }
         }

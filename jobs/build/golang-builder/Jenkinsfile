@@ -64,7 +64,7 @@ node {
     stage('Build golang-builder images') {
         def golang_nvrs = commonlib.cleanSpaceList(params.GOLANG_NVRS)
         withCredentials([
-            string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')
+            string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
             string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
@@ -112,9 +112,9 @@ node {
                     } // timeout
 
                     commonlib.safeArchiveArtifacts([
-                        "doozer-working/*.log",
-                        "doozer-working/*.yaml",
-                        "doozer-working/brew-logs/**",
+                        "artcd_working/doozer-working/*.log",
+                        "artcd_working/doozer-working/*.yaml",
+                        "artcd_working/doozer-working/brew-logs/**",
                     ])
                 }
             }

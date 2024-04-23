@@ -112,9 +112,10 @@ node {
                     } // timeout
 
                     commonlib.safeArchiveArtifacts([
-                        "artcd_working/doozer-working/*.log",
-                        "artcd_working/doozer-working/*.yaml",
-                        "artcd_working/doozer-working/brew-logs/**",
+                        "artcd_working/**/*.json",
+                        "artcd_working/**/*.log",
+                        "artcd_working/**/*.yaml",
+                        "artcd_working/**/*.yml",
                     ])
                 }
             }

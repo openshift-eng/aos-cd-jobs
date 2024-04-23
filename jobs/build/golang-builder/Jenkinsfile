@@ -31,6 +31,10 @@ node {
                         name: 'CREATE_TAGGING_TICKET',
                         description: 'Create a CWFCONF Jira ticket for tagging golang builds in ART buildroots',
                     ),
+                    booleanParam(
+                        name: 'SCRATCH',
+                        description: 'Perform a scratch build (will not use an NVR or update tags)',
+                    ),
                     string(
                         name: 'ART_JIRA',
                         description: 'ART jira ticket number to be used for reference when creating tickets/PRs',
@@ -95,6 +99,9 @@ node {
                         if (params.CREATE_TAGGING_TICKET) {
                             cmd << "--create-tagging-ticket"
                         }
+                        if (params.SCRATCH) {
+                            cmd << "--scratch"
+                        }
 
                         // Run pipeline
                         timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
@@ -107,9 +114,9 @@ node {
                         } // timeout
 
                         commonlib.safeArchiveArtifacts([
-                            "doozer_working/*.log",
-                            "doozer_working/*.yaml",
-                            "doozer_working/brew-logs/**",
+                            "doozer-working/*.log",
+                            "doozer-working/*.yaml",
+                            "doozer-working/brew-logs/**",
                         ])
                     }
                 }

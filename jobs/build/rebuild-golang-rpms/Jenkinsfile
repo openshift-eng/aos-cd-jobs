@@ -31,18 +31,9 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
-                    booleanParam(
-                        name: 'DRY_RUN',
-                        description: 'Just show what would happen, without actually executing the steps',
-                        defaultValue: false,
-                    ),
-                    string(
-                        name: 'ART_TOOLS_COMMIT',
-                        description: 'Override the art-tools submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
-                        defaultValue: "",
-                        trim: true
-                    ),
                     commonlib.mockParam(),
+                    commonlib.dryrunParam(),
+                    commonlib.artToolsParam(),
                 ]
             ],
         ]

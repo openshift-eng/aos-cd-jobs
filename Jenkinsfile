@@ -62,9 +62,9 @@ node {
                 commonlib.shell(
                     script: """
                         if [[ -f /bin/scl ]]; then
-                        scl enable rh-python38 -- python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context default-context ${confirm_param} ${action} ${params.RELEASE_NAME}
+                        scl enable rh-python38 -- python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} -c `oc config current-context` ${confirm_param} ${action} ${params.RELEASE_NAME}
                         else
-                        python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} --context default-context ${confirm_param} ${action} ${params.RELEASE_NAME}
+                        python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} -c `oc config current-context` ${confirm_param} ${action} ${params.RELEASE_NAME}
                         fi
                         """,
                 )

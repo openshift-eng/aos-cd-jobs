@@ -85,6 +85,20 @@ node() {
 
         THRESHOLD = 2  // If this number fail sequentially, start alerts.
         for ( stream_name in states.keySet() ) {
+            // Skip check for versions we no longer build
+            def versionRegex = /\b(\d+\.\d+)\b/
+            def match = (stream_name =~ versionRegex)
+            if (match.find()) {
+                def selectedVersion = match[0][1]
+                if (!ocp4Versions.contains(selectedVersion)) {
+                    echo "Skipping check for stream ${stream_name}"
+                    continue
+                }
+            } else {
+                error("Stream name ${stream_name} didn't match any version pattern")
+            }
+
+
             echo "\n\nAnalyzing stream: ${stream_name}"
             stream_results = states[stream_name]
             echo "  Results: ${stream_results}"

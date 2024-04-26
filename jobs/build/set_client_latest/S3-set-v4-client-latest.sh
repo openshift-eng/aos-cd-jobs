@@ -144,6 +144,14 @@ for arch in ${ARCHES}; do
 
     transferClientIfNeeded "${target_dir}/${RELEASE}/" "${target_dir}/${MAJOR_MINOR_LINK}/"
 
+    if [[ "$CLIENT_TYPE" == "ocp" && "${MAJOR_MINOR}" == [0-9]* ]]; then
+      # Once clients start publishing to ocp, anything in ocp-dev-preview goes stale. Clean these up for cost
+      # and readability. The check on MAJOR_MINOR is just a sanity check that it starts with a digit (e.g. "4.16")
+      # so we are deleting only expected items.
+      echo "Cleaning up old entries in ocp-dev-preview/"
+      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${MAJOR_MINOR}.*"
+    fi
+
     # List the all the other "latest-4.x" or "stable-4.x" directory names. s3 ls
     # returns lines lke:
     #                           PRE stable-4.1/

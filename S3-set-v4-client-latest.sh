@@ -144,6 +144,14 @@ for arch in ${ARCHES}; do
 
     transferClientIfNeeded "${target_dir}/${RELEASE}/" "${target_dir}/${MAJOR_MINOR_LINK}/"
 
+    if [[ "$CLIENT_TYPE" == "ocp" && "${MAJOR_MINOR}" == [0-9]* ]]; then
+      # Once clients start publishing to ocp, anything in ocp-dev-preview goes stale. Clean these up for cost
+      # and readability. The check on MAJOR_MINOR is just a sanity check that it starts with a digit (e.g. "4.16")
+      # so we are deleting only expected items.
+      echo "Cleaning up old entries in ocp-dev-preview/"
+      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${MAJOR_MINOR}.*"
+    fi
+
     # List the all the other "latest-4.x" or "stable-4.x" directory names. s3 ls
     # returns lines lke:
     #                           PRE stable-4.1/
@@ -154,6 +162,7 @@ for arch in ${ARCHES}; do
     # stable-4.2
     # ...
     # Then we use sort | tac to order the versions and find the greatest '4.x' directory
+    # Example LATEST_LINK="candidate-4.16" if LINK_NAME="candidate" and 4.16 is the latest release being published to S3.
     LATEST_LINK=$(aws s3 ls "s3://art-srv-enterprise/${target_dir}/${LINK_NAME}-" | grep PRE | awk '{print $2}' | tr -d '/' | sort -V | tac | head -n 1 || true)
 
     if [[ "${LATEST_LINK}" == "${MAJOR_MINOR_LINK}" ]]; then
@@ -162,12 +171,14 @@ for arch in ${ARCHES}; do
       # We should have a directory "stable" with the 4.9 content.
       transferClientIfNeeded "${target_dir}/${RELEASE}/" "${target_dir}/${LINK_NAME}/"
 
-      # On the old mirror, clients/ocp-dev-preview/pre-release linked to ../ocp/candidate after start creating 4.x RC.
-      # and clients/ocp-dev-preview/pre-release should link to ../latest after 4.x GA
-      # Replicate that by copying the artifacts over.
-      if [[ "$LINK_NAME" == "latest" && "$CLIENT_TYPE" == "ocp-dev-preview" ]]; then
+      # Service Delivery links "pre-release" downloads to https://console.redhat.com/openshift/install/pre-release .
+      # We want these to point to engineering candidates (ECs).
+      # If this is the "candidate" link and the latest release, copy content to that location.
+      # Also copy to "latest" for historical consistency.
+      if [[ "$LINK_NAME" == "candidate" && "$CLIENT_TYPE" == "ocp-dev-preview" ]]; then
         # This is where console.openshift.com points to find dev-preview artifacts
         transferClientIfNeeded "${target_dir}/${RELEASE}/" "pub/openshift-v4/${arch}/clients/ocp-dev-preview/pre-release/"
+        transferClientIfNeeded "${target_dir}/${RELEASE}/" "pub/openshift-v4/${arch}/clients/ocp-dev-preview/latest/"
       fi
     fi
 done

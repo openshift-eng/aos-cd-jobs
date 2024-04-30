@@ -2,7 +2,8 @@
 
 @NonCPS
 def sortedVersions() {
-    return commonlib.ocp4Versions.sort(false)
+    // Proceed from newest to oldest to prioritize a functional run on the latest version.
+    return commonlib.ocp4Versions.sort(false).reverse()
 }
 
 node {
@@ -108,7 +109,7 @@ node {
         // Log in to quay.io with credentials necessary to push to DPTP's QCI registry (quay.io/openshift/ci). QCI
         // will eventually be the source of truth for images being used by CI workloads instead of app.ci's internal registry.
         // We support this by mirroring important images directly to QCI.
-        withCredentials([usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: '$QCI_USER', passwordVariable: 'QCI_PASSWORD')]) {
+        withCredentials([usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD')]) {
             sh "oc registry login --registry=quay.io/openshift --auth-basic=$QCI_USER:QCI_PASSWORD"
         }
 
@@ -192,20 +193,36 @@ node {
                         }
                     }
                 }
+            } catch ( ex ) {
+                if ( ONLY_RELEASE != "" ) { // If we are just running for one release, allow exception to propagate out
+                    throw ex
+                }
+                // Otherwise, gracefully print exception and continue with other versions.
+                rc = 1
+                echo """
+                An error occurred while running for ${major}.${minor}.
+                ${ex}
+                """
             } finally {
                 commonlib.safeArchiveArtifacts(["wd-${version}/*.log"])
                 sh "rm -rf ${doozerWorking}"
             }
 
             if ( rc == 25 ) {
-                currentBuild.result = "UNSTABLE"
-                currentBuild.displayName += "-Partial"
+                if ( currentBuild.result != "FAILURE" ) { // If there wasn't already a more severe issue, mark as unstable
+                    currentBuild.result = "UNSTABLE"
+                }
+                currentBuild.description += "  ${major}.${minor}-Partial\n"
                 echo "Some PRs were skipped because parent PRs have not merged yet: ${version}."
                 // Do not "mv ${group} ${prev_dir_name}" because we are not done
             } else if ( rc == 50 ) {
                 currentBuild.result = "FAILURE"
-                currentBuild.displayName += "-Completed with errors"
+                currentBuild.description += "  ${major}.${minor}-Completed with errors\n"
                 echo "Some errors were raised during PR openings; please check the logs for details"
+            } else if ( rc != 0 ) {
+                currentBuild.result = "FAILURE"
+                currentBuild.description += "  ${major}.${minor}-Unknown errors\n"
+                echo "Some errors were raised during reconciliation; please check the logs for details"
             } else {
                 sh "rm -rf ${prev_dir_name}"
                 sh "mv ${group} ${prev_dir_name}"

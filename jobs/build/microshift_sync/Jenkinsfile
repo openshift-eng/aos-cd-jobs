@@ -173,17 +173,6 @@ node {
                         commonlib.syncRepoToS3Mirror(mirror_src, mirror_path, true, 10, dry_run)
                         if (set_latest) {
                             commonlib.syncRepoToS3Mirror(mirror_src, latest_path, true, 10, dry_run)
-                            // https://issues.redhat.com/browse/ART-6607 on why invalidation matters when updating
-                            // existing filenames.
-                            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                                commonlib.shell(script:"""
-                                aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "${latest_path}/*"
-                                """)
-
-                                commonlib.shell(script:"""
-                                aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "${mirror_path}/*"
-                                """)
-                            }
                         }
                     }
                 }

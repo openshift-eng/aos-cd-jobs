@@ -101,7 +101,16 @@ node {
     }
 
     buildlib.withAppCiAsArtPublish() {
+
+        // Log in to app.ci's internal registry as we push some images there (registry.ci.openshift.org).
         sh "oc registry login"
+
+        // Log in to quay.io with credentials necessary to push to DPTP's QCI registry (quay.io/openshift/ci). QCI
+        // will eventually be the source of truth for images being used by CI workloads instead of app.ci's internal registry.
+        // We support this by mirroring important images directly to QCI.
+        withCredentials([usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: '$QCI_USER', passwordVariable: 'QCI_PASSWORD')]) {
+            sh "oc registry login --registry=quay.io/openshift --auth-basic=$QCI_USER:QCI_PASSWORD"
+        }
 
         for ( String version : for_versions ) {
             group = "openshift-${version}"

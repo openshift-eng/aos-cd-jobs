@@ -22,7 +22,6 @@ node {
                     parameters: [
                         string(name: 'BUILD_VERSION', value: "${cv}"),
                         booleanParam(name: 'CHECK_TRIGGERED', value: true),
-                        booleanParam(name: 'CREATE_JIRA_TICKETS', value: true),
                     ],
                     propagate: false
                 }

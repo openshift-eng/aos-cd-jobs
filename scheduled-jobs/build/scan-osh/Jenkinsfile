@@ -1,0 +1,36 @@
+node {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+    slacklib = commonlib.slacklib
+
+    properties( [
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+        disableResume(),
+    ] )
+
+    def versionJobs = [:]
+    for ( version in commonlib.ocp4Versions ) {
+        def cv = "${version}" // make sure we use a locally scoped variable
+
+        // Trigger SAST scan for ${version}
+        versionJobs["scan-v${version}"] = {
+            try {
+                timeout(activity: true, time: 1, unit: 'HOURS') {
+                    build job: '../aos-cd-builds/build%2Fscan-osh',
+                    parameters: [
+                        string(name: 'BUILD_VERSION', value: "${cv}"),
+                        booleanParam(name: 'CHECK_TRIGGERED', value: true),
+                        booleanParam(name: 'CREATE_JIRA_TICKETS', value: true),
+                    ],
+                    propagate: false
+                }
+            } catch (te) {
+                slacklib.to(cv).failure("Error running scan-osh", te)
+            }
+        }
+    }
+
+    parallel versionJobs
+}

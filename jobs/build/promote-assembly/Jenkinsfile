@@ -80,7 +80,12 @@ node {
                     ),
                     booleanParam(
                         name: 'SKIP_SIGNING',
-                        description: 'Do not sign the release.',
+                        description: 'Do not sign the release (legacy).',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'SKIP_SIGSTORE',
+                        description: 'Do not sign the release with the newer sigstore method.',
                         defaultValue: false,
                     ),
                     booleanParam(
@@ -158,6 +163,9 @@ node {
         if (params.SKIP_SIGNING) {
             cmd << "--skip-signing"
         }
+        if (params.SKIP_SIGSTORE) {
+            cmd << "--skip-sigstore"
+        }
         if (params.SKIP_CINCINNATI_PR_CREATION) {
             cmd << "--skip-cincinnati-prs"
         }
@@ -180,6 +188,8 @@ node {
         cmd << "--signing-env=${signing_env}"
         echo "Will run ${cmd}"
         def siging_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
+        def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
+        def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
         buildlib.withAppCiAsArtPublish() {
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD'],
                              aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
@@ -190,6 +200,8 @@ node {
                              string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                              file(credentialsId: "${siging_cert_id}.crt", variable: 'SIGNING_CERT'),
                              file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
+                             file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
+                             string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
                              string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                              string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                              string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),

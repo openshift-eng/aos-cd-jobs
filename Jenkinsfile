@@ -2,8 +2,7 @@
 
 node {
     checkout scm
-    def release = load("pipeline-scripts/release.groovy")
-    def buildlib = release.buildlib
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("sigstore-sign", """
         Sign a release with the sigstore method.
@@ -33,13 +32,23 @@ node {
                     ),
                     string(
                         name: 'IMAGE_PULLSPECS',
-                        description: 'List of images to recursively sign (must correspond to RELEASE)',
+                        description: 'List of images to recursively sign (must correspond to RELEASE). If not supplied, look up release images from assembly.',
                         trim: true,
                     ),
                     choice(
                         name: 'SIGNING_KEY',
                         description: 'Which key to sign with',
-                        choices: ["stage", "production"].join("\n"),
+                        choices: ["production", "stage"].join("\n"),
+                    ),
+                    choice(
+                        name: 'SIGN_RELEASE_IMAGES',
+                        description: 'Sign the release images? Not until OTA-1267 is done.',
+                        choices: ["no", "yes", "only"].join("\n"),
+                    ),
+                    booleanParam(
+                        name: 'VERIFY_RELEASE_IMAGES',
+                        description: 'Check that release images have legacy signatures (REQUIRED when looking up pullspecs)',
+                        defaultValue: true,
                     ),
                     commonlib.dryrunParam('Do not actually sign anything'),
                     commonlib.mockParam(),
@@ -65,15 +74,15 @@ node {
             "--working-dir=./artcd_working",
             "--config=./config/artcd.toml",
         ]
-        if (params.DRY_RUN) {
-            cmd << "--dry-run"
-        }
+        if (params.DRY_RUN) cmd << "--dry-run"
         cmd += [
             "sigstore-sign",
             "--group=openshift-${params.VERSION}",
             "--assembly=${params.RELEASE}",
-            "--",
+            "--sign-release=${params.SIGN_RELEASE_IMAGES}",
         ]
+        if (params.VERIFY_RELEASE_IMAGES) cmd << "--verify-release"
+        cmd << "--"  // no more options, just pullspecs
         cmd += commonlib.parseList(params.IMAGE_PULLSPECS)
         def signing_creds_file = params.SIGNING_KEY == "production" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
         def signing_key_id = params.SIGNING_KEY == "production" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"

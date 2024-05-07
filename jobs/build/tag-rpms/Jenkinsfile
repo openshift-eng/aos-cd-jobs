@@ -83,11 +83,9 @@ node {
             throw err
         } finally {
             commonlib.safeArchiveArtifacts([
-                "artcd_working/email/**",
-                "artcd_working/**/*.json",
-                "artcd_working/**/*.log",
-                "artcd_working/**/*.yaml",
-                "artcd_working/**/*.yml",
+                "artcd_working/doozer_working/*.log",
+                "artcd_working/doozer_working/*.yaml",
+                "artcd_working/doozer_working/*.yml"
             ])
             buildlib.cleanWorkspace()
         }

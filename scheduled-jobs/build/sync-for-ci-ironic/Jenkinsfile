@@ -6,7 +6,7 @@ properties([
 
 @NonCPS
 def sortedVersions() {
-  return commonlib.ocp4Versions.sort(false)
+  return commonlib.ocp4Versions().sort(false)
 }
 
 node() {

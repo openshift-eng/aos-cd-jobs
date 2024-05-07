@@ -3,7 +3,7 @@
 @NonCPS
 def sortedVersions() {
     // Proceed from newest to oldest to prioritize a functional run on the latest version.
-    return commonlib.ocp4Versions.sort(false).reverse()
+    return commonlib.ocp4Versions().sort(false).reverse()
 }
 
 node {

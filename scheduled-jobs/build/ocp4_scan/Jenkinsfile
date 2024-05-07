@@ -11,7 +11,7 @@ node {
     ] )
 
     def versionJobs = [:]
-    for ( version in commonlib.ocp4Versions ) {
+    for ( version in commonlib.ocp4Versions() ) {
         def cv = "${version}" // make sure we use a locally scoped variable
 
         // Skip the build if already locked

@@ -6,8 +6,9 @@ ocp3Versions = [
 ]
 
 // Recent and relevant versions of ocp4
-// versions could be EOL
-// See: ocp4Versions() instead
+// that we need to build for
+// versions could be EOL.
+// Use ocp4VersionsForRelease() for the list of versions that are not EOL
 ocp4Versions = [
     "4.17",
     "4.16",
@@ -47,11 +48,11 @@ def getEOLVersions(ocp_major_version) {
     return eol_versions
 }
 
-def ocp4Versions() {
+def ocp4VersionsForRelease() {
     eolVersions = getEOLVersions('4')
     echo "EOL Versions: ${eolVersions}"
     found = ocp4Versions.findAll { it -> !eolVersions.contains(it) }
-    echo "OCP4 Versions: ${found}"
+    echo "OCP4 Versions for release: ${found}"
     return found
 }
 

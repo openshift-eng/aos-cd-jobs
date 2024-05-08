@@ -32,7 +32,7 @@ def runFor(version, channelPrefix, linkName) {
 @NonCPS
 def sortedVersions() {
   // Return versions honoring semver
-  return commonlib.ocp4Versions().sort(false) {
+  return commonlib.ocp4VersionsForRelease().sort(false) {
     def major_minor = it.tokenize('.')
 
     assert major_minor.size() == 2

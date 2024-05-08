@@ -28,7 +28,7 @@ node {
             disableConcurrentBuilds(),
     ])
 
-    versions = commonlib.ocp4Versions()
+    versions = commonlib.ocp4VersionsForRelease()
     // Send UMB messages for these new nightlies, yields a list like:
     //     [[4.6.0-0.nightly, 4.6.0-0.nightly-s390x, ..], 4.5.0-0.nightly, 4.4.0-0.nightly, ...]
     def nightlies = versions.collect { version -> return commonlib.goArchSuffixes.collect { version + ".0-0.nightly" + it } }

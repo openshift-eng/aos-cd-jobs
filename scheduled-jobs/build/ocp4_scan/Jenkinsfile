@@ -11,7 +11,11 @@ node {
     ] )
 
     def versionJobs = [:]
-    for ( version in commonlib.ocp4Versions() ) {
+    // ocp4_scan relies on `freeze_automation` config to determine whether to build or not
+    // so we do not want to use commonlib.ocp4VersionsForRelease() here, since it is filters versions
+    // by `software_lifecycle: phase: eol`
+    // And those are independent. We sometimes want to keep building EOL versions
+    for ( version in commonlib.ocp4Versions ) {
         def cv = "${version}" // make sure we use a locally scoped variable
 
         // Skip the build if already locked

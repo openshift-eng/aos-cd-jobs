@@ -214,8 +214,12 @@ node {
                         release_info = readJSON(text: out)
                     } catch (exception) {
                         // retry since this is often flaky
-                        echo "Failed to parse JSON, retrying"
-                        release_info = readJSON(text: out)
+                        try {
+                            release_info = readJSON(text: out)
+                        } catch (exception) {
+                            slacklib.to(params.VERSION).say("@release-artists Promote failed since it couldn't parse pyartcd json. Please investigate/retry")
+                            throw exception
+                        }
                     }
                 }
             }

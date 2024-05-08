@@ -210,7 +210,13 @@ node {
                 withEnv(["BUILD_URL=${BUILD_URL}"]) {
                     def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                     echo "artcd returns:\n$out"
-                    release_info = readJSON(text: out)
+                    try {
+                        release_info = readJSON(text: out)
+                    } catch (exception) {
+                        // retry since this is often flaky
+                        echo "Failed to parse JSON, retrying"
+                        release_info = readJSON(text: out)
+                    }
                 }
             }
         }

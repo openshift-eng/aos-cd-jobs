@@ -19,7 +19,7 @@ node() {
             gcloud auth activate-service-account --key-file=$FILE
             DEST=/mnt/jenkins-workspace/buckets/rhacs-openshift-mirror-src
             mkdir -p $DEST
-            gsutil rsync -r gs://rhacs-openshift-mirror-src $DEST
+            gsutil rsync -r -d gs://rhacs-openshift-mirror-src $DEST
             '''
         }
     }

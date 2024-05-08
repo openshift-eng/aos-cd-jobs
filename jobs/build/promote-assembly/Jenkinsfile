@@ -247,20 +247,5 @@ node {
         }
     }
 
-    stage("clean and mail") {
-        dry_subject = ""
-        if (params.DRY_RUN) { dry_subject = "[DRY RUN] "}
-        def pullspecs = release_info.content.findAll{ k, v -> v.pullspec }.collect {k, v -> v.pullspec }
-        commonlib.email(
-            to: "${params.MAIL_LIST_SUCCESS}",
-            replyTo: "aos-team-art@redhat.com",
-            from: "aos-art-automation@redhat.com",
-            subject: "${dry_subject}Success building release payload: ${release_info.name}",
-            body: """
-Jenkins Job: ${env.BUILD_URL}
-PullSpecs: ${pullspecs.join(",")}
-        """);
-        buildlib.cleanWorkspace()
-    }
-
+    buildlib.cleanWorkspace()
 }

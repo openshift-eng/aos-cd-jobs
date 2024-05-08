@@ -142,7 +142,7 @@ node('covscan') {
     stage("Version dumps") {
         buildlib.doozer "--version"
         buildlib.elliott "--version"
-        buildlib.oc("version -o yaml")
+        buildlib.oc("version --client=true -o yaml")
     }
 
     stage ("build sync") {

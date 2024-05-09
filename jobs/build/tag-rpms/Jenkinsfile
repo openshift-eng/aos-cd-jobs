@@ -85,7 +85,7 @@ node {
             commonlib.safeArchiveArtifacts([
                 "artcd_working/doozer_working/*.log",
                 "artcd_working/doozer_working/*.yaml",
-                "artcd_working/doozer_working/*.yml"
+                "artcd_working/doozer_working/*.yml",
             ])
             buildlib.cleanWorkspace()
         }

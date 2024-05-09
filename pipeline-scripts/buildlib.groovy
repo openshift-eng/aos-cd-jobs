@@ -647,8 +647,8 @@ def watch_brew_task_and_retry(name, taskId, brewUrl) {
     }
 }
 
-def cleanWorkspace(cleanWhenFailure=true) {
-    cleanWs(cleanWhenFailure: cleanWhenFailure, notFailBuild: true)
+def cleanWorkspace() {
+    cleanWs(cleanWhenFailure: false, notFailBuild: true)
     dir("${workspace}@tmp") {
         deleteDir()
     }

@@ -212,13 +212,13 @@ node {
                     echo "artcd returns:\n$out"
                     try {
                         release_info = readJSON(text: out)
-                    } catch (exception) {
+                    } catch (ex1) {
                         // retry since this is often flaky
                         try {
                             release_info = readJSON(text: out)
-                        } catch (exception) {
+                        } catch (ex2) {
                             slacklib.to(params.VERSION).say("@release-artists Promote failed since it couldn't parse pyartcd json. Please investigate/retry")
-                            throw exception
+                            throw ex2
                         }
                     }
                 }

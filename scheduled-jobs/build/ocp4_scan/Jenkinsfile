@@ -24,7 +24,7 @@ node {
         // Trigger ocp4-scan build for ${version}
         versionJobs["scan-v${version}"] = {
             try {
-                timeout(activity: true, time: 30, unit: 'MINUTES') {
+                timeout(activity: true, time: 60, unit: 'MINUTES') {
                     build job: '../aos-cd-builds/build%2Focp4_scan', parameters: [string(name: 'VERSION', value: "${cv}")], propagate: false
                 }
             } catch (te) {

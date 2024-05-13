@@ -505,6 +505,7 @@ node {
 
 
             stage("origin-web-console repo") {
+                sh "go mod init go-bindata"
                 sh "go get github.com/jteeuwen/go-bindata"
                 // defines:
                 //   WEB_CONSOLE_DIR

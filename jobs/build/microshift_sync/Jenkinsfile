@@ -124,21 +124,10 @@ node {
                 # See https://issues.redhat.com/browse/ART-4221 for more information about
                 # setting up signing on buildvm.
 
-                # For each RPM in the staging directory, run signing. This is lunacy because
-                # rpm --addsign will not run without prompting for a passphrase. It also can't
-                # just take this from something like: echo '' | rpm --addsign ...
-                # because it reopens /dev/tty before it tries to read the passphase. It will
-                # then pass that string on to gpg. This means even something like gpg-agent
-                # can't be used.
-                # SO, we use 'screen' to create a disconnected session running the command
-                # and use 'stuff' to stuff a new line into the stdin of the session.
-                screen_name=microshift-rpm
+                # For each RPM in the staging directory, run signing.
                 for rpm in `find ${STAGING_PLASHET_DIR} -name '*.rpm'`; do """ + '''
                     echo signing $rpm
-                    screen -d -m -S $screen_name rpm --addsign $rpm
-                    sleep 4  # some time to make sure we are at the prompt
-                    screen -S $screen_name -p 0 -X stuff "^M"
-                    sleep 4  # wait for rpm to be signed
+                    rpm --addsign $rpm
                     set +e
                     # rpm -K will throw an error if the key is not in the rpm database; we don't care
                     # we just want proof of a key.

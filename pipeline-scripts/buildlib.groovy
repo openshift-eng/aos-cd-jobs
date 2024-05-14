@@ -140,13 +140,7 @@ def setup_venv() {
     VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
     commonlib.shell(script: "rm -rf ${VIRTUAL_ENV}")
 
-    commonlib.shell(script: """
-    if [[ -f /bin/scl ]]; then
-        scl enable rh-python38 -- python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
-    else
-        python3.9 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
-    fi
-    """)
+    commonlib.shell(script: "python3.9 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
 
     env.PATH = "${VIRTUAL_ENV}/bin:${env.PATH}"
 

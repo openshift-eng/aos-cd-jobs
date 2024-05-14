@@ -533,7 +533,6 @@ node {
                 }
             }
 
-
             stage("origin-web-console-server repo") {
                 /**
                 * The origin-web-console-server repo/image was introduced in 3.9.
@@ -559,27 +558,33 @@ node {
                     TARGET_VENDOR_DIR = WEB_CONSOLE_SERVER_DIR
                 }
 
-                dir(TARGET_VENDOR_DIR) {
+                // Vendor a particular branch of the web console into our ose branch and capture the SHA we vendored in
+                // TODO: Is this necessary? If we don't specify a GIT_REF, will it just use the current branch
+                // we already setup?
+                // TODO: Easier way to get the VC_COMMIT by just using parse-rev when we checkout the desired web console branch?
+                def cmd = [
+                    "podman run --rm -ti -e",
+                    "GIT_REF=${WEB_CONSOLE_BRANCH}",
+                    "-v \$(pwd)/go:/go:Z -w /go/src/github.com/openshift/ose",
+                    "registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:v1.15.14.20230717.192420",
+                    "./hack/vendor-console.sh | grep 'Vendoring origin-web-console' | awk '{print \$4}'"
+                ]
 
-                    // Vendor a particular branch of the web console into our ose branch and capture the SHA we vendored in
-                    // TODO: Is this necessary? If we don't specify a GIT_REF, will it just use the current branch
-                    // we already setup?
-                    // TODO: Easier way to get the VC_COMMIT by just using parse-rev when we checkout the desired web console branch?
-                    VC_COMMIT = commonlib.shell(
+                VC_COMMIT = commonlib.shell(
                         returnStdout: true,
-                        script: "GIT_REF=${WEB_CONSOLE_BRANCH} scl enable go-toolset-1.15 hack/vendor-console.sh | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
+                        script: cmd.join(' '),
                     ).trim()
 
-                    if (VC_COMMIT == "") {
-                        commonlib.shell("GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh")
-                        error("Unable to acquire VC_COMMIT")
-                    }
+                if (VC_COMMIT == "") {
+                    error("Unable to acquire VC_COMMIT")
+                }
 
+                dir(TARGET_VENDOR_DIR) {
                     // Vendoring the console will rebuild this assets, so add them to the commit
                     sh """
                     git add pkg/assets/bindata.go
                     git add pkg/assets/java/bindata.go
-                """
+                    """
 
                     if (USE_WEB_CONSOLE_SERVER && !IS_TEST_MODE) {
                         sh "git commit -m 'bump origin-web-console ${VC_COMMIT}' --allow-empty"

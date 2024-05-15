@@ -297,6 +297,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.artToolsParam(),
                     choice(
                         name: 'SSH_KEY_ID',
                         description: 'SSH credential id to use',

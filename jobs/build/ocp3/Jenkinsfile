@@ -634,6 +634,10 @@ node {
                     }
 
                     sh "git commit --allow-empty -m '${commit_msg}'" // add commit to capture our change message
+
+                    // the %systemd_postun macro requires an additional arg on rhel9; fixing this inline
+                    sh "sed -i 's/%systemd_postun/%systemd_postun %{name}-node.service/' origin.spec"
+
                     sh "tito tag --accept-auto-changelog --keep-version --debug"
                     if (!IS_TEST_MODE) {
                         sh "git push"
@@ -652,6 +656,10 @@ node {
                         // If >= 3.6, keep openshift-ansible in sync with OCP version
                         buildlib.set_rpm_spec_version("openshift-ansible.spec", NEW_VERSION)
                         buildlib.set_rpm_spec_release_prefix("openshift-ansible.spec", NEW_RELEASE)
+
+                        // Explicitly set Python version in the specfile
+                        sh "sed -i '/%description/a %global __python /usr/bin/python3' openshift-ansible.spec"
+
                         // Note that I did not use --use-release because it did not maintain variables like %{?dist}
                         sh "tito tag --debug --accept-auto-changelog --keep-version --debug"
 

@@ -664,10 +664,6 @@ node {
                         sh "tito tag --debug --accept-auto-changelog --keep-version --debug"
 
                     }
-                    if (!IS_TEST_MODE) {
-                        sh "git push"
-                        sh "git push --tags"
-                    }
                     OA_CHANGELOG = buildlib.read_changelog("openshift-ansible.spec")
                 }
             }

@@ -15,6 +15,7 @@ cc = ["aos-art-automation@redhat.com"]
 qe_notification_recipients_ocp4=["multi-arch-zstream-testing@redhat.com", "aos-qe@redhat.com", "mp-entitlement-qe@redhat.com"]
 qe_notification_recipients_ocp3=["wzheng@redhat.com", "gpei@redhat.com", "aos-qe@redhat.com", "mp-entitlement-qe@redhat.com", "openshift-lp-test@redhat.com", "pprakash@redhat.com"]
 promote_image_list_recipients = ["openshift-ccs@redhat.com"]
+promote_complete_recipients = ['aos-cicd@redhat.com', 'aos-qe@redhat.com', 'aos-art-automation+new-release@redhat.com']
 
 [jira]
 url = "https://issues.redhat.com"

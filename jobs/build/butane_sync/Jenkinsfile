@@ -51,7 +51,7 @@ node {
             rm -rf ./${params.VERSION}
             mkdir -p ./${params.VERSION}
             cd ./${params.VERSION}
-            brew download-build ${params.NVR}
+            brew --topurl https://download.devel.redhat.com/brewroot download-build ${params.NVR}
             tree
             """
         )

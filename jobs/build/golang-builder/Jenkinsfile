@@ -100,6 +100,9 @@ node {
                     if (params.SCRATCH) {
                         cmd << "--scratch"
                     }
+                    if (!params.DRY_RUN) {
+                        cmd << "--confirm"
+                    }
 
                     // Run pipeline
                     timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour

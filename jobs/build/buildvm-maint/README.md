@@ -1,3 +1,0 @@
-- Push images we do not build to the operations registries
-- Clean up docker storage space
-- Clean up ose_images temporary files

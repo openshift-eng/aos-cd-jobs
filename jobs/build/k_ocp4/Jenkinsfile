@@ -113,6 +113,11 @@ node {
                 "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
             ]
 
+            // Needed to detect manual builds
+                wrap([$class: 'BuildUser']) {
+                        builderEmail = env.BUILD_USER_EMAIL
+                }
+
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([
                             string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),

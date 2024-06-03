@@ -11,8 +11,8 @@ from slack_sdk.errors import SlackApiError
 SLACK_API_TOKEN = os.getenv('SLACK_API_TOKEN')
 SLACK_SIGNING_SECRET = os.getenv('SLACK_SIGNING_SECRET')
 USER_TOKEN = os.getenv('SLACK_USER_TOKEN')
+CHANNEL = os.getenv('CHANNEL')
 
-TEAM_ART_CHANNEL = 'team-art'
 RELEASE_ARTIST_HANDLE = 'release-artists'
 
 
@@ -42,6 +42,10 @@ if __name__ == '__main__':
 
     if not all_matches:
         print('No messages matching attention emoji criteria')
+        response = app.client.chat_postMessage(
+            channel=CHANNEL,
+            text=f':check: no unresolved threads found'
+        )
         exit(0)
 
     print(json.dumps(all_matches))
@@ -116,18 +120,18 @@ if __name__ == '__main__':
     ]
 
     # https://api.slack.com/methods/chat.postMessage#examples
-    response = app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+    response = app.client.chat_postMessage(channel=CHANNEL,
                                            text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
                                            blocks=header_block,
                                            unfurl_links=False)
 
     # Post warnings about inaccessible channels first
     for warning in channel_warnings.values():
-        app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+        app.client.chat_postMessage(channel=CHANNEL,
                                     text=warning,
                                     thread_ts=response['ts'])
 
     for response_message in response_messages:
-        app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+        app.client.chat_postMessage(channel=CHANNEL,
                                     text=response_message,
                                     thread_ts=response['ts'])  # use the timestamp from the response

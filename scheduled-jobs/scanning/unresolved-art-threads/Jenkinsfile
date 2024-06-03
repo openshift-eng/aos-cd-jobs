@@ -1,28 +1,45 @@
-properties([
-    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
-    disableConcurrentBuilds(),
-    disableResume(),
-])
 
 node() {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
     slacklib = commonlib.slacklib
 
-    try {
-        withCredentials([
-                            string(credentialsId: "art-bot-slack-token", variable: "SLACK_API_TOKEN"),
-                            string(credentialsId: "art-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
-                            string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
-                        ]) {
-            retry(10) {
-                commonlib.shell(script: "python -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py")
+    properties([
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+        disableResume(),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                string(
+                        name: 'CHANNEL',
+                        description: 'Where should we notify about ART threads',
+                        trim: true,
+                        defaultValue: "#team-art"
+                    ),
+                commonlib.mockParam(),
+            ]
+        ]
+    ])
+
+    commonlib.checkMock()
+
+    stage('Check unresolved ART threads') {
+        try {
+            withCredentials([
+                                string(credentialsId: "art-bot-slack-token", variable: "SLACK_API_TOKEN"),
+                                string(credentialsId: "art-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
+                                string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
+                            ]) {
+                withEnv(["CHANNEL=${params.CHANNEL}"]) {
+                    retry(10) {
+                        commonlib.shell(script: "python -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py")
+                    }
+                }
             }
+        } catch (e) {
+            slacklib.to('#team-art').say("Error while checking unresolved threads: ${env.BUILD_URL}")
+            throw(e)
         }
-    } catch (e) {
-        slacklib.to('#team-art').say("Error while checking unresolved threads: ${env.BUILD_URL}")
-        throw(e)
     }
-
 }
-

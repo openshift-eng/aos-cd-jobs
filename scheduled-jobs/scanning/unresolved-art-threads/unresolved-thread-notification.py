@@ -4,6 +4,9 @@ import json
 import os
 import time
 import datetime
+import requests
+import sys
+from collections import OrderedDict
 
 from slack_bolt import App
 from slack_sdk.errors import SlackApiError
@@ -12,11 +15,40 @@ SLACK_API_TOKEN = os.getenv('SLACK_API_TOKEN')
 SLACK_SIGNING_SECRET = os.getenv('SLACK_SIGNING_SECRET')
 USER_TOKEN = os.getenv('SLACK_USER_TOKEN')
 CHANNEL = os.getenv('CHANNEL')
+JENKINS_TOKEN = os.getenv('JENKINS_SERVICE_ACCOUNT_TOKEN')
+JENKINS_USER = os.getenv('JENKINS_SERVICE_ACCOUNT')
 
 RELEASE_ARTIST_HANDLE = 'release-artists'
 
+def get_failed_jobs_json():
+    url = "https://art-jenkins.apps.prod-stable-spoke1-dc-iad2.itup.redhat.com/job/aos-cd-builds/api/json"
+    query = "?tree=jobs[name,builds[number,result,timestamp]]"  # status,displayName are also useful
+    response = requests.get(url+query, auth=(JENKINS_USER, JENKINS_TOKEN))
+    response.raise_for_status()
+    data = response.json()
+    failed_jobs = []
+    now = datetime.datetime.now(datetime.UTC)
+    for job in data['jobs']:
+        job_name = job['name']
+        f = 0
+        for build in job['builds']:
+            dt = datetime.datetime.fromtimestamp(build['timestamp']/1000, datetime.UTC)
+            td = now - dt
+            hours = td.seconds//3600
+            minutes = (td.seconds//60)%60
+            if not (td.days == 0 and hours < 3):
+                continue
+            if build['result'] == 'FAILURE':
+                f += 1
+        if f > 0:
+            failed_jobs.append((job_name, f))
 
-if __name__ == '__main__':
+    if failed_jobs:
+        failed_jobs.sort(key=lambda x: x[1], reverse=True)
+        return json.dumps(failed_jobs)
+    return None
+
+def main():
     app = App(
         token=SLACK_API_TOKEN,
         signing_secret=SLACK_SIGNING_SECRET,
@@ -135,3 +167,13 @@ if __name__ == '__main__':
         app.client.chat_postMessage(channel=CHANNEL,
                                     text=response_message,
                                     thread_ts=response['ts'])  # use the timestamp from the response
+
+    failed_jobs_json = get_failed_jobs_json()
+    if failed_jobs_json:
+        failed_jobs_text = f"Failed aos-cd-jobs in last 3 hours:```{failed_jobs_json}```"
+        app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+                                    text=failed_jobs_text,
+                                    thread_ts=response['ts'])
+
+if __name__ == '__main__':
+    main()

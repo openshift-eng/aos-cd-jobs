@@ -176,12 +176,6 @@ def doozer(cmd, opts=[:]){
         usernamePassword(
             credentialsId: 'art-dash-db-login',
             passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
-        file(
-            credentialsId: 'art-jenkins-ldap-serviceaccount-private-key',
-            variable: 'RHSM_PULP_KEY'),
-        file(
-            credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert',
-            variable: 'RHSM_PULP_CERT'),
     ]) {
         withEnv(['DOOZER_DB_NAME=art_dash']) {
             return commonlib.shell(

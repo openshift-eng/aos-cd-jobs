@@ -116,8 +116,6 @@ node {
                     string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                     string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
-                    file(credentialsId: 'art-jenkins-ldap-serviceaccount-private-key', variable: 'RHSM_PULP_KEY'),
-                    file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
                 ]) {
                     echo "Will run ${cmd}"
                     wrap([$class: 'BuildUser']) {

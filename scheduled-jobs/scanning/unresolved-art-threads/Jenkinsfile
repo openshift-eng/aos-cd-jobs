@@ -29,7 +29,9 @@ node() {
             withCredentials([
                                 string(credentialsId: "art-bot-slack-token", variable: "SLACK_API_TOKEN"),
                                 string(credentialsId: "art-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
-                                string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
+                                string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET"),
+                                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
                             ]) {
                 withEnv(["CHANNEL=${params.CHANNEL}"]) {
                     retry(10) {

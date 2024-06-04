@@ -3,7 +3,11 @@
 import json
 import os
 import time
-import datetime
+import requests
+import sys
+from datetime import datetime, timezone
+from collections import OrderedDict
+from urllib.parse import unquote
 
 from slack_bolt import App
 from slack_sdk.errors import SlackApiError
@@ -12,11 +16,50 @@ SLACK_API_TOKEN = os.getenv('SLACK_API_TOKEN')
 SLACK_SIGNING_SECRET = os.getenv('SLACK_SIGNING_SECRET')
 USER_TOKEN = os.getenv('SLACK_USER_TOKEN')
 CHANNEL = os.getenv('CHANNEL')
+JENKINS_TOKEN = os.getenv('JENKINS_SERVICE_ACCOUNT_TOKEN')
+JENKINS_USER = os.getenv('JENKINS_SERVICE_ACCOUNT')
+JENKINS_URL = os.getenv('JENKINS_URL').rstrip('/')
 
 RELEASE_ARTIST_HANDLE = 'release-artists'
 
+def get_failed_jobs_text():
+    aos_cd_builds_url = f"{JENKINS_URL}/job/aos-cd-builds"
+    api_url = f"{aos_cd_builds_url}/api/json"
+    query = "?tree=jobs[name,builds[number,result,timestamp]]"  # status,displayName are also useful
+    response = requests.get(api_url+query, auth=(JENKINS_USER, JENKINS_TOKEN))
+    response.raise_for_status()
+    data = response.json()
+    failed_jobs = []
+    now = datetime.now(timezone.utc)
+    for job in data['jobs']:
+        job_name = job['name']
+        f = 0
+        for build in job['builds']:
+            dt = datetime.fromtimestamp(build['timestamp']/1000, tz=timezone.utc)
+            td = now - dt
+            hours = td.seconds//3600
+            minutes = (td.seconds//60)%60
+            if not (td.days == 0 and hours < 3):
+                continue
+            if build['result'] == 'FAILURE':
+                f += 1
+        if f > 0:
+            failed_jobs.append((job_name, f))
 
-if __name__ == '__main__':
+    def job_link(job_name):
+        link = f"{aos_cd_builds_url}/job/{job_name}/"
+        return f"<{link}|{unquote(job_name)}>"
+
+    if failed_jobs:
+        failed_jobs.sort(key=lambda x: x[1], reverse=True)
+        failed_jobs_list = "\n".join([f"* {job_link(job[0])}: {job[1]}" for job in failed_jobs])
+        failed_jobs_text = f"Failed aos-cd-jobs in last 3 hours: \n{failed_jobs_list}"
+        return failed_jobs_text
+    return ''
+
+def main():
+    failed_jobs_text = get_failed_jobs_text()
+
     app = App(
         token=SLACK_API_TOKEN,
         signing_secret=SLACK_SIGNING_SECRET,
@@ -40,11 +83,11 @@ if __name__ == '__main__':
 
     all_matches = sorted(all_matches, key=lambda m: m.get('ts', '0.0'))
 
-    if not all_matches:
-        print('No messages matching attention emoji criteria')
+    if not (all_matches or failed_jobs_text):
+        print('No messages matching attention emoji criteria and no failed jobs found')
         response = app.client.chat_postMessage(
             channel=CHANNEL,
-            text=f':check: no unresolved threads found'
+            text=f':check: no unresolved threads / job failures found'
         )
         exit(0)
 
@@ -81,7 +124,7 @@ if __name__ == '__main__':
 
         fallback_text += f'\n{permalink}'
         timestamp = int(float(match.get('ts', '0.0')))
-        str_date = datetime.datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        str_date = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
         age = current_epoch_time - timestamp
         age_type = 'seconds'
@@ -135,3 +178,11 @@ if __name__ == '__main__':
         app.client.chat_postMessage(channel=CHANNEL,
                                     text=response_message,
                                     thread_ts=response['ts'])  # use the timestamp from the response
+
+    if failed_jobs_text:
+        app.client.chat_postMessage(channel=CHANNEL,
+                                    text=failed_jobs_text,
+                                    thread_ts=response['ts'])
+
+if __name__ == '__main__':
+    main()

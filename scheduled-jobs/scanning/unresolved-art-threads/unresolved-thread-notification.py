@@ -49,6 +49,11 @@ def get_failed_jobs_json():
     return None
 
 def main():
+    failed_jobs_json = get_failed_jobs_json()
+    failed_jobs_text = ''
+    if failed_jobs_json:
+        failed_jobs_text = f"Failed aos-cd-jobs in last 3 hours:```{failed_jobs_json}```"
+
     app = App(
         token=SLACK_API_TOKEN,
         signing_secret=SLACK_SIGNING_SECRET,
@@ -72,11 +77,11 @@ def main():
 
     all_matches = sorted(all_matches, key=lambda m: m.get('ts', '0.0'))
 
-    if not all_matches:
-        print('No messages matching attention emoji criteria')
+    if not (all_matches or failed_jobs_text):
+        print('No messages matching attention emoji criteria and no failed jobs found')
         response = app.client.chat_postMessage(
             channel=CHANNEL,
-            text=f':check: no unresolved threads found'
+            text=f':check: no unresolved threads / job failures found'
         )
         exit(0)
 
@@ -168,10 +173,8 @@ def main():
                                     text=response_message,
                                     thread_ts=response['ts'])  # use the timestamp from the response
 
-    failed_jobs_json = get_failed_jobs_json()
-    if failed_jobs_json:
-        failed_jobs_text = f"Failed aos-cd-jobs in last 3 hours:```{failed_jobs_json}```"
-        app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+    if failed_jobs_text:
+        app.client.chat_postMessage(channel=CHANNEL,
                                     text=failed_jobs_text,
                                     thread_ts=response['ts'])
 

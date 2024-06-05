@@ -57,6 +57,7 @@ node {
             def filePath = azureArtifactCoordinate[coordinateKey]['path']
             def jqExpressions = azureArtifactCoordinate[coordinateKey]['jq']
             def rhcosJsonURL = "https://raw.githubusercontent.com/openshift/installer/${gitRef}/${filePath}"
+
             withCredentials([string(credentialsId: 'azure_marketplace_staging_upload_key', variable: 'ACCESS_KEY')]) {
                 for ( jqExpression in jqExpressions ) {
                     commonlib.shell(script:  """
@@ -74,8 +75,15 @@ node {
                     curl --fail $VHD_GZ_URL > $VHD_GZ_FILE
                     echo Target VHD: $VHD_GZ_FILE
                     ''' + (params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
-                                    az storage blob upload -f $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
-                                    az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                        exists=$(az storage blob exists --name $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY | jq .exists)
+                        if [[ $exists = ="false" ]]; then
+                            az storage blob upload -f $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                        fi
+
+                        exists=$(az storage blob exists --name $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY | jq .exists)
+                        if [[ $exists = ="false" ]]; then
+                            az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                        fi
                     ''')
                     )
                 }

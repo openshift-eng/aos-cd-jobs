@@ -85,7 +85,7 @@ if __name__ == '__main__':
                 amis_in_use.update(amis_in_file)
                 checked_commits.add(installer_commit)
 
-    client = boto3.client('ec2')
+    client = boto3.client('ec2', region_name='us-east-1')
     all_aws_regions = [region['RegionName'] for region in client.describe_regions()['Regions']]
 
     ignore_amis_younger_than = datetime.datetime.now() - datetime.timedelta(days=30)

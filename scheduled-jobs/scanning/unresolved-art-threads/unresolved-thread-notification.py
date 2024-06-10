@@ -141,8 +141,13 @@ def main():
                     age_type = 'days'
 
         age = int(age)
+        # Block builder: https://app.slack.com/block-kit-builder/T04714LEPHA#%7B%22blocks%22:%5B%5D%7D
+        snippet = ' '.join(text.split(' ')[0:30])
+        # Slack includes an arrow character in the text if should be replaced by rich text elements (e.g. a n@username).
+        # We just remove them since we are just trying for a short summary.
+        snippet = snippet.replace('\ue006', '...')
         response_messages.append(
-            f"*Channel:* {channel_handle}\n*Date:* {str_date}Z\n*Age:* {age} {age_type}\n*Message:* <{permalink}|Link>")
+            f"*Channel:* {channel_handle}\n*Date:* {str_date}Z\n*Age:* {age} {age_type}\n*Message:* <{permalink}|Link>\n*Snippet:* {snippet}...")
 
     header_block = [
         {

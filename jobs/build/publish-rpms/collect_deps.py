@@ -18,7 +18,6 @@ PACKAGES = {
         "skopeo",
         "openshift-clients",
         "openshift-hyperkube",
-        "openshift-clients-redistributable",
         "slirp4netns",
         "conmon-rs",
         "openvswitch-selinux-extra-policy",
@@ -32,11 +31,9 @@ PACKAGES = {
         "skopeo",
         "openshift-clients",
         "openshift-hyperkube",
-        "openshift-clients-redistributable",
         "slirp4netns",
         "conmon-rs",
         "openvswitch-selinux-extra-policy",
-        "openvswitch2.17",
         "openvswitch3.1"
     ],
 }
@@ -136,6 +133,9 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
             ocp_version), ARCH=arch, CACHE_DIR=cache_dir, EL=rhel_major).strip()
         with open(yum_conf_filename, "w") as f:
             f.write(yum_conf)
+        packages = PACKAGES[rhel_major]
+        if arch == 'x86_64':
+            packages.append('openshift-clients-redistributable')
         cmd = [
             "yumdownloader",
             f"--releasever={rhel_major}",
@@ -147,7 +147,7 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
             f"--destdir={output_dir}",
             f"--arch={arch}",
             "--",
-        ] + PACKAGES[rhel_major]
+        ] + packages
         LOGGER.info("Running command %s", cmd)
         env = os.environ.copy()
         # yum doesn't honor cachedir in the yum.conf. It keeps a user specific cache

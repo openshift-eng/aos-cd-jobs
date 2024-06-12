@@ -10,20 +10,6 @@ from typing import Optional
 from urllib.parse import quote
 
 PACKAGES = {
-    7: [
-        "criu",
-        "runc",
-        "cri-o",
-        "cri-tools",
-        "skopeo",
-        "openshift-clients",
-        "openshift-hyperkube",
-        "openshift-clients-redistributable",
-        "slirp4netns",
-        "conmon-rs",
-        "openvswitch-selinux-extra-policy",
-        "openvswitch2.17"
-    ],
     8: [
         "criu",
         "runc",
@@ -32,7 +18,6 @@ PACKAGES = {
         "skopeo",
         "openshift-clients",
         "openshift-hyperkube",
-        "openshift-clients-redistributable",
         "slirp4netns",
         "conmon-rs",
         "openvswitch-selinux-extra-policy",
@@ -46,52 +31,13 @@ PACKAGES = {
         "skopeo",
         "openshift-clients",
         "openshift-hyperkube",
-        "openshift-clients-redistributable",
         "slirp4netns",
         "conmon-rs",
-        "openvswitch-selinux-extra-policy",
-        "openvswitch2.17",
         "openvswitch3.1"
     ],
 }
 
 YUM_CONF_TEMPLATES = {
-    7: """[main]
-cachedir={CACHE_DIR}
-keepcache=0
-debuglevel=2
-exactarch=1
-obsoletes=1
-gpgcheck=1
-plugins=1
-installonly_limit=3
-reposdir=
-skip_missing_names_on_install=0
-
-[rhel-server-7-optional-rpms]
-name = rhel-server-7-optional-rpms
-baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/optional/os/
-gpgcheck = 0
-enabled = 1
-
-[rhel-server-7-extras-rpms]
-name = rhel-server-7-extras-rpms
-baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/extras/os/
-enabled = 1
-gpgcheck = 0
-
-[rhel-server-7-rpms]
-name = rhel-server-7-rpms
-baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/os/
-enabled = 1
-gpgcheck = 0
-
-[rhel-server-7-ose-{OCP_VERSION}-rpms]
-name = rhel-server-7-ose-{OCP_VERSION}-rpms
-baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el7/latest/{ARCH}/os
-enabled = 1
-gpgcheck = 0
-""",
     8: """[main]
 cachedir={CACHE_DIR}
 keepcache=0
@@ -186,6 +132,9 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
             ocp_version), ARCH=arch, CACHE_DIR=cache_dir, EL=rhel_major).strip()
         with open(yum_conf_filename, "w") as f:
             f.write(yum_conf)
+        packages = PACKAGES[rhel_major]
+        if arch == 'x86_64':
+            packages.append('openshift-clients-redistributable')
         cmd = [
             "yumdownloader",
             f"--releasever={rhel_major}",
@@ -197,7 +146,7 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
             f"--destdir={output_dir}",
             f"--arch={arch}",
             "--",
-        ] + PACKAGES[rhel_major]
+        ] + packages
         LOGGER.info("Running command %s", cmd)
         env = os.environ.copy()
         # yum doesn't honor cachedir in the yum.conf. It keeps a user specific cache

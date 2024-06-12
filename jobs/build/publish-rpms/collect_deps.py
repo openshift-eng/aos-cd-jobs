@@ -33,7 +33,6 @@ PACKAGES = {
         "openshift-hyperkube",
         "slirp4netns",
         "conmon-rs",
-        "openvswitch-selinux-extra-policy",
         "openvswitch3.1"
     ],
 }

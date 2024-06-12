@@ -35,7 +35,7 @@ node {
                     choice(
                         name: 'EL_VERSION',
                         description: 'RHEL Version for which to synchronize RPMs',
-                        choices: ['9', '8', '7'],
+                        choices: ['9', '8'],
                     ),
                     booleanParam(
                         name: "DRY_RUN",

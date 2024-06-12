@@ -10,20 +10,6 @@ from typing import Optional
 from urllib.parse import quote
 
 PACKAGES = {
-    7: [
-        "criu",
-        "runc",
-        "cri-o",
-        "cri-tools",
-        "skopeo",
-        "openshift-clients",
-        "openshift-hyperkube",
-        "openshift-clients-redistributable",
-        "slirp4netns",
-        "conmon-rs",
-        "openvswitch-selinux-extra-policy",
-        "openvswitch2.17"
-    ],
     8: [
         "criu",
         "runc",
@@ -56,42 +42,6 @@ PACKAGES = {
 }
 
 YUM_CONF_TEMPLATES = {
-    7: """[main]
-cachedir={CACHE_DIR}
-keepcache=0
-debuglevel=2
-exactarch=1
-obsoletes=1
-gpgcheck=1
-plugins=1
-installonly_limit=3
-reposdir=
-skip_missing_names_on_install=0
-
-[rhel-server-7-optional-rpms]
-name = rhel-server-7-optional-rpms
-baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/optional/os/
-gpgcheck = 0
-enabled = 1
-
-[rhel-server-7-extras-rpms]
-name = rhel-server-7-extras-rpms
-baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/extras/os/
-enabled = 1
-gpgcheck = 0
-
-[rhel-server-7-rpms]
-name = rhel-server-7-rpms
-baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/os/
-enabled = 1
-gpgcheck = 0
-
-[rhel-server-7-ose-{OCP_VERSION}-rpms]
-name = rhel-server-7-ose-{OCP_VERSION}-rpms
-baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el7/latest/{ARCH}/os
-enabled = 1
-gpgcheck = 0
-""",
     8: """[main]
 cachedir={CACHE_DIR}
 keepcache=0

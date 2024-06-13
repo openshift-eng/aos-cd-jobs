@@ -20,8 +20,6 @@ PACKAGES = {
         "openshift-hyperkube",
         "slirp4netns",
         "conmon-rs",
-        "openvswitch-selinux-extra-policy",
-        "openvswitch2.17"
     ],
     9: [
         "criu",

@@ -49,7 +49,7 @@ node {
                         string(
                             name: "PACKAGE_OWNER",
                             description: "(Optional) Must be an individual email address; may be anyone who wants random advisory spam",
-                            defaultValue: "lmeyer@redhat.com",
+                            defaultValue: "jdelft@redhat.com",
                             trim: true
                         ),
                         booleanParam(

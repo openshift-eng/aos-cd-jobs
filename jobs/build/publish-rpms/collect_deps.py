@@ -31,7 +31,7 @@ PACKAGES = {
         "openshift-hyperkube",
         "slirp4netns",
         "conmon-rs",
-        "openvswitch3.1"
+        "openvswitch3.3"
     ],
 }
 
@@ -134,15 +134,17 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
         if arch == 'x86_64':
             packages.append('openshift-clients-redistributable')
         cmd = [
-            "yumdownloader",
+            "dnf",
+            "download",
             f"--releasever={rhel_major}",
             "-c", f"{yum_conf_filename}",
             "--resolve",
             "--disableplugin=subscription-manager",
             "--downloadonly",
-            f"--installroot={Path(install_root_dir).absolute()}",
+            "--alldeps",
+            #f"--installroot={Path(install_root_dir).absolute()}",
             f"--destdir={output_dir}",
-            f"--arch={arch}",
+            f"--forcearch={arch}",
             "--",
         ] + packages
         LOGGER.info("Running command %s", cmd)

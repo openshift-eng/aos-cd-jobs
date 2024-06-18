@@ -21,14 +21,14 @@ import groovy.json.JsonOutput
     "4.17.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8],
     "4.17.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
 
-    "4.16.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8],
-    "4.16.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
+    "4.16.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9],
+    "4.16.0-0.nightly-arm64": [this.&publishRPMsEl9],
 
-    "4.15.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8],
-    "4.15.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
+    "4.15.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9],
+    "4.15.0-0.nightly-arm64": [this.&publishRPMsEl9],
 
-    "4.14.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8],
-    "4.14.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
+    "4.14.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9],
+    "4.14.0-0.nightly-arm64": [this.&publishRPMsEl9],
 ]
 
 def setDevPreviewLatest(String releaseStream, Map latestRelease, Map previousRelease) {

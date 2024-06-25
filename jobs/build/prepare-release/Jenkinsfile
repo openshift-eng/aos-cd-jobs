@@ -16,10 +16,8 @@ node {
                 disableResume(),
                 buildDiscarder(
                     logRotator(
-                        artifactDaysToKeepStr: "",
-                        artifactNumToKeepStr: "",
-                        daysToKeepStr: "",
-                        numToKeepStr: "")),
+                        artifactDaysToKeepStr: "45",
+                        daysToKeepStr: "45")),
                 [
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
@@ -140,11 +138,9 @@ node {
             throw err
         } finally {
             commonlib.safeArchiveArtifacts([
-                "artcd_working/email/**",
-                "artcd_working/**/*.json",
-                "artcd_working/**/*.log",
-                "artcd_working/**/*.yaml",
-                "artcd_working/**/*.yml",
+                "artcd_working/**/debug.log",
+                "artcd_working/**/record.log",
+                "artcd_working/**/state.yaml",
             ])
             buildlib.cleanWorkspace()
         }

@@ -140,13 +140,7 @@ def setup_venv() {
     VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
     commonlib.shell(script: "rm -rf ${VIRTUAL_ENV}")
 
-    commonlib.shell(script: """
-    if [[ -f /bin/scl ]]; then
-        scl enable rh-python38 -- python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
-    else
-        python3.9 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
-    fi
-    """)
+    commonlib.shell(script: "python3.9 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
 
     env.PATH = "${VIRTUAL_ENV}/bin:${env.PATH}"
 
@@ -182,12 +176,6 @@ def doozer(cmd, opts=[:]){
         usernamePassword(
             credentialsId: 'art-dash-db-login',
             passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
-        file(
-            credentialsId: 'art-jenkins-ldap-serviceaccount-private-key',
-            variable: 'RHSM_PULP_KEY'),
-        file(
-            credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert',
-            variable: 'RHSM_PULP_CERT'),
     ]) {
         withEnv(['DOOZER_DB_NAME=art_dash']) {
             return commonlib.shell(
@@ -706,6 +694,34 @@ def defaultReleaseFor(stream) {
 String extractAdvisoryId(String elliottOut) {
     def matches = (elliottOut =~ /https:\/\/errata\.devel\.redhat\.com\/advisory\/([0-9]+)/)
     matches[0][1]
+}
+
+// Replace placeholders with AWS credentials to render a rclone.conf template configuration file.
+// Remove the generate file after the closure is complete
+def rclone(cmd, opts=[:]) {
+    withCredentials([
+            aws(credentialsId: 'aws-s3-signing-logs', accessKeyVariable: 'SIGNING_LOGS_ACCESS_KEY', secretKeyVariable: 'SIGNING_LOGS_SECRET_ACCESS_KEY'),
+            aws(credentialsId: 'aws-s3-osd-art-account', accessKeyVariable: 'OSD_ART_ACCOUNT_ACCESS_KEY', secretKeyVariable: 'OSD_ART_ACCOUNT_SECRET_ACCESS_KEY')]) {
+
+        // Generate rclone config file from the template
+        echo "Rendering rclone config file at ${env.WORKSPACE}/rclone.conf"
+        sh("cat /home/jenkins/.config/rclone/rclone.conf.template | envsubst > rclone.conf")
+
+        // Run rclone with passed options
+        try {
+            commonlib.shell(
+                returnStdout: opts.capture ?: false,
+                alwaysArchive: opts.capture ?: false,
+                script: "rclone --config=rclone.conf ${cleanWhitespace(cmd)}"
+            )
+        } catch(err) {
+            throw err
+        } finally {
+            // Remove the rendered configuration file
+            echo "Removing rclone config file ${env.WORKSPACE}/rclone.conf"
+            sh("rm ${env.WORKSPACE}/rclone.conf")
+        }
+    }
 }
 
 this.initialize()

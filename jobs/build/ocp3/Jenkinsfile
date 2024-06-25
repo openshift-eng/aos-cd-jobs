@@ -297,6 +297,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.artToolsParam(),
                     choice(
                         name: 'SSH_KEY_ID',
                         description: 'SSH credential id to use',
@@ -505,6 +506,10 @@ node {
 
 
             stage("origin-web-console repo") {
+                def goModExists = sh(script: 'test -f go.mod', returnStatus: true) == 0
+                if (!goModExists) {
+                    sh "go mod init go-bindata"
+                }
                 sh "go get github.com/jteeuwen/go-bindata"
                 // defines:
                 //   WEB_CONSOLE_DIR
@@ -528,7 +533,6 @@ node {
                     sh "git reset --hard HEAD"
                 }
             }
-
 
             stage("origin-web-console-server repo") {
                 /**
@@ -555,27 +559,33 @@ node {
                     TARGET_VENDOR_DIR = WEB_CONSOLE_SERVER_DIR
                 }
 
-                dir(TARGET_VENDOR_DIR) {
+                // Vendor a particular branch of the web console into our ose branch and capture the SHA we vendored in
+                // TODO: Is this necessary? If we don't specify a GIT_REF, will it just use the current branch
+                // we already setup?
+                // TODO: Easier way to get the VC_COMMIT by just using parse-rev when we checkout the desired web console branch?
+                def cmd = [
+                    "podman run --rm -ti -e",
+                    "GIT_REF=${WEB_CONSOLE_BRANCH}",
+                    "-v \$(pwd)/go:/go:Z -w /go/src/github.com/openshift/ose",
+                    "registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:v1.15.14.20230717.192420",
+                    "./hack/vendor-console.sh | grep 'Vendoring origin-web-console' | awk '{print \$4}'"
+                ]
 
-                    // Vendor a particular branch of the web console into our ose branch and capture the SHA we vendored in
-                    // TODO: Is this necessary? If we don't specify a GIT_REF, will it just use the current branch
-                    // we already setup?
-                    // TODO: Easier way to get the VC_COMMIT by just using parse-rev when we checkout the desired web console branch?
-                    VC_COMMIT = commonlib.shell(
+                VC_COMMIT = commonlib.shell(
                         returnStdout: true,
-                        script: "GIT_REF=${WEB_CONSOLE_BRANCH} scl enable go-toolset-1.15 hack/vendor-console.sh | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
+                        script: cmd.join(' '),
                     ).trim()
 
-                    if (VC_COMMIT == "") {
-                        commonlib.shell("GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh")
-                        error("Unable to acquire VC_COMMIT")
-                    }
+                if (VC_COMMIT == "") {
+                    error("Unable to acquire VC_COMMIT")
+                }
 
+                dir(TARGET_VENDOR_DIR) {
                     // Vendoring the console will rebuild this assets, so add them to the commit
                     sh """
                     git add pkg/assets/bindata.go
                     git add pkg/assets/java/bindata.go
-                """
+                    """
 
                     if (USE_WEB_CONSOLE_SERVER && !IS_TEST_MODE) {
                         sh "git commit -m 'bump origin-web-console ${VC_COMMIT}' --allow-empty"
@@ -625,6 +635,10 @@ node {
                     }
 
                     sh "git commit --allow-empty -m '${commit_msg}'" // add commit to capture our change message
+
+                    // the %systemd_postun macro requires an additional arg on rhel9; fixing this inline
+                    sh "sed -i 's/%systemd_postun/%systemd_postun %{name}-node.service/' origin.spec"
+
                     sh "tito tag --accept-auto-changelog --keep-version --debug"
                     if (!IS_TEST_MODE) {
                         sh "git push"
@@ -643,13 +657,13 @@ node {
                         // If >= 3.6, keep openshift-ansible in sync with OCP version
                         buildlib.set_rpm_spec_version("openshift-ansible.spec", NEW_VERSION)
                         buildlib.set_rpm_spec_release_prefix("openshift-ansible.spec", NEW_RELEASE)
+
+                        // Explicitly set Python version in the specfile
+                        sh "sed -i '/%description/a %global __python /usr/bin/python3' openshift-ansible.spec"
+
                         // Note that I did not use --use-release because it did not maintain variables like %{?dist}
                         sh "tito tag --debug --accept-auto-changelog --keep-version --debug"
 
-                    }
-                    if (!IS_TEST_MODE) {
-                        sh "git push"
-                        sh "git push --tags"
                     }
                     OA_CHANGELOG = buildlib.read_changelog("openshift-ansible.spec")
                 }
@@ -713,7 +727,6 @@ node {
                         --release ${NEW_DOCKERFILE_RELEASE}
                         --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
                     """
-                    buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, params.BUILD_VERSION)
                 }
             }
 
@@ -813,7 +826,6 @@ node {
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
             final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
-            mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG, commonlib)
         }
     } catch (err) {
         commonlib.email(

@@ -14,21 +14,19 @@ node {
     for ( version in commonlib.ocp4Versions ) {
         def cv = "${version}" // make sure we use a locally scoped variable
 
-        // Skip the build if already locked
-        activityLockName = "github-activity-lock-${cv}"
-        if (!commonlib.canLock(activityLockName)) {
-            echo "Looks like there is another build ongoing for ${cv} -- skipping for this run"
-            continue
-        }
-
-        // Trigger ocp4-scan build for ${version}
+        // Trigger SAST scan for ${version}
         versionJobs["scan-v${version}"] = {
             try {
-                timeout(activity: true, time: 60, unit: 'MINUTES') {
-                    build job: '../aos-cd-builds/build%2Focp4_scan', parameters: [string(name: 'VERSION', value: "${cv}")], propagate: false
+                timeout(activity: true, time: 1, unit: 'HOURS') {
+                    build job: '../aos-cd-builds/build%2Fscan-osh',
+                    parameters: [
+                        string(name: 'BUILD_VERSION', value: "${cv}"),
+                        booleanParam(name: 'CHECK_TRIGGERED', value: true),
+                    ],
+                    propagate: false
                 }
             } catch (te) {
-                slacklib.to(cv).failure("Error running ocp_scan", te)
+                slacklib.to(cv).failure("Error running scan-osh", te)
             }
         }
     }

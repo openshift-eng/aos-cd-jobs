@@ -2,7 +2,8 @@
 
 @NonCPS
 def sortedVersions() {
-    return commonlib.ocp4Versions.sort(false)
+    // Proceed from newest to oldest to prioritize a functional run on the latest version.
+    return commonlib.ocp4Versions.sort(false).reverse()
 }
 
 node {
@@ -29,6 +30,12 @@ node {
                     trim: true,
                 ),
                 string(
+                    name: 'ONLY_STREAM',
+                    description: 'The name of the stream (not `assembly=stream` but `stream=golang`) from streams.yml that you want to run for. This only works with ONLY_RELEASE, and SKIP_PRS will be set to true.',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                string(
                     name: "ADD_LABELS",
                     description: "Space delimited list of labels to add to existing/new PRs",
                     defaultValue: "",
@@ -40,6 +47,12 @@ node {
                     defaultValue: "stream",
                     trim: true,
                 ),
+                [
+                    name: 'SKIP_PRS',
+                    description: 'Skip opening PRs, do everything else',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: false
+                ],
                 [
                     name: 'SKIP_WAITS',
                     description: 'Skip sleeps',
@@ -75,8 +88,30 @@ node {
         currentBuild.displayName += " (forced)"
     }
 
+    def streamParam = ""
+    def skip_prs = params.SKIP_PRS
+    if (params.ONLY_STREAM) {
+        if (!params.ONLY_RELEASE) {
+            error("ONLY_STREAM can only be used with ONLY_RELEASE")
+        }
+        if (!skip_prs) {
+            echo "Setting SKIP_PRS to true because ONLY_STREAM is set"
+            skip_prs = true
+        }
+        streamParam = "--stream ${params.ONLY_STREAM}"
+    }
+
     buildlib.withAppCiAsArtPublish() {
+
+        // Log in to app.ci's internal registry as we push some images there (registry.ci.openshift.org).
         sh "oc registry login"
+
+        // Log in to quay.io with credentials necessary to push to DPTP's QCI registry (quay.io/openshift/ci). QCI
+        // will eventually be the source of truth for images being used by CI workloads instead of app.ci's internal registry.
+        // We support this by mirroring important images directly to QCI.
+        withCredentials([usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD')]) {
+            sh "oc registry login --registry=quay.io/openshift --auth-basic=$QCI_USER:QCI_PASSWORD"
+        }
 
         for ( String version : for_versions ) {
             group = "openshift-${version}"
@@ -109,6 +144,9 @@ node {
 
             echo "Changes detected in ocp-build-data group: ${group}"
             currentBuild.displayName += " ${version}"
+            if (params.ONLY_STREAM) {
+                currentBuild.displayName += " ${params.ONLY_STREAM}"
+            }
 
             doozerWorking = "${env.WORKSPACE}/wd-${version}"
             def doozerOpts = "--working-dir ${doozerWorking} --group ${group} "
@@ -117,13 +155,13 @@ node {
             try {
                 sshagent(["openshift-bot"]) {
                     sh "rm -rf ${doozerWorking}"
-                    buildlib.doozer("${doozerOpts} images:streams gen-buildconfigs -o ${group}.yaml --apply")
+                    buildlib.doozer("${doozerOpts} images:streams gen-buildconfigs ${streamParam} -o ${group}.yaml --apply")
                     mirror_args = ""
                     if ( params.UPDATE_IMAGES_ONLY_WHEN_MISSING ) {
                         mirror_args += "--only-if-missing "
                     }
-                    buildlib.doozer("${doozerOpts} images:streams mirror ${mirror_args}")
-                    buildlib.doozer("${doozerOpts} images:streams start-builds")
+                    buildlib.doozer("${doozerOpts} images:streams mirror ${streamParam} ${mirror_args}")
+                    buildlib.doozer("${doozerOpts} images:streams start-builds ${streamParam}")
 
                     if (!params.SKIP_WAITS) {
                         // Allow the builds to run for about 20 minutes
@@ -131,38 +169,60 @@ node {
                     }
                     // Print out status of builds for posterity
                     buildlib.doozer("${doozerOpts} images:streams check-upstream")
-                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                        if ( (major == 4 && minor >= 12) || major > 4 ) {
-                            other_args = '--add-label "bugzilla/valid-bug" --add-label "cherry-pick-approved" --add-label "backport-risk-assessed"'
-                            for ( label in params.ADD_LABELS.split() ) {
-                                other_args += " --add-label '${label}'"
-                            }
-                            // Only open PRs on >= 4.6 to leave well enough alone.
-                            withEnv(["BUILD_URL=${BUILD_URL}"]) {
-                                rc = sh script:"doozer ${doozerOpts} --assembly stream images:streams prs open --interstitial 840 --add-auto-labels ${other_args} --github-access-token ${GITHUB_TOKEN}", returnStatus: true
-                            }
-                            // rc=50 is used to indicate some errors raised during PR openings
-                            // rc=25 is used to indicate PR openings were skipped and to try again later.
-                            if ( rc != 0 && rc != 25 && rc != 50) {
-                                error("Error opening PRs for ${group}: ${rc}")
+
+                    // Open reconciliation PRs
+                    if (skip_prs) {
+                        echo "Skipping opening PRs"
+                    } else {
+                        withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                            if ( (major == 4 && minor >= 12) || major > 4 ) {
+                                other_args = '--add-label "bugzilla/valid-bug" --add-label "cherry-pick-approved" --add-label "backport-risk-assessed"'
+                                for ( label in params.ADD_LABELS.split() ) {
+                                    other_args += " --add-label '${label}'"
+                                }
+                                // Only open PRs on >= 4.6 to leave well enough alone.
+                                withEnv(["BUILD_URL=${BUILD_URL}"]) {
+                                    rc = sh script:"doozer ${doozerOpts} --assembly stream images:streams prs open --interstitial 840 --add-auto-labels ${other_args} --github-access-token ${GITHUB_TOKEN}", returnStatus: true
+                                }
+                                // rc=50 is used to indicate some errors raised during PR openings
+                                // rc=25 is used to indicate PR openings were skipped and to try again later.
+                                if ( rc != 0 && rc != 25 && rc != 50) {
+                                    error("Error opening PRs for ${group}: ${rc}")
+                                }
                             }
                         }
                     }
                 }
+            } catch ( ex ) {
+                if ( ONLY_RELEASE != "" ) { // If we are just running for one release, allow exception to propagate out
+                    throw ex
+                }
+                // Otherwise, gracefully print exception and continue with other versions.
+                rc = 1
+                echo """
+                An error occurred while running for ${major}.${minor}.
+                ${ex}
+                """
             } finally {
                 commonlib.safeArchiveArtifacts(["wd-${version}/*.log"])
                 sh "rm -rf ${doozerWorking}"
             }
 
             if ( rc == 25 ) {
-                currentBuild.result = "UNSTABLE"
-                currentBuild.displayName += "-Partial"
+                if ( currentBuild.result != "FAILURE" ) { // If there wasn't already a more severe issue, mark as unstable
+                    currentBuild.result = "UNSTABLE"
+                }
+                currentBuild.description += "  ${major}.${minor}-Partial\n"
                 echo "Some PRs were skipped because parent PRs have not merged yet: ${version}."
                 // Do not "mv ${group} ${prev_dir_name}" because we are not done
             } else if ( rc == 50 ) {
                 currentBuild.result = "FAILURE"
-                currentBuild.displayName += "-Completed with errors"
+                currentBuild.description += "  ${major}.${minor}-Completed with errors\n"
                 echo "Some errors were raised during PR openings; please check the logs for details"
+            } else if ( rc != 0 ) {
+                currentBuild.result = "FAILURE"
+                currentBuild.description += "  ${major}.${minor}-Unknown errors\n"
+                echo "Some errors were raised during reconciliation; please check the logs for details"
             } else {
                 sh "rm -rf ${prev_dir_name}"
                 sh "mv ${group} ${prev_dir_name}"

@@ -7,17 +7,14 @@ ocp3Versions = [
 
 // All buildable versions of ocp4
 ocp4Versions = [
+    "4.17",
     "4.16",
     "4.15",
     "4.14",
     "4.13",
     "4.12",
     "4.11",
-    "4.10",
-    "4.9",
-    "4.8",
     "4.7",
-    "4.6",
 ]
 
 ocpVersions = ocp4Versions + ocp3Versions
@@ -141,12 +138,17 @@ def sanitizeInvisible(str) {
 def parseList(str) {
     // turn the string of a list separated by commas or spaces into a list
     str = (str == null) ? "" : str
-    return sanitizeInvisible(str).replaceAll(',', ' ').split()
+    return sanitizeInvisible(str).replaceAll(',', ' ').tokenize()
 }
 
 def cleanCommaList(str) {
     // turn the string list separated by commas or spaces into a comma-separated string
     return parseList(str).join(',')
+}
+
+def cleanSpaceList(str) {
+    // turn the string list separated by commas or spaces into a space-separated string
+    return parseList(str).join(' ')
 }
 
 // A reusable way to generate a working build URL. Translates it into
@@ -573,7 +575,22 @@ def checkS3Path(s3_path) {
     }
 }
 
-def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, dry_run=false) {
+def invalidateAwsCache(s3_path) {
+    // https://issues.redhat.com/browse/ART-6607 on why invalidation matters when updating existing filenames.
+
+    invalidation_path = s3_path
+    if ( !invalidation_path.endsWith('/') ) {
+      invalidation_path += '/'
+    }
+    invalidation_path += '*'
+
+    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        shell(script: "aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths ${invalidation_path}")
+    }
+
+}
+
+def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, issue_cloudfront_invalidation=true, dry_run=false) {
     try {
         checkS3Path(s3_path)
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
@@ -597,6 +614,9 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, 
                     }
                 }
             }
+            if (issue_cloudfront_invalidation) {
+                invalidateAwsCache(s3_path)
+            }
         }
     } catch (e) {
         slacklib.to("#art-release").say("Failed syncing ${local_dir} repo to art-srv-enterprise S3 path ${s3_path}")
@@ -604,7 +624,7 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, 
     }
 }
 
-def syncDirToS3Mirror(local_dir, s3_path, delete_old=true, include_only='', timeout_minutes=60) {
+def syncDirToS3Mirror(local_dir, s3_path, delete_old=true, include_only='', timeout_minutes=60, issue_cloudfront_invalidation=true) {
     try {
         checkS3Path(s3_path)
         extra_args = ""
@@ -620,6 +640,9 @@ def syncDirToS3Mirror(local_dir, s3_path, delete_old=true, include_only='', time
                 timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
                     shell(script: "aws s3 sync --no-progress --exact-timestamps ${extra_args} ${local_dir} s3://art-srv-enterprise${s3_path}")
                 }
+            }
+            if (issue_cloudfront_invalidation) {
+                 invalidateAwsCache(s3_path)
             }
         }
     } catch (e) {

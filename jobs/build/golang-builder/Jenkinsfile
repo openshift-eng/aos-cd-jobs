@@ -5,7 +5,7 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("golang-builder", """
-        <h2>Build golang-builder images</h2>
+        <h2>Build and update golang-builder images</h2>
         <b>Timing</b>: This is only ever run by humans, as needed. No job should be calling it.
     """)
 
@@ -16,49 +16,34 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.dryrunParam(),
-                    commonlib.mockParam(),
-                    commonlib.artToolsParam(),
-                    string(
-                        name: 'DOOZER_DATA_PATH',
-                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
-                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
-                        trim: true,
+                    choice(
+                        name: 'BUILD_VERSION',
+                        choices: commonlib.ocpVersions,
+                        description: 'OCP Version',
                     ),
                     string(
-                        name: 'GOLANG_VERSION',
-                        description: 'Golang version (e.g. 1.16.12)',
+                        name: 'GOLANG_NVRS',
+                        description: 'Golang NVRs (one or multiple but atmost one for a rhel version) that you expect to build images for. This is to ensure that the right compiler nvrs are picked up (comma/space separated)',
+                        defaultValue: "",
                         trim: true,
                     ),
-                    string(
-                        name: 'RELEASE',
-                        description: '(Optional) Release string for build instead of default (timestamp.el8 or timestamp.el7)',
-                        trim: true,
+                    booleanParam(
+                        name: 'CREATE_TAGGING_TICKET',
+                        description: 'Create a CWFCONF Jira ticket for tagging golang builds in ART buildroots',
                     ),
                     booleanParam(
                         name: 'SCRATCH',
                         description: 'Perform a scratch build (will not use an NVR or update tags)',
                     ),
-                    choice(
-                        name: 'RHEL_VERSION',
-                        description: 'for which RHEL version (7/8/9)',
-                        choices: ['9', '8', '7'].join('\n'),
-                    ),
-                    commonlib.suppressEmailParam(),
                     string(
-                        name: 'MAIL_LIST_SUCCESS',
-                        description: '(Optional) Success Mailing List',
+                        name: 'ART_JIRA',
+                        description: 'ART jira ticket number to be used for reference when creating tickets/PRs',
                         defaultValue: "",
                         trim: true,
                     ),
-                    string(
-                        name: 'MAIL_LIST_FAILURE',
-                        description: 'Failure Mailing List',
-                        defaultValue: [
-                            'aos-art-automation+failed-custom-build@redhat.com',
-                        ].join(','),
-                        trim: true,
-                    ),
+                    commonlib.mockParam(),
+                    commonlib.dryrunParam(),
+                    commonlib.artToolsParam(),
                 ]
             ],
         ]
@@ -66,51 +51,75 @@ node {
 
     commonlib.checkMock()
 
-    stage('set build info') {
-        script {
-            if (!(params.GOLANG_VERSION ==~ /\d+\.\d+\.\d+/))
-                error("Invalid Golang version ${params.GOLANG_VERSION}")
-            env._GOLANG_MAJOR_MINOR = commonlib.extractMajorMinorVersion(params.GOLANG_VERSION)
-            def group = params.RHEL_VERSION == "7" ? "golang-${env._GOLANG_MAJOR_MINOR}" : "rhel-${params.RHEL_VERSION}-golang-${env._GOLANG_MAJOR_MINOR}"
-            env._DOOZER_OPTS = "--data-path ${params.DOOZER_DATA_PATH} --working-dir ${WORKSPACE}/doozer_working --group $group"
-            currentBuild.displayName = "${params.GOLANG_VERSION}"
+    stage('Validate Parameters') {
+        if (!params.GOLANG_NVRS) {
+            error("You must provide golang NVR(s) that you expect to build images for. This is to ensure that the right compiler nvrs are picked up")
+        }
+
+        if (!params.ART_JIRA) {
+            error("You must provide an ART jira ticket id for reference.")
         }
     }
 
-    stage('build') {
-        withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
-            withCredentials([
-                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
-                string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
-            ]) {
+    stage('Build golang-builder images') {
+        def golang_nvrs = commonlib.cleanSpaceList(params.GOLANG_NVRS)
+        withCredentials([
+            string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+            string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+            string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
+        ]) {
+            withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                 script {
-                    lock("golang-builder-lock-${env._GOLANG_MAJOR_MINOR}-el${params.RHEL_VERSION}") {
-                        echo "Rebasing..."
-                        def opts = "${env._DOOZER_OPTS} images:rebase --version v${params.GOLANG_VERSION}"
-                        release = params.RELEASE ?: "${new Date().format("yyyyMMddHHmm")}"
-                        currentBuild.displayName += "${release} - el${params.RHEL_VERSION}"
-                        opts += " --release ${release}  -m 'bumping to ${params.GOLANG_VERSION}-${release}'"
-                        if (!params.DRY_RUN)
-                            opts += " --push"
-                        buildlib.doozer(opts)
+                    // Prepare working dir
+                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
 
-                        echo "Building..."
-                        opts = "${env._DOOZER_OPTS} images:build --repo-type unsigned --push-to-defaults"
-                        if (params.DRY_RUN)
-                            opts += " --dry-run"
-                        if (params.SCRATCH)
-                            opts += " --scratch"
-                        buildlib.doozer(opts)
-
-                        commonlib.safeArchiveArtifacts([
-                            "doozer_working/*.log",
-                            "doozer_working/*.yaml",
-                            "doozer_working/brew-logs/**",
-                        ])
+                    // Create artcd command
+                    def cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                    ]
+                    if (params.DRY_RUN) {
+                        cmd << "--dry-run"
                     }
+                    cmd += [
+                        "update-golang",
+                        "--ocp-version=${params.BUILD_VERSION}",
+                        "--art-jira=${params.ART_JIRA}",
+                        "${golang_nvrs}"
+                    ]
+                    if (params.CREATE_TAGGING_TICKET) {
+                        cmd << "--create-tagging-ticket"
+                    }
+                    if (params.SCRATCH) {
+                        cmd << "--scratch"
+                    }
+                    if (!params.DRY_RUN) {
+                        cmd << "--confirm"
+                    }
+
+                    // Run pipeline
+                    timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
+                        echo "Will run ${cmd.join(' ')}"
+                        try {
+                            sh(script: cmd.join(' '), returnStdout: true)
+                        } catch (err) {
+                            throw err
+                        }
+                    } // timeout
+
+                    commonlib.safeArchiveArtifacts([
+                        "artcd_working/**/*.json",
+                        "artcd_working/**/*.log",
+                        "artcd_working/**/*.yaml",
+                        "artcd_working/**/*.yml",
+                    ])
                 }
             }
         }

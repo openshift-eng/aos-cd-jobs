@@ -43,8 +43,7 @@ node {
                     choice(
                         name: 'SIGN_RELEASE_IMAGES',
                         description: 'Sign the release images?',
-                        choices: ["no", "yes", "only"].join("\n"),
-                        defaultValue: "yes",
+                        choices: ["yes", "only", "no"].join("\n"),
                     ),
                     booleanParam(
                         name: 'VERIFY_RELEASE_IMAGES',

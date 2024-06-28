@@ -52,7 +52,7 @@ ${image_list}
 OpenShift Version: v${version}
 ${inject_notes}
 RPMs:
-    Plashet (internal): https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/3.11/stream/${NEW_FULL_VERSION}
+    Plashet (internal): https://ocp-artifacts.engineering.redhat.com/pub/RHOCP/plashets/3.11/stream/${NEW_FULL_VERSION}
     External Mirror: ${mirrorURL}/${NEW_FULL_VERSION}
 ${image_details}
 

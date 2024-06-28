@@ -42,8 +42,8 @@ node {
                     ),
                     choice(
                         name: 'SIGN_RELEASE_IMAGES',
-                        description: 'Sign the release images? Not until OTA-1267 is done.',
-                        choices: ["no", "yes", "only"].join("\n"),
+                        description: 'Sign the release images?',
+                        choices: ["yes", "only", "no"].join("\n"),
                     ),
                     booleanParam(
                         name: 'VERIFY_RELEASE_IMAGES',

@@ -68,7 +68,7 @@ gpgcheck = 0
 
 [rhel-server-8-ose-{OCP_VERSION}-rpms]
 name = rhel-server-8-ose-{OCP_VERSION}-rpms
-baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el8/latest/{ARCH}/os
+baseurl = https://ocp-artifacts.engineering.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el8/latest/{ARCH}/os
 enabled = 1
 gpgcheck = 0
 module_hotfixes=1
@@ -105,7 +105,7 @@ gpgcheck = 0
 
 [rhel-server-{EL}-ose-{OCP_VERSION}-rpms]
 name = rhel-server-{EL}-ose-{OCP_VERSION}-rpms
-baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el{EL}/latest/{ARCH}/os
+baseurl = https://ocp-artifacts.engineering.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el{EL}/latest/{ARCH}/os
 enabled = 1
 gpgcheck = 0
 module_hotfixes=1

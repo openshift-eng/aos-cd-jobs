@@ -1,0 +1,32 @@
+node() {
+    checkout scm
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+
+    properties( [
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+        disableResume(),
+    ] )
+
+    def jobs = [:]
+
+    for ( version in commonlib.ocp4Versions ) {
+        def cv = "${version}" // make sure we use a locally scoped variable
+
+        // Trigger ocp4 plashet build for test assembly in ${version}
+        jobs["plashets-v${version}"] = {
+            build(
+                job: '../aos-cd-builds/build%2Focp4',
+                parameters: [
+                    string(name: 'BUILD_VERSION', value: "${cv}"),
+                    booleanParam(name: 'IGNORE_LOCKS', value: true),
+                    string(name: 'BUILD_IMAGES', value: 'none'),
+                    booleanParam(name: 'SKIP_PLASHETS', value: false)
+                ],
+                propagate: false
+            )
+        }
+    }
+
+    parallel jobs
+}

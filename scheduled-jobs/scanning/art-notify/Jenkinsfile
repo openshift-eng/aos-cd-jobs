@@ -17,6 +17,11 @@ node() {
                         trim: true,
                         defaultValue: "#team-art"
                     ),
+                    booleanParam(
+                        name: 'DRY_RUN',
+                        description: 'Will not message to slack, if dry run is true',
+                        defaultValue: false
+                    ),
                 commonlib.mockParam(),
             ]
         ]
@@ -33,9 +38,9 @@ node() {
                                 string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                                 string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
                             ]) {
-                withEnv(["CHANNEL=${params.CHANNEL}"]) {
+                withEnv(["CHANNEL=${params.CHANNEL}", "DRY_RUN=${params.DRY_RUN}"]) {
                     retry(10) {
-                        commonlib.shell(script: "python -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py")
+                        commonlib.shell(script: "python -- scheduled-jobs/scanning/art-notify/art-notify.py")
                     }
                 }
             }

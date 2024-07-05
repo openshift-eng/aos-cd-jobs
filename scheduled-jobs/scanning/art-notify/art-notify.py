@@ -4,29 +4,31 @@ import json
 import os
 import time
 import requests
-import sys
 from datetime import datetime, timezone
-from collections import OrderedDict
 from urllib.parse import unquote
 
 from slack_bolt import App
 from slack_sdk.errors import SlackApiError
 
+from check_expired_certificates import check_expired_certificates
+
 SLACK_API_TOKEN = os.getenv('SLACK_API_TOKEN')
 SLACK_SIGNING_SECRET = os.getenv('SLACK_SIGNING_SECRET')
 USER_TOKEN = os.getenv('SLACK_USER_TOKEN')
 CHANNEL = os.getenv('CHANNEL')
+DRY_RUN = os.getenv('DRY_RUN')
 JENKINS_TOKEN = os.getenv('JENKINS_SERVICE_ACCOUNT_TOKEN')
 JENKINS_USER = os.getenv('JENKINS_SERVICE_ACCOUNT')
 JENKINS_URL = os.getenv('JENKINS_URL').rstrip('/')
 
 RELEASE_ARTIST_HANDLE = 'release-artists'
 
+
 def get_failed_jobs_text():
     aos_cd_builds_url = f"{JENKINS_URL}/job/aos-cd-builds"
     api_url = f"{aos_cd_builds_url}/api/json"
     query = "?tree=jobs[name,builds[number,result,timestamp]]"  # status,displayName are also useful
-    response = requests.get(api_url+query, auth=(JENKINS_USER, JENKINS_TOKEN))
+    response = requests.get(api_url + query, auth=(JENKINS_USER, JENKINS_TOKEN))
     response.raise_for_status()
     data = response.json()
     failed_jobs = []
@@ -35,10 +37,10 @@ def get_failed_jobs_text():
         job_name = job['name']
         f = 0
         for build in job['builds']:
-            dt = datetime.fromtimestamp(build['timestamp']/1000, tz=timezone.utc)
+            dt = datetime.fromtimestamp(build['timestamp'] / 1000, tz=timezone.utc)
             td = now - dt
-            hours = td.seconds//3600
-            minutes = (td.seconds//60)%60
+            hours = td.seconds // 3600
+            minutes = (td.seconds // 60) % 60
             if not (td.days == 0 and hours < 3):
                 continue
             if build['result'] == 'FAILURE':
@@ -57,8 +59,14 @@ def get_failed_jobs_text():
         return failed_jobs_text
     return ''
 
+
+def message_to_slack(app, channel, text, thread_ts=None):
+    pass
+
+
 def main():
     failed_jobs_text = get_failed_jobs_text()
+    expired_certificates = check_expired_certificates()
 
     app = App(
         token=SLACK_API_TOKEN,
@@ -167,27 +175,48 @@ def main():
         }
     ]
 
-    # https://api.slack.com/methods/chat.postMessage#examples
-    response = app.client.chat_postMessage(channel=CHANNEL,
-                                           text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
-                                           blocks=header_block,
-                                           unfurl_links=False)
+    if DRY_RUN.lower() == "true":
+        print("[DRY RUN] Would have messaged to Slack")
 
-    # Post warnings about inaccessible channels first
-    for warning in channel_warnings.values():
-        app.client.chat_postMessage(channel=CHANNEL,
-                                    text=warning,
-                                    thread_ts=response['ts'])
+        for warning in channel_warnings.values():
+            print(warning)
 
-    for response_message in response_messages:
-        app.client.chat_postMessage(channel=CHANNEL,
-                                    text=response_message,
-                                    thread_ts=response['ts'])  # use the timestamp from the response
+        for response_message in response_messages:
+            print(response_message)
 
-    if failed_jobs_text:
-        app.client.chat_postMessage(channel=CHANNEL,
-                                    text=failed_jobs_text,
-                                    thread_ts=response['ts'])
+        if failed_jobs_text:
+            print(failed_jobs_text)
+
+        if expired_certificates:
+            print(expired_certificates)
+    else:
+        # https://api.slack.com/methods/chat.postMessage#examples
+        response = app.client.chat_postMessage(channel=CHANNEL,
+                                               text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
+                                               blocks=header_block,
+                                               unfurl_links=False)
+
+        # Post warnings about inaccessible channels first
+        for warning in channel_warnings.values():
+            app.client.chat_postMessage(channel=CHANNEL,
+                                        text=warning,
+                                        thread_ts=response['ts'])
+
+        for response_message in response_messages:
+            app.client.chat_postMessage(channel=CHANNEL,
+                                        text=response_message,
+                                        thread_ts=response['ts'])  # use the timestamp from the response
+
+        if failed_jobs_text:
+            app.client.chat_postMessage(channel=CHANNEL,
+                                        text=failed_jobs_text,
+                                        thread_ts=response['ts'])
+
+        if expired_certificates:
+            app.client.chat_postMessage(channel=CHANNEL,
+                                        text=expired_certificates,
+                                        thread_ts=response['ts'])
+
 
 if __name__ == '__main__':
     main()

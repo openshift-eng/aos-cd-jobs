@@ -108,7 +108,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                 // Run pipeline
                 buildlib.withAppCiAsArtPublish() {
                     withCredentials([
-                            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), 
+                            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                             string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
@@ -154,7 +154,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                                 if (fileExists(doozer_working)) {
                                     sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
                                     sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
-                                    commonlib.safeArchiveArtifacts(["${doozer_working}/*.bz2"])
+                                    commonlib.safeArchiveArtifacts(["artcd_working/doozer_working/*.bz2"])
                                 }
                                 buildlib.cleanWorkspace()
                             }

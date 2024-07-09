@@ -35,7 +35,7 @@ def get_failed_jobs_text():
     now = datetime.now(timezone.utc)
     for job in data['jobs']:
         job_name = job['name']
-        f = 0
+        failed_job_ids = []
         for build in job['builds']:
             dt = datetime.fromtimestamp(build['timestamp'] / 1000, tz=timezone.utc)
             td = now - dt
@@ -44,17 +44,32 @@ def get_failed_jobs_text():
             if not (td.days == 0 and hours < 3):
                 continue
             if build['result'] == 'FAILURE':
-                f += 1
-        if f > 0:
-            failed_jobs.append((job_name, f))
+                failed_job_ids.append(build['number'])
+        if len(failed_job_ids) > 0:
+            failed_jobs.append((unquote(job_name), failed_job_ids))
 
-    def job_link(job_name):
+    def job_link(job_name, job_id=None, text=None):
         link = f"{aos_cd_builds_url}/job/{job_name}/"
-        return f"<{link}|{unquote(job_name)}>"
+        if job_id:
+            link += f"{job_id}/console"
+        if not text:
+            if job_id:
+                text = f"#{job_id}"
+            else:
+                text = unquote(job_name)
+        return f"<{link}|{text}>"
 
     if failed_jobs:
-        failed_jobs.sort(key=lambda x: x[1], reverse=True)
-        failed_jobs_list = "\n".join([f"* {job_link(job[0])}: {job[1]}" for job in failed_jobs])
+        failed_jobs.sort(key=lambda x: len(x[1]), reverse=True)
+        failed_jobs_list = []
+        for job_name, failed_job_ids in failed_jobs:
+            link = job_link(job_name)
+            text = f"* {link}: {len(failed_job_ids)} "
+            failed_job_ids.sort(reverse=True)
+            for i in range(min(3, len(failed_job_ids))):
+                text += f"[{job_link(job_name, failed_job_ids[i])}] "
+            failed_jobs_list.append(text)
+        failed_jobs_list = "\n".join(failed_jobs_list)
         failed_jobs_text = f"Failed aos-cd-jobs in last 3 hours: \n{failed_jobs_list}"
         return failed_jobs_text
     return ''

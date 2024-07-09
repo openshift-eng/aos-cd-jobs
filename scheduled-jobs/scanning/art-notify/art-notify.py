@@ -67,7 +67,7 @@ def get_failed_jobs_text():
             text = f"* {link}: {len(failed_job_ids)} "
             failed_job_ids.sort(reverse=True)
             for i in range(min(3, len(failed_job_ids))):
-                text += f"[{job_link(job_name, failed_job_ids[i])}] "
+                text += f"[{job_link(job_name, job_id=failed_job_ids[i], text=i)}] "
             failed_jobs_list.append(text)
         failed_jobs_list = "\n".join(failed_jobs_list)
         failed_jobs_text = f"Failed aos-cd-jobs in last 3 hours: \n{failed_jobs_list}"

@@ -88,11 +88,6 @@ node {
                         description: 'Do not sign the release with the newer sigstore method.',
                         defaultValue: false,
                     ),
-                    booleanParam(
-                        name: 'FORCE_RHCOS_SYNC',
-                        description: '(Standard Release) Always sync RHCOS images to mirrors.',
-                        defaultValue: false,
-                    ),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',

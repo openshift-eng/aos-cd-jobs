@@ -5,7 +5,7 @@ import os
 import time
 import requests
 from datetime import datetime, timezone
-from urllib.parse import unquote
+from urllib.parse import unquote, quote
 
 from slack_bolt import App
 from slack_sdk.errors import SlackApiError
@@ -49,7 +49,7 @@ def get_failed_jobs_text():
             failed_jobs.append((unquote(job_name), failed_job_ids))
 
     def job_link(job_name, job_id=None, text=None):
-        link = f"{aos_cd_builds_url}/job/{job_name}/"
+        link = f"{aos_cd_builds_url}/job/{quote(job_name, safe='')}/"
         if job_id:
             link += f"{job_id}/console"
         if not text:

@@ -14,11 +14,9 @@ node {
         installer image manifest) so that customers can base their OCP 4
         installs on them. Also updates <code>latest</code> directory by default.
 
-        Timing: This is only ever run by humans, usually when a new minor
-        version / arch is released. It may also be used when there is a
-        boot-time bug requiring updated boot images in a version already
-        released.
-        See <a href="https://art-docs.engineering.redhat.com/release/4.y-ga/#publish-rhcos-bootimages" target="_blank">the docs</a>
+        Timing: At EC time and GA this gets run by automation. It may also be requested by teams to run at RC time.
+        It may also be used when there is a boot-time bug requiring updated boot images in a version already 
+        released. See <a href="https://art-docs.engineering.redhat.com/release/4.y-ga/#publish-rhcos-bootimages" target="_blank">the docs</a>
         </p>
     """)
 

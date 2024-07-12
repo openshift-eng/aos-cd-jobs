@@ -25,31 +25,34 @@ RELEASE_ARTIST_HANDLE = 'release-artists'
 
 
 def get_failed_jobs_text():
-    aos_cd_builds_url = f"{JENKINS_URL}/job/aos-cd-builds"
-    api_url = f"{aos_cd_builds_url}/api/json"
-    query = "?tree=jobs[name,builds[number,result,timestamp]]"  # status,displayName are also useful
-    response = requests.get(api_url + query, auth=(JENKINS_USER, JENKINS_TOKEN))
-    response.raise_for_status()
-    data = response.json()
+    projects = ["aos-cd-builds", "scheduled-builds"]
     failed_jobs = []
+    query = "?tree=jobs[name,url,builds[number,result,timestamp]]"  # status,displayName are also useful
     now = datetime.now(timezone.utc)
-    for job in data['jobs']:
-        job_name = job['name']
-        failed_job_ids = []
-        for build in job['builds']:
-            dt = datetime.fromtimestamp(build['timestamp'] / 1000, tz=timezone.utc)
-            td = now - dt
-            hours = td.seconds // 3600
-            minutes = (td.seconds // 60) % 60
-            if not (td.days == 0 and hours < 3):
+    for project in projects:
+        api_url = f"{JENKINS_URL}/job/{project}/api/json"
+        response = requests.get(api_url + query, auth=(JENKINS_USER, JENKINS_TOKEN))
+        response.raise_for_status()
+        data = response.json()
+        for job in data['jobs']:
+            if 'builds' not in job:
                 continue
-            if build['result'] == 'FAILURE':
-                failed_job_ids.append(build['number'])
-        if len(failed_job_ids) > 0:
-            failed_jobs.append((unquote(job_name), failed_job_ids))
-
-    def job_link(job_name, job_id=None, text=None):
-        link = f"{aos_cd_builds_url}/job/{quote(job_name, safe='')}/"
+            job_name = job['name']
+            failed_job_ids = []
+            for build in job['builds']:
+                dt = datetime.fromtimestamp(build['timestamp'] / 1000, tz=timezone.utc)
+                td = now - dt
+                hours = td.seconds // 3600
+                minutes = (td.seconds // 60) % 60
+                if not (td.days == 0 and hours < 3):
+                    continue
+                if build['result'] == 'FAILURE':
+                    failed_job_ids.append(build['number'])
+            if len(failed_job_ids) > 0:
+                failed_jobs.append((unquote(job_name), failed_job_ids, job['url']))
+        
+    def slack_link(job_name, job_url, job_id=None, text=None):
+        link = job_url
         if job_id:
             link += f"{job_id}/console"
         if not text:
@@ -62,15 +65,15 @@ def get_failed_jobs_text():
     if failed_jobs:
         failed_jobs.sort(key=lambda x: len(x[1]), reverse=True)
         failed_jobs_list = []
-        for job_name, failed_job_ids in failed_jobs:
-            link = job_link(job_name)
+        for job_name, failed_job_ids, job_url in failed_jobs:
+            link = slack_link(job_name, job_url)
             text = f"* {link}: {len(failed_job_ids)} "
             failed_job_ids.sort(reverse=True)
             for i in range(min(3, len(failed_job_ids))):
-                text += f"[{job_link(job_name, job_id=failed_job_ids[i], text=i+1)}] "
+                text += f"[{slack_link(job_name, job_url, job_id=failed_job_ids[i], text=i+1)}] "
             failed_jobs_list.append(text)
         failed_jobs_list = "\n".join(failed_jobs_list)
-        failed_jobs_text = f"Failed aos-cd-jobs in last 3 hours: \n{failed_jobs_list}"
+        failed_jobs_text = f"Failed builds in last 3 hours: \n{failed_jobs_list}"
         return failed_jobs_text
     return ''
 

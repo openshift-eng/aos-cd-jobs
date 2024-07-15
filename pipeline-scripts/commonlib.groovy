@@ -595,7 +595,7 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, 
         checkS3Path(s3_path)
          withCredentials([
             file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-            string(credentialsId: "s3-art-srv-enterprise-cloudflare-endpoint", variable: 'CLOUDFLARE_ENDPOINT')]]) {
+            string(credentialsId: "s3-art-srv-enterprise-cloudflare-endpoint", variable: 'CLOUDFLARE_ENDPOINT')]) {
             retry(3) {
                 timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
                     // Sync is not transactional. If we update repomd.xml before files it references are populated,
@@ -642,7 +642,7 @@ def syncDirToS3Mirror(local_dir, s3_path, delete_old=true, include_only='', time
         }
          withCredentials([
             file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-            string(credentialsId: "s3-art-srv-enterprise-cloudflare-endpoint", variable: 'CLOUDFLARE_ENDPOINT')]]) {
+            string(credentialsId: "s3-art-srv-enterprise-cloudflare-endpoint", variable: 'CLOUDFLARE_ENDPOINT')]) {
             retry(3) {
                 timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
                     shell(script: "aws s3 sync --no-progress --exact-timestamps ${extra_args} ${local_dir} s3://art-srv-enterprise${s3_path}")

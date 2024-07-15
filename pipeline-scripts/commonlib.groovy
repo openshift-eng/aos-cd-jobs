@@ -593,7 +593,9 @@ def invalidateAwsCache(s3_path) {
 def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, issue_cloudfront_invalidation=true, dry_run=false) {
     try {
         checkS3Path(s3_path)
-        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+         withCredentials([
+            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+            string(credentialsId: "s3-art-srv-enterprise-cloudflare-endpoint", variable: 'CLOUDFLARE_ENDPOINT')]]) {
             retry(3) {
                 timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
                     // Sync is not transactional. If we update repomd.xml before files it references are populated,
@@ -603,14 +605,17 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, 
                     def opts = '--no-progress --exact-timestamps'
                     if (dry_run) opts += ' --dryrun'
                     shell(script: "aws s3 sync ${opts} --exclude '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}") // Note that s3_path has / prefix.
+                    shell(script: "aws s3 sync ${opts} --exclude '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}")
                     // 2. On the second pass, include only the repomd.xml.
                     shell(script: "aws s3 sync ${opts} --exclude '*' --include '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}")
+                    shell(script: "aws s3 sync ${opts} --exclude '*' --include '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}")
                     if (remove_old) {
                         // For most repos, clean up the old rpms so they don't grow unbounded. Specify remove_old=false
                         // to prevent this step.
                         // Otherwise:
                         // 3. Everything should be sync'd in a consistent way -- delete anything old with --delete.
                         shell(script: "aws s3 sync ${opts} --delete ${local_dir} s3://art-srv-enterprise${s3_path}")
+                        shell(script: "aws s3 sync ${opts} --delete ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}")
                     }
                 }
             }
@@ -635,10 +640,13 @@ def syncDirToS3Mirror(local_dir, s3_path, delete_old=true, include_only='', time
         if (delete_old) {
             extra_args += " --delete"
         }
-        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+         withCredentials([
+            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+            string(credentialsId: "s3-art-srv-enterprise-cloudflare-endpoint", variable: 'CLOUDFLARE_ENDPOINT')]]) {
             retry(3) {
                 timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
                     shell(script: "aws s3 sync --no-progress --exact-timestamps ${extra_args} ${local_dir} s3://art-srv-enterprise${s3_path}")
+                    shell(script: "aws s3 sync --no-progress --exact-timestamps ${extra_args} ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}")
                 }
             }
             if (issue_cloudfront_invalidation) {

@@ -151,7 +151,9 @@ node {
                     }
 
                     sshagent(["openshift-bot"]) {
-                        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                        withCredentials([
+                       file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                       string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                             sh """
                             set -o xtrace
                             set set -euo pipefail
@@ -167,6 +169,7 @@ node {
                             touch staging/rh-acs/${params.REPO}/${VERSION}
                             cp -a \${fn} staging/rh-acs/${params.REPO}
                             aws s3 sync --no-progress --exact-timestamps staging/ s3://art-srv-enterprise/pub/rhacs/signatures/
+                            aws s3 sync --no-progress --exact-timestamps staging/ s3://art-srv-enterprise/pub/rhacs/signatures/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
                             """
                         }
                     }

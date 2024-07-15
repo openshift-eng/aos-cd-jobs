@@ -378,13 +378,17 @@ node {
                         done
                         """)
                         sshagent(["openshift-bot"]) {
-                            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                            withCredentials([
+                            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                                 def mirrorReleasePath = (params.ENV == 'stage') ? 'test' : 'release'
                                 sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
                                 if (mirrorReleasePath == 'release') {
                                     sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
+                                    sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
 
                                     sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
+                                    sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
                                 }
                             }
                         }
@@ -418,32 +422,46 @@ node {
                         //  ==> https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/4.1.0-rc.5/sha256sum.txt.gpg
 
                         sshagent(["openshift-bot"]) {
-                            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                            withCredentials([
+                            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                                 def mirrorReleasePath = "openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.NAME}"
                                 sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
                             }
                         }
                     } else if ( params.PRODUCT == 'rhcos') {
                         sshagent(["openshift-bot"]) {
-                            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                            withCredentials([
+                            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                                 def name_parts = params.NAME.split('\\.')
                                 def nameXY = "${name_parts[0]}.${name_parts[1]}"
                                 def mirrorReleasePath = "openshift-v4/${params.ARCH}/dependencies/rhcos/${nameXY}/${params.NAME}"
                                 sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
                             }
                         }
                     } else if ( params.PRODUCT == 'rhacs' ) {
                         sshagent(["openshift-bot"]) {
-                            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                            withCredentials([
+                            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                                 sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rhacs/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rhacs/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
                                 sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rh-acs/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rh-acs/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
                             }
                         }
                     } else if ( params.PRODUCT == 'coreos-installer' ) {
                         sshagent(["openshift-bot"]) {
-                            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                            withCredentials([
+                            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                                 sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/${params.NAME}/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/${params.NAME}/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
                                 sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/latest/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
                             }
                         }
                     }

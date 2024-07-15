@@ -477,9 +477,9 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
         try {
             withCredentials([
             file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-            string(credentialsId: "s3-art-srv-enterprise-cloudflare-endpoint", variable: 'CLOUDFLARE_ENDPOINT')]) {
+            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                 commonlib.shell(script: mirror_cmd)
-                commonlib.shell(script: "${mirror_cmd} --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}")
+                commonlib.shell(script: "${mirror_cmd} --profile cloudflare --endpoint-url" + '${CLOUDFLARE_ENDPOINT}')
             }
         } catch (ex) {
             slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")
@@ -703,9 +703,9 @@ extract_opm "$OUTDIR"
         try {
             withCredentials([
             file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-            string(credentialsId: "s3-art-srv-enterprise-cloudflare-endpoint", variable: 'CLOUDFLARE_ENDPOINT')]) {
+            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                 commonlib.shell(script: mirror_cmd)
-                commonlib.shell(script: "${mirror_cmd} --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}")
+                commonlib.shell(script: "${mirror_cmd} --profile cloudflare --endpoint-url" + '${CLOUDFLARE_ENDPOINT}')
             }
         } catch (ex) {
             slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")

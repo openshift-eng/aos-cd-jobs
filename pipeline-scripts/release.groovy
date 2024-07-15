@@ -475,12 +475,8 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
     if ( ! params.DRY_RUN ) {
         // Publish the clients to our S3 bucket.
         try {
-            for secretKeyId in ('s3-art-srv-enterprise', 's3-art-srv-enterprise-cloudflare') {
-                withCredentials([
-                aws(credentialsId: secretKeyId, accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                string(credentialsId: "${secretKeyId}-endpoint", variable: 'AWS_ENDPOINT_URL')]) {
-                    commonlib.shell(script: mirror_cmd)
-                }
+            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                commonlib.shell(script: mirror_cmd)
             }
         } catch (ex) {
             slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")
@@ -702,12 +698,8 @@ extract_opm "$OUTDIR"
     if ( ! params.DRY_RUN ) {
         // Publish the clients to our S3 bucket.
         try {
-            for secretKeyId in ('s3-art-srv-enterprise', 's3-art-srv-enterprise-cloudflare') {
-                withCredentials([
-                aws(credentialsId: secretKeyId, accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                string(credentialsId: "${secretKeyId}-endpoint", variable: 'AWS_ENDPOINT_URL')]) {
-                    commonlib.shell(script: mirror_cmd)
-                }
+            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                commonlib.shell(script: mirror_cmd)
             }
         } catch (ex) {
             slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")

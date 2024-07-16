@@ -84,7 +84,8 @@ node {
         }
 
         withCredentials([
-                aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                 aws(credentialsId: 'aws-s3-signing-logs', accessKeyVariable: 'SIGNING_LOGS_ACCESS_KEY', secretKeyVariable: 'SIGNING_LOGS_SECRET_ACCESS_KEY'),
                 aws(credentialsId: 'aws-s3-osd-art-account', accessKeyVariable: 'OSD_ART_ACCOUNT_ACCESS_KEY', secretKeyVariable: 'OSD_ART_ACCOUNT_SECRET_ACCESS_KEY')]) {
 

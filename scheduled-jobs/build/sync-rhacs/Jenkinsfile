@@ -38,8 +38,8 @@ node() {
                     aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "/pub/rhacs/*"
 
                     # Invalidation can be skipped for CLoudflare
-                    aws s3 sync --no-progress --exact-timestamps --delete ${LOCAL_SYNC_DIR}/assets/ s3://art-srv-enterprise/pub/rhacs/assets/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
-                    aws s3 sync --no-progress --exact-timestamps --delete ${LOCAL_SYNC_DIR}/charts/ s3://art-srv-enterprise/pub/rhacs/charts/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+                    aws s3 sync --no-progress --exact-timestamps --delete ${LOCAL_SYNC_DIR}/assets/ s3://art-srv-enterprise/pub/rhacs/assets/ --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}
+                    aws s3 sync --no-progress --exact-timestamps --delete ${LOCAL_SYNC_DIR}/charts/ s3://art-srv-enterprise/pub/rhacs/charts/ --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}
                 """
             )
         }

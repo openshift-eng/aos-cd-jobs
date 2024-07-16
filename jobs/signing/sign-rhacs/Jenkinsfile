@@ -169,7 +169,7 @@ node {
                             touch staging/rh-acs/${params.REPO}/${VERSION}
                             cp -a \${fn} staging/rh-acs/${params.REPO}
                             aws s3 sync --no-progress --exact-timestamps staging/ s3://art-srv-enterprise/pub/rhacs/signatures/
-                            aws s3 sync --no-progress --exact-timestamps staging/ s3://art-srv-enterprise/pub/rhacs/signatures/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
+                            aws s3 sync --no-progress --exact-timestamps staging/ s3://art-srv-enterprise/pub/rhacs/signatures/ --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}"
                             """
                         }
                     }

@@ -774,7 +774,9 @@ node {
             }
 
             try {
-                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([
+                file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                     commonlib.syncRepoToS3Mirror("${unembargoedPlashet.localPlashetPath}/", "/enterprise/all/${params.BUILD_VERSION}/${NEW_FULL_VERSION}/" )
                     commonlib.syncRepoToS3Mirror("${unembargoedPlashet.localPlashetPath}/", "/enterprise/all/${params.BUILD_VERSION}/latest/" )
                     commonlib.syncRepoToS3Mirror("${unembargoedPlashet.localPlashetPath}/", "/enterprise/enterprise-${params.BUILD_VERSION}/${NEW_FULL_VERSION}/" )
@@ -786,7 +788,9 @@ node {
             }
 
             try {
-                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([
+                file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
                     commonlib.shell("./s3-publish-oc-binary.sh ${unembargoedPlashet.localPlashetPath} ${params.BUILD_VERSION} ${NEW_FULL_VERSION}")
                 }
             } catch (ex) {

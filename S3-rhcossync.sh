@@ -78,6 +78,7 @@ function emulateSymlinks() {
     if [[ "${RHCOS_MIRROR_PREFIX}" == "pre-release" ]]; then
         MAJOR_MINOR_LATEST="latest-${MAJOR_MINOR}"
         aws s3 sync --no-progress --delete --exact-timestamps "${S3_SOURCE}" s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/
+        aws s3 sync --no-progress --delete --exact-timestamps "${S3_SOURCE}" s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
 
         # Is this major.minor the latest Y stream? If it is, we need to set
         # the overall 'latest'.
@@ -97,6 +98,7 @@ function emulateSymlinks() {
 
         if [[ -z "${LATEST_LINK}" ]]; then
             aws s3 sync --no-progress --delete --exact-timestamps "${S3_SOURCE}" s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/
+            aws s3 sync --no-progress --delete --exact-timestamps "${S3_SOURCE}" s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
         fi
 
     else
@@ -107,6 +109,7 @@ function emulateSymlinks() {
 
         if [[ -z "${LATEST_CONTENT}" ]]; then
             aws s3 sync --no-progress --delete --exact-timestamps "${S3_SOURCE}" s3://art-srv-enterprise${BASEDIR}/latest/
+            aws s3 sync --no-progress --delete --exact-timestamps "${S3_SOURCE}" s3://art-srv-enterprise${BASEDIR}/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
         fi
     fi
 
@@ -182,8 +185,10 @@ fi
 
 # Copy the files out to their main location
 aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/"
+aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
 if [ $NOLATEST -eq 0 ]; then
     aws s3 sync --no-progress --delete --exact-timestamps "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/"
+    aws s3 sync --no-progress --delete --exact-timestamps "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
     emulateSymlinks "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/"
 else
     echo "INFO: Not updating 'latest' symlink because --nolatest was given"

@@ -73,8 +73,10 @@ node {
             }
 
             buildlib.withAppCiAsArtPublish() {
-                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                withCredentials([
+                file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
+                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                     def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                     echo out
                     if (out.contains('failed with')) {

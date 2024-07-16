@@ -150,6 +150,7 @@ for arch in ${ARCHES}; do
       # so we are deleting only expected items.
       echo "Cleaning up old entries in ocp-dev-preview/"
       aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${MAJOR_MINOR}.*"
+      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${MAJOR_MINOR}.*" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
     fi
 
     # List the all the other "latest-4.x" or "stable-4.x" directory names. s3 ls

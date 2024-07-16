@@ -57,12 +57,15 @@ node {
         currentBuild.displayName += " - [DRY RUN]"
         AWS_S3_SYNC_OPTS += " --dryrun"
     }
-    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+    withCredentials([
+    file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+    string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
         commonlib.shell(
             script: """
                 set -e
                 python3 ./collect_deps.py --base-dir output ${version} --arch ${params.ARCH} --el ${params.EL_VERSION}
                 aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-el${params.EL_VERSION}-beta s3://art-srv-enterprise/pub/${path}/${version}-el${params.EL_VERSION}-beta/
+                aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-el${params.EL_VERSION}-beta s3://art-srv-enterprise/pub/${path}/${version}-el${params.EL_VERSION}-beta/ --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}
                 rm -r output
             """
         )

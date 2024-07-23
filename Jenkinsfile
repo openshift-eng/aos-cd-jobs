@@ -222,52 +222,7 @@ node {
         }
     }
 
-    // QE has stop consuming ART's umb events, we can try to stop sending umb event unless someone complains
-    // buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
-
-    // def justifications =release_info.justifications ?: []
-
-    // stage("send release message") {
-    //     if (release_info.type == "custom") {
-    //         echo "Don't send release messages for a custom release."
-    //         return
-    //     }
-    //     if (params.DRY_RUN) {
-    //         echo "DRY_RUN: Would have sent release messages."
-    //         return
-    //     }
-
-    //     List<String> umb_failures = []
-    //     release_info.content.each { arch, info ->
-    //         // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
-    //         // Using the real per-arch release name in $info instead of the one defined by release artists.
-    //         def release_name = info.metadata.version
-    //         try {
-    //             release.sendReleaseCompleteMessage(["name": release_name], release_info.advisory ?: 0, release_info.live_url, arch)
-    //         } catch (exception) {
-    //             umb_failures.add("${release_name}-${arch}")
-    //         }
-    //     }
-    //     if (umb_failures) {
-    //         currentBuild.result = "UNSTABLE"
-    //         slacklib.to(params.VERSION).say("@release-artists Sending Release Complete informational message has failed for ${umb_failures}, please investigate")
-    //     }
-    // }
-
-    stage("clean and mail") {
-        dry_subject = ""
-        if (params.DRY_RUN) { dry_subject = "[DRY RUN] "}
-        def pullspecs = release_info.content.findAll{ k, v -> v.pullspec }.collect {k, v -> v.pullspec }
-        commonlib.email(
-            to: "${params.MAIL_LIST_SUCCESS}",
-            replyTo: "aos-team-art@redhat.com",
-            from: "aos-art-automation@redhat.com",
-            subject: "${dry_subject}Success building release payload: ${release_info.name}",
-            body: """
-Jenkins Job: ${env.BUILD_URL}
-PullSpecs: ${pullspecs.join(",")}
-        """);
+    stage("clean") {
         buildlib.cleanWorkspace()
     }
-
 }

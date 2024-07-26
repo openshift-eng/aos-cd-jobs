@@ -55,10 +55,7 @@ node {
 
         buildlib.withAppCiAsArtPublish() {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                def returnStatus = sh(script: cmd.join(' '), returnStatus: true)
-                if (returnStatus != 0) {
-                    currentBuild.result = "UNSTABLE"
-                }
+                sh(script: cmd.join(' '), returnStdout: true)
             }
         }
     }

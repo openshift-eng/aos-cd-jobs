@@ -52,11 +52,13 @@ def get_failed_jobs_text():
                 if not (td.days == 0 and hours < FAILED_JOB_HOURS):
                     continue
                 if build['result'] == 'FAILURE':
-                    # Filter all jobs that were not triggered by our automation account
+                    # Filter all builds that were not triggered by our automation account
                     # We do not want to report on these since they are manually triggered and
                     # would be monitored by whoever triggered them
-                    user_id = next(b['causes'][0]['userId'] for b in build['actions'] if 'causes' in b)
-                    if user_id != ART_BOT_JENKINS_USERID:
+                    # Builds which are triggered by another build will not have userId
+                    # so we include them by default
+                    user_id = next(a['causes'][0].get('userId') for a in build.get('actions') if a.get('causes'))
+                    if user_id and user_id != ART_BOT_JENKINS_USERID:
                         continue
                     failed_job_ids.append(build['number'])
             if len(failed_job_ids) > 0:

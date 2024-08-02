@@ -22,12 +22,17 @@ JENKINS_USER = os.getenv('JENKINS_SERVICE_ACCOUNT')
 JENKINS_URL = os.getenv('JENKINS_URL').rstrip('/')
 
 RELEASE_ARTIST_HANDLE = 'release-artists'
+ART_BOT_JENKINS_USERID = 'openshift-art'  # userId of our automation account in jenkins which triggers builds
+FAILED_JOB_HOURS = 8  # Last x hours that we consider for our failed job search
 
 
 def get_failed_jobs_text():
     projects = ["aos-cd-builds", "scheduled-builds"]
     failed_jobs = []
-    query = "?tree=jobs[name,url,builds[number,result,timestamp]]"  # status,displayName are also useful
+    # API reference
+    # for a job: <jenkins_url>/job/<project>/job/<job_name>/api/json?pretty=true
+    # for a build: <jenkins_url>/job/<project>/job/<job_name>/<build_number>/api/json?pretty=true
+    query = "?tree=jobs[name,url,builds[number,result,timestamp,actions[causes[userId]]]]"
     now = datetime.now(timezone.utc)
     for project in projects:
         api_url = f"{JENKINS_URL}/job/{project}/api/json"
@@ -44,9 +49,15 @@ def get_failed_jobs_text():
                 td = now - dt
                 hours = td.seconds // 3600
                 minutes = (td.seconds // 60) % 60
-                if not (td.days == 0 and hours < 3):
+                if not (td.days == 0 and hours < FAILED_JOB_HOURS):
                     continue
                 if build['result'] == 'FAILURE':
+                    # Filter all jobs that were not triggered by our automation account
+                    # We do not want to report on these since they are manually triggered and
+                    # would be monitored by whoever triggered them
+                    user_id = next(b['causes'][0]['userId'] for b in build['actions'] if 'causes' in b)
+                    if user_id != ART_BOT_JENKINS_USERID:
+                        continue
                     failed_job_ids.append(build['number'])
             if len(failed_job_ids) > 0:
                 failed_jobs.append((unquote(job_name), failed_job_ids, job['url']))
@@ -73,7 +84,7 @@ def get_failed_jobs_text():
                 text += f"[{slack_link(job_name, job_url, job_id=failed_job_ids[i], text=i+1)}] "
             failed_jobs_list.append(text)
         failed_jobs_list = "\n".join(failed_jobs_list)
-        failed_jobs_text = f"Failed builds in last 3 hours: \n{failed_jobs_list}"
+        failed_jobs_text = f"Failed builds in last `{FAILED_JOB_HOURS}` hours triggered by `{ART_BOT_JENKINS_USERID}`: \n{failed_jobs_list}"
         return failed_jobs_text
     return ''
 

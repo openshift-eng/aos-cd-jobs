@@ -57,8 +57,8 @@ node {
 
     stage("Download artifacts") {
         parallel (
-            "linux":   { sh "curl -sLf ${params.LINUX_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-linux-64bit.tar.gz" }
-            "macos":   { sh "curl -sLf ${params.MACOS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-mac-64bit.tar.gz" }
+            "linux":   { sh "curl -sLf ${params.LINUX_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-linux-64bit.tar.gz" },
+            "macos":   { sh "curl -sLf ${params.MACOS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-mac-64bit.tar.gz" },
             "windows": { sh "curl -sLf ${params.WINDOWS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-windows-64bit.tar.gz" }
         )
     }

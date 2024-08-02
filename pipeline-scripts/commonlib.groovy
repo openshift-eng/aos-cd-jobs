@@ -5,7 +5,10 @@ ocp3Versions = [
     "3.11",
 ]
 
-// All buildable versions of ocp4
+// Recent and relevant versions of ocp4
+// that we need to build for
+// versions could be EOL.
+// Use ocp4VersionsForRelease() for the list of versions that are not EOL
 ocp4Versions = [
     "4.18",
     "4.17",
@@ -19,6 +22,40 @@ ocp4Versions = [
 ]
 
 ocpVersions = ocp4Versions + ocp3Versions
+
+def getEOLVersions(ocp_major_version) {
+    if (ocp_major_version != '4') {
+        error("Only OCP major version 4 is supported")
+    }
+    def eol_versions = []
+    for (version in ocpMajorVersions[ocp_major_version]) {
+        def branch = "openshift-${version}"
+        def group_yml_url = "https://raw.githubusercontent.com/openshift-eng/ocp-build-data/${branch}/group.yml"
+        def group_yml_content = new URL(group_yml_url).getText()
+        def group_yml_data = readYaml(text: group_yml_content)
+        if (!group_yml_data.containsKey('software_lifecycle')) {
+            echo "software_lifecycle key not found in group.yml for ${version}"
+            continue
+        }
+        if (!group_yml_data['software_lifecycle'].containsKey('phase')) {
+            echo "phase key not found in group.yml for ${version}"
+            continue
+        }
+        def val = group_yml_data['software_lifecycle']['phase']
+        if (val == 'eol') {
+            eol_versions << version
+        }
+    }
+    return eol_versions
+}
+
+def ocp4VersionsForRelease() {
+    eolVersions = getEOLVersions('4')
+    echo "EOL Versions: ${eolVersions}"
+    found = ocp4Versions.findAll { it -> !eolVersions.contains(it) }
+    echo "OCP4 Versions for release: ${found}"
+    return found
+}
 
 // some of our systems refer to golang's chosen architecture nomenclature;
 // most use brew's nomenclature or similar. translate.

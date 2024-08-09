@@ -87,7 +87,7 @@ node {
                 "rebuild-golang-rpms",
                 "--ocp-version=${params.BUILD_VERSION}",
                 "--art-jira=${params.ART_JIRA}",
-                rpms_param,
+                "${rpms_param}",
                 "${golang_nvrs}"
             ]
             if (params.FORCE_REBUILD) {

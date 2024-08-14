@@ -125,6 +125,18 @@ def initialize_openshift_dir() {
     echo "Initialized env.OPENSHIFT_DIR: ${env.OPENSHIFT_DIR}"
 }
 
+def init_artcd_working_dir() {
+    // Removing folders that contain a lot of files can be time consuming.
+    // Using rsync is a more performant alternative: https://unix.stackexchange.com/a/79656
+
+    sh """
+    mkdir /tmp/empty
+    rsync -a --delete /tmp/empty ./artcd_working
+    rmdir /tmp/empty ./artcd_working
+    mkdir -p ./artcd_working
+    """
+}
+
 def cleanWhitespace(cmd) {
     return (cmd
         .replaceAll( ' *\\\n *', ' ' ) // If caller included line continuation characters, remove them

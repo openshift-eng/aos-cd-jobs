@@ -146,7 +146,7 @@ node() {
     }
 
     stage ("build sync") {
-        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+        buildlib.init_artcd_working_dir()
         def cmd = [
             "artcd",
             "-v",

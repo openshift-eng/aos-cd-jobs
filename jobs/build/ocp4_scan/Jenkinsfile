@@ -87,7 +87,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
 
         stage("Scan") {
             sshagent(["openshift-bot"]) {
-                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                buildlib.init_artcd_working_dir()
                 cmd = [
                     "artcd",
                     "-vv",

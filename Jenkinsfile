@@ -86,8 +86,7 @@ node {
                 currentBuild.displayName += "multi"
                 echo "triggering multi builds"
                 def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
-                commonlib.shell(script: "pip install -e ./art-tools/pyartcd")
-                buildlib.init_artcd_working_dir()
+                commonlib.shell(script: "pip install -e ./art-tools/pyartcd && rm -rf ./artcd_working && mkdir -p ./artcd_working")
 
                 def dryrun = params.DRY_RUN ? '--dry-run' : ''
                 def run_multi_build = {

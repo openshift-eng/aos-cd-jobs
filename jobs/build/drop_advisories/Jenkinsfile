@@ -44,7 +44,7 @@ node {
     }
 
     advisory_list = commonlib.parseList(params.ADVISORIES)
-    buildlib.init_artcd_working_dir()
+    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
 
     for(adv in advisory_list) {
         def cmd = [

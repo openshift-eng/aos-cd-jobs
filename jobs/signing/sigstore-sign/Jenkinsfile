@@ -64,7 +64,7 @@ node {
     stage("initialize") {
         // must be able to access and update quay registry
         buildlib.registry_quay_dev_login()
-        buildlib.init_artcd_working_dir()
+        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
     }
 
     stage("sign") {

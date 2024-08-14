@@ -47,7 +47,7 @@ node {
     ])
     stage('operator-sdk-sync') {
         script {
-            buildlib.init_artcd_working_dir()
+            sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
             currentBuild.displayName += " ${params.ASSEMBLY}"
             def cmd = [
                 "artcd",

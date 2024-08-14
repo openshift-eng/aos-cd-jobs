@@ -76,7 +76,7 @@ node {
             withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                 script {
                     // Prepare working dir
-                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                    buildlib.init_artcd_working_dir()
 
                     // Create artcd command
                     def cmd = [

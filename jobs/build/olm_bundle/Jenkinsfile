@@ -111,7 +111,7 @@ node() {
     stage('Build bundles') {
         script {
             // Prepare working dirs
-            sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+            buildlib.init_artcd_working_dir()
             def doozer_working = "${WORKSPACE}/doozer_working"
             buildlib.cleanWorkdir(doozer_working)
 

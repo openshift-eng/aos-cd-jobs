@@ -39,7 +39,7 @@ node {
 
     // Check bugs
     stage('check-bugs') {
-        buildlib.init_artcd_working_dir()
+        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
         def cmd = [
             "artcd",
             "-v",

@@ -128,7 +128,7 @@ node {
     def release_info = [:]
 
     stage("promote release") {
-        buildlib.init_artcd_working_dir()
+        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
         def cmd = [
             "artcd",
             "-v",

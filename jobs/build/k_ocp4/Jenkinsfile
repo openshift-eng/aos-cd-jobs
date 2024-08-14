@@ -134,7 +134,7 @@ node {
                             usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
                         ]) {
                     withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
-                        buildlib.init_artcd_working_dir()
+                        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
                         sh(script: cmd.join(' '), returnStdout: true)
                     }
                 }

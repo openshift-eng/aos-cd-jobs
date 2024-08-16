@@ -72,8 +72,8 @@ node {
             def output = ""
 
             stage("run tarball-sources") {
-                sh "rm -rf ./artcd_working"
-                sh "mkdir -p ./artcd_working"
+                buildlib.init_artcd_working_dir()
+                
                 def cmd = [
                     "artcd",
                     "-v",

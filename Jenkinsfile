@@ -32,7 +32,7 @@ node {
 
     // Clean up locks
     stage('cleanup-locks') {
-        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+        buildlib.init_artcd_working_dir()
         def cmd = [
             "artcd",
             "-v",

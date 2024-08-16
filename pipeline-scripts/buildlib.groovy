@@ -131,9 +131,9 @@ def init_artcd_working_dir() {
 
     sh """
     if [ -d "./artcd_working" ]; then
-        mkdir /tmp/empty
-        rsync -a --delete /tmp/empty/ ./artcd_working/
-        rmdir /tmp/empty ./artcd_working
+        mkdir -p ./empty
+        rsync -a --delete ./empty/ ./artcd_working/
+        rmdir ./empty ./artcd_working
     fi
     mkdir -p ./artcd_working
     """

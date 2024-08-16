@@ -71,7 +71,7 @@ node {
 
         script {
             // Prepare working dir
-            sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+            buildlib.init_artcd_working_dir()
 
             // Create artcd command
             def cmd = [

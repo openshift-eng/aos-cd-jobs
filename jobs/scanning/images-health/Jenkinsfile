@@ -49,7 +49,7 @@ node() {
         cmd << "--send-to-release-channel"
     }
     if (params.SEND_TO_FORUM_OCP_ART) {
-        cmd << "--send-to-aos-art"
+        cmd << "--send-to-forum-ocp-art"
     }
 
     withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

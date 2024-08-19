@@ -17,9 +17,9 @@ node() {
                         description: "If true, send output to #art-release-4-<version>"
                     ),
                     booleanParam(
-                        name: 'SEND_TO_AOS_ART',
+                        name: 'SEND_TO_FORUM_OCP_ART',
                         defaultValue: false,
-                        description: "If true, send notification to #aos-art"
+                        description: "If true, send notification to #forum-ocp-art"
                     ),
                     commonlib.mockParam(),
                 ]
@@ -48,7 +48,7 @@ node() {
     if (params.SEND_TO_RELEASE_CHANNEL) {
         cmd << "--send-to-release-channel"
     }
-    if (params.SEND_TO_AOS_ART) {
+    if (params.SEND_TO_FORUM_OCP_ART) {
         cmd << "--send-to-aos-art"
     }
 

@@ -44,6 +44,7 @@ def get_failed_jobs_text():
                 continue
             job_name = job['name']
             failed_job_ids = []
+            total_eligible_builds = 0
             for build in job['builds']:
                 dt = datetime.fromtimestamp(build['timestamp'] / 1000, tz=timezone.utc)
                 td = now - dt
@@ -51,18 +52,20 @@ def get_failed_jobs_text():
                 minutes = (td.seconds // 60) % 60
                 if not (td.days == 0 and hours < FAILED_JOB_HOURS):
                     continue
+                # Filter all builds that were not triggered by our automation account
+                # We do not want to report on these since they are manually triggered and
+                # would be monitored by whoever triggered them
+                # Builds which are triggered by another build will not have userId
+                # so we include them by default
+                user_id = next(a['causes'][0].get('userId') for a in build.get('actions') if a.get('causes'))
+                if user_id and user_id != ART_BOT_JENKINS_USERID:
+                    continue
+                total_eligible_builds += 1
                 if build['result'] == 'FAILURE':
-                    # Filter all builds that were not triggered by our automation account
-                    # We do not want to report on these since they are manually triggered and
-                    # would be monitored by whoever triggered them
-                    # Builds which are triggered by another build will not have userId
-                    # so we include them by default
-                    user_id = next(a['causes'][0].get('userId') for a in build.get('actions') if a.get('causes'))
-                    if user_id and user_id != ART_BOT_JENKINS_USERID:
-                        continue
                     failed_job_ids.append(build['number'])
             if len(failed_job_ids) > 0:
-                failed_jobs.append((unquote(job_name), failed_job_ids, job['url']))
+                fail_rate = (len(failed_job_ids)/total_eligible_builds)*100
+                failed_jobs.append((unquote(job_name), failed_job_ids, fail_rate, job['url']))
         
     def slack_link(job_name, job_url, job_id=None, text=None):
         link = job_url
@@ -76,14 +79,15 @@ def get_failed_jobs_text():
         return f"<{link}|{text}>"
 
     if failed_jobs:
-        failed_jobs.sort(key=lambda x: len(x[1]), reverse=True)
+        failed_jobs.sort(key=lambda x: x[2], reverse=True)
         failed_jobs_list = []
-        for job_name, failed_job_ids, job_url in failed_jobs:
+        for job_name, failed_job_ids, fail_rate, job_url in failed_jobs:
             link = slack_link(job_name, job_url)
             text = f"* {link}: {len(failed_job_ids)} "
             failed_job_ids.sort(reverse=True)
             for i in range(min(3, len(failed_job_ids))):
                 text += f"[{slack_link(job_name, job_url, job_id=failed_job_ids[i], text=i+1)}] "
+            failed_text += f"Fail rate: {fail_rate:.1f}%"
             failed_jobs_list.append(text)
         failed_jobs_list = "\n".join(failed_jobs_list)
         failed_jobs_text = f"Failed builds in last `{FAILED_JOB_HOURS}` hours triggered by `{ART_BOT_JENKINS_USERID}`: \n{failed_jobs_list}"

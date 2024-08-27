@@ -29,7 +29,7 @@ node {
             "schedule-ocp4-scan",
         ]
         for ( version in commonlib.ocp4Versions ) {
-            cmd << "-- version=${version}"
+            cmd << "--version=${version}"
         }
 
         withCredentials([

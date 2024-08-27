@@ -87,7 +87,7 @@ def get_failed_jobs_text():
             failed_job_ids.sort(reverse=True)
             for i in range(min(3, len(failed_job_ids))):
                 text += f"[{slack_link(job_name, job_url, job_id=failed_job_ids[i], text=i+1)}] "
-            failed_text += f"Fail rate: {fail_rate:.1f}%"
+            text += f"Fail rate: {fail_rate:.1f}%"
             failed_jobs_list.append(text)
         failed_jobs_list = "\n".join(failed_jobs_list)
         failed_jobs_text = f"Failed builds in last `{FAILED_JOB_HOURS}` hours triggered by `{ART_BOT_JENKINS_USERID}`: \n{failed_jobs_list}"

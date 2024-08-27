@@ -6,7 +6,7 @@ properties([
 
 
 description = ""
-failed = false
+unstable = false
 
 def runFor(version, channelPrefix, linkName) {
     try {
@@ -22,7 +22,7 @@ def runFor(version, channelPrefix, linkName) {
                     propagate: false,
                 )
             description += "${linkName} -> ${channelPrefix}-${version} - ${b.result}\n"
-            failed |= (b.result != "SUCCESS")
+            unstable |= (b.result != "SUCCESS")
         }
     } catch (err) {
         slacklib.to('#art-release').failure("Error running set_client_latest\n${err}")
@@ -59,4 +59,4 @@ node() {
 }
 
 currentBuild.description = description.trim()
-currentBuild.result = failed ? "FAILURE" : "SUCCESS"
+currentBuild.result = unstable ? "UNSTABLE" : "SUCCESS"

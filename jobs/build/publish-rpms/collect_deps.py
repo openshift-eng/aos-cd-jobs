@@ -31,6 +31,7 @@ PACKAGES = {
         "openshift-hyperkube",
         "slirp4netns",
         "conmon-rs",
+        "openvswitch3.3",
         "openvswitch3.4"
     ],
 }

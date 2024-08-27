@@ -19,10 +19,11 @@ node {
             echo "Wait for incoming message"
             def messageContent = waitForCIMessage checks: [], overrides: [topic: 'Consumer.openshift-art-bot.397637dc-0cc8-4c35-bde8-b841024dc6d1.VirtualTopic.eng.ci.redhat-container-image.index.built'], providerName: 'Red Hat UMB', selector: ''
             msgObj = readJSON text: messageContent
-            // Example: https://datagrepper.engineering.redhat.com/id?id=ID:jenkins-1-qnt2m-32829-1599730867657-210799:1:1:1:1&is_raw=true&size=extra-large
+            // https://datagrepper.engineering.redhat.com/raw?topic=/topic/VirtualTopic.eng.ci.redhat-container-image.index.built
+            // Example: https://datagrepper.engineering.redhat.com/id?id=ID:jenkins-1-jmddf-43869-1720197152936-81065:1:1:1:1&is_raw=true&size=extra-large
             name = msgObj['artifact']['nvr']
             idx_image = msgObj['index']['index_image']
-            ocp_ver = msgObj['index']['ocp_version']
+            ocp_ver = msgObj['index']['ocp_version'] // "v4.16"
 
             if (name.startsWith('ose-ptp-operator-metadata') || name.startsWith('ose-ptp-operator-bundle')) {
                 echo "Processing {name: ${name}, idx_image: ${idx_image}, ocp_ver: ${ocp_ver}"

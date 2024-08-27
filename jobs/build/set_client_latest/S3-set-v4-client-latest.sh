@@ -30,11 +30,13 @@ BASE_DIR="pub/openshift-v4"
 
 if [[ $RELEASE =~ ^[0-9].* ]]; then
     MAJOR_MINOR=$(echo ${RELEASE} |awk -F '[.-]' '{print $1 "." $2}')  # e.g. 4.3.0-0.nightly-2019-11-08-080321 -> 4.3
+    PREVIOUS_MAJOR_MINOR=$(echo ${RELEASE} |awk -F '[.-]' '{print $1 "." ($2 - 1)}')  # e.g. 4.3.0-0.nightly-2019-11-08-080321 -> 4.2
     USE_CHANNEL=""
     CHANNEL_PREFIX=""
 else
     # Otherwise, the RELEASE arg is assumed to be a channel
     MAJOR_MINOR=$(echo ${RELEASE} |awk -F '[.-]' '{print $2 "." $3}')  # fast-4.3 -> 4.3
+    PREVIOUS_MAJOR_MINOR=$(echo ${RELEASE} |awk -F '[.-]' '{print $2 "." ($3 - 1)}')  # fast-4.3 -> 4.2
     USE_CHANNEL="${RELEASE}"
     CHANNEL_PREFIX=$(echo ${RELEASE} |awk -F '[.-]' '{print $1}')  # fast-4.3 -> fast
 fi
@@ -126,13 +128,13 @@ for arch in ${ARCHES}; do
 
     transferClientIfNeeded "${target_dir}/${RELEASE}/" "${target_dir}/${MAJOR_MINOR_LINK}/"
 
-    if [[ "$CLIENT_TYPE" == "ocp" && "${MAJOR_MINOR}" == [0-9]* ]]; then
+    if [[ "$CLIENT_TYPE" == "ocp" && "${MAJOR_MINOR}" == [0-9]* && "${PREVIOUS_MAJOR_MINOR}" == [0-9]* ]]; then
       # Once clients start publishing to ocp, anything in ocp-dev-preview goes stale. Clean these up for cost
       # and readability. The check on MAJOR_MINOR is just a sanity check that it starts with a digit (e.g. "4.16")
       # so we are deleting only expected items.
       echo "Cleaning up old entries in ocp-dev-preview/"
-      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${MAJOR_MINOR}.*"
-      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${MAJOR_MINOR}.*" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${PREVIOUS_MAJOR_MINOR}.*"
+      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${PREVIOUS_MAJOR_MINOR}.*" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
     fi
 
     # List the all the other "latest-4.x" or "stable-4.x" directory names. s3 ls

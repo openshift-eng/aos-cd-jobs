@@ -76,11 +76,6 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
-                    booleanParam(
-                        name: 'PIN_BUILDS',
-                        description: 'Build only specified rpms/images regardless of whether source has changed. WARNING: Disable this to use scan-sources as the source',
-                        defaultValue: true,
-                    ),
                     choice(
                         name: 'BUILD_RPMS',
                         description: 'Which RPMs are candidates for building? "only/except" refer to list below',
@@ -183,9 +178,6 @@ node {
                 }
                 if (params.DOOZER_DATA_GITREF) {
                     cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
-                }
-                if (params.PIN_BUILDS) {
-                    cmd << "--pin-builds"
                 }
                 if (params.COMMENT_ON_PR) {
                     cmd << "--comment-on-pr"

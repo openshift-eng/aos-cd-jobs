@@ -92,7 +92,7 @@ for arch in ${ARCHES}; do
             aarch64) qarch="arm64" ;;
         esac
         CHANNEL_RELEASES=$(
-            curl -sH "Accept:application/json" "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" |
+            curl -sH "Accept:application/json" --retry 3 "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" |
               jq '.nodes[].version' -r
         )
         if [[ -z "$CHANNEL_RELEASES" ]]; then

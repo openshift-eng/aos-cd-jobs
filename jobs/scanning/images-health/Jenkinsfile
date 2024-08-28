@@ -28,6 +28,7 @@ node() {
     )
 
     commonlib.checkMock()
+    currentBuild.displayName += " - ${params.BUILD_VERSION}"
 
     // Working dirs
     def artcd_working = "${WORKSPACE}/artcd_working"

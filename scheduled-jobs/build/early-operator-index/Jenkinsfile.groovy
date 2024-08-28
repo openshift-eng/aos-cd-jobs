@@ -33,7 +33,7 @@ node {
     request = [
         'bundles': pullspecs.findAll { it != "None" },  // Ignore bundle if it has not been built yet
         'from_index': "registry-proxy.engineering.redhat.com/rh-osbs/iib-pub-pending:v${operatorIndexBaseVersion}",
-        'binary_image': "registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-registry:v${operatorRegistryVersion}.0"
+        'binary_image': "registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-registry-rhel9:v${operatorRegistryVersion}.0"
     ]
 
     writeJSON(file: 'request.json', json: request, pretty: 4)

@@ -15,7 +15,7 @@ def runFor(version) {
                 parameters: [
                     string(name: 'BUILD_VERSION', value: version),
                     booleanParam(name: 'SEND_TO_RELEASE_CHANNEL', value: true),
-                    booleanParam(name: 'SEND_TO_AOS_ART', value: true),
+                    booleanParam(name: 'SEND_TO_FORUM_OCP_ART', value: true),
                 ],
                 propagate: false,
             )

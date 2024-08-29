@@ -125,7 +125,10 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                         withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                             try {
                                 echo "Will run ${cmd}"
-                                sh(script: cmd.join(' '), returnStdout: true)
+
+                                timeout(activity: true, time: 60, unit: 'MINUTES') {
+                                    sh(script: cmd.join(' '), returnStdout: true)
+                                }
 
                                 // success email only if requested for this build
                                 if (params.MAIL_LIST_SUCCESS.trim()) {

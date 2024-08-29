@@ -8,30 +8,50 @@ node {
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
         disableConcurrentBuilds(),
         disableResume(),
+        [
+            $class: "ParametersDefinitionProperty",
+            parameterDefinitions: [
+                commonlib.artToolsParam(),
+                commonlib.mockParam(),
+            ]
+        ]
     ] )
 
-    def versionJobs = [:]
-    for ( version in commonlib.ocp4Versions ) {
-        def cv = "${version}" // make sure we use a locally scoped variable
+    commonlib.checkMock()
+    buildlib.init_artcd_working_dir()
 
-        // Skip the build if already locked
-        activityLockName = "github-activity-lock-${cv}"
-        if (!commonlib.canLock(activityLockName)) {
-            echo "Looks like there is another build ongoing for ${cv} -- skipping for this run"
-            continue
+    stage("scan") {
+        cmd = [
+            "artcd",
+            "-vv",
+            "--working-dir=${WORKSPACE}/artcd_working",
+            "--config=./config/artcd.toml",
+            "schedule-ocp4-scan",
+        ]
+        for ( version in commonlib.ocp4Versions ) {
+            cmd << "--version=${version}"
         }
 
-        // Trigger ocp4-scan build for ${version}
-        versionJobs["scan-v${version}"] = {
-            try {
-                timeout(activity: true, time: 60, unit: 'MINUTES') {
-                    build job: '../aos-cd-builds/build%2Focp4_scan', parameters: [string(name: 'VERSION', value: "${cv}")], propagate: false
+        withCredentials([
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                    string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT')]) {
+            wrap([$class: 'BuildUser']) {
+                builderEmail = env.BUILD_USER_EMAIL
+            }
+
+            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                try {
+                    echo "Will run ${cmd}"
+                    sh(script: cmd.join(' '), returnStdout: true)
+                } catch (err) {
+                    slacklib.to("#art-release").failure("Error running ocp_scan", err)
+                    throw err
                 }
-            } catch (te) {
-                slacklib.to(cv).failure("Error running ocp_scan", te)
             }
         }
-    }
 
-    parallel versionJobs
+    }
 }

@@ -69,7 +69,10 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
         )
 
         commonlib.checkMock()
-        buildlib.registry_quay_dev_login()
+
+        retry(3) {
+            buildlib.registry_quay_dev_login()
+        }
 
         stage("Initialize") {
             currentBuild.displayName = "#${currentBuild.number} ${params.VERSION}"

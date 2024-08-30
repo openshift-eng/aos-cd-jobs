@@ -206,17 +206,6 @@ node {
                 withEnv(["BUILD_URL=${BUILD_URL}"]) {
                     def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                     echo "artcd returns:\n$out"
-                    try {
-                        release_info = readJSON(text: out)
-                    } catch (ex1) {
-                        // retry since this is often flaky
-                        try {
-                            release_info = readJSON(text: out)
-                        } catch (ex2) {
-                            slacklib.to(params.VERSION).say("@release-artists Promote failed since it couldn't parse pyartcd json. Please investigate/retry")
-                            throw ex2
-                        }
-                    }
                 }
             }
         }

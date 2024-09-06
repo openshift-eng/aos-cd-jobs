@@ -100,6 +100,11 @@ node() {
                     description : 'If group/assembly has multi_arch.enabled, you can bypass --apply-multi-arch and the generation of a heterogeneous release payload by setting this to true',
                     defaultValue: false,
                 ),
+                booleanParam(
+                    name        : 'EMBARGO_PERMIT_ACK',
+                    description : 'WARNING: Only enable this if a payload containing embargoed build(s) is being promoted after embargo lift',
+                    defaultValue: false,
+                ),
             ],
         ]
     ])  // Please update README.md if modifying parameter names or semantics
@@ -182,6 +187,9 @@ node() {
         }
         if (params.SKIP_MULTI_ARCH_PAYLOAD) {
             cmd << "--skip-multiarch-payload"
+        }
+        if (params.EMBARGO_PERMIT_ACK) {
+            cmd << "--embargo-permit-ack"
         }
 
         // Run pipeline

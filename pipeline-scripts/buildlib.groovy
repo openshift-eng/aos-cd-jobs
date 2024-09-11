@@ -148,19 +148,7 @@ def cleanWhitespace(cmd) {
 }
 
 def setup_venv() {
-    // Preparing venv for ART tools
-    // The following commands will run automatically every time one of our jobs
-    // loads buildlib (ideally, once per pipeline)
-    VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
-    commonlib.shell(script: "rm -rf ${VIRTUAL_ENV}")
-
-    commonlib.shell(script: "python3.11 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
-
-    env.PATH = "${VIRTUAL_ENV}/bin:${env.PATH}"
-
-    commonlib.shell(script: "pip install --upgrade pip setuptools")
-
-    // Install art-tools
+    // Clone art-tools
     def owner = "openshift-eng"
     def branch_name = "main"
     if (params.ART_TOOLS_COMMIT) {
@@ -173,16 +161,26 @@ def setup_venv() {
             throw err
         }
     }
-
     commonlib.shell(script: "rm -rf art-tools;  git clone -b ${branch_name} https://github.com/${owner}/art-tools.git")
-    commonlib.shell(script: "cd art-tools && ./install.sh")
 
-    out = sh(
-        script: 'pip list | grep "doozer\\|elliott\\|pyartcd"',
-        returnStdout: true
-    )
-    echo "Installed art-tools:"
-    echo "${out}"
+    // Preparing venv for ART tools
+    // The following commands will run automatically every time one of our jobs
+    // loads buildlib (ideally, once per pipeline)
+    withEnv(['UV_LINK_MODE=symlink', 'PATH+MYCARGO=~/.cargo/bin']) {
+        VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
+        commonlib.shell(script: """
+            rm -rf ${VIRTUAL_ENV}
+            uv venv --python 3.11 --system-site-packages ${VIRTUAL_ENV}
+            source ${VIRTUAL_ENV}/bin/activate
+            cd art-tools
+            ./install.sh
+            echo "Installed art-tools:"
+            uv pip list | grep 'doozer\\|elliott\\|pyartcd'
+        """)
+    }
+
+    // Update PATH to make the art-tools binaries available to jobs
+    env.PATH = "${VIRTUAL_ENV}/bin:${env.PATH}"
 }
 
 def doozer(cmd, opts=[:]){

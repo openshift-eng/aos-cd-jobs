@@ -95,6 +95,11 @@ node {
                             description: "Automatically trigger build sync against the automatically created PR",
                             defaultValue: true
                         ),
+                        booleanParam(
+                            name: "SKIP_GET_NIGHTLIES",
+                            description: "Skip checking for consistent nightlies and proceed with the ones provided in the NIGHTLIES parameter",
+                            defaultValue: false
+                        ),
                         commonlib.mockParam(),
                     ]
                 ],
@@ -168,6 +173,9 @@ node {
             }
             if (params.TRIGGER_BUILD_SYNC) {
                 cmd << "--auto-trigger-build-sync"
+            }
+            if (params.SKIP_GET_NIGHTLIES) {
+                cmd << "--skip-get-nightlies"
             }
 
             buildlib.withAppCiAsArtPublish() {

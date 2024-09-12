@@ -116,8 +116,6 @@ node {
     currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"
 
     stage("Initialize") {
-        // Install pyartcd
-        commonlib.shell(script: "pip install -e ./art-tools/pyartcd")
         // must be able to access remote registry for verification
         buildlib.registry_quay_dev_login()
     }

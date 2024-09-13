@@ -175,7 +175,7 @@ def setup_venv() {
             cd art-tools
             ./install.sh
             echo "Installed art-tools:"
-            uv pip list | grep 'doozer\\|elliott\\|pyartcd'
+            uv pip list | grep 'doozer\\|elliott\\|pyartcd\\|artcommon'
         """)
     }
 

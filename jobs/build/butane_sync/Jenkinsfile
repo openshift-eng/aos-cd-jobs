@@ -31,6 +31,11 @@ node {
                                     "Example: v0.11.0",
                     defaultValue: "",
                     trim: true,
+                ),
+                bool(
+                    name: "FORCE",
+                    description: "Overwrite if exists. Ask permission if needed",
+                    defaultValue: false,
                 )
             ]
         ]
@@ -42,6 +47,18 @@ node {
         }
         if (!params.VERSION) {
             error "VERSION must be specified"
+        }
+        if (!params.FORCE) {
+            commonlib.shell(
+                script: """
+                    if curl --fail --silent https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/{params.VERSION}/ >/dev/null 2>&1; then
+                      echo "Target already exists on mirror. Solicit feedback on what to do"
+                      exit 1
+                    else
+                      exit 0
+                    fi
+                """
+            )
         }
     }
 

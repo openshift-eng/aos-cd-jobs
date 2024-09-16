@@ -39,7 +39,7 @@ node {
                         ),
                         string(
                             name: "NIGHTLIES",
-                            description: "(Optional) List of nightlies to match with <code>doozer get-nightlies</code> (if empty, find latest)",
+                            description: "(Optional for public nightlies) List of nightlies to match with <code>doozer get-nightlies</code> (if empty, find latest). If preparing from private nightlies, provide the amd64 nightly as parameter, to match. The automation will find the corresponding nightlies for other arches.",
                             trim: true,
                         ),
                         booleanParam(

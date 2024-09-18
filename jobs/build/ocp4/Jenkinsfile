@@ -218,7 +218,7 @@ node {
                                 string(credentialsId: 'konflux-gcp-project', variable: 'GOOGLE_CLOUD_PROJECT'),
                                 string(credentialsId: 'konflux-dataset-id', variable: 'DATASET_ID'),
                                 string(credentialsId: 'konflux-table-id', variable: 'TABLE_ID'),
-                                file(credentialsId: 'konflux-gcp-app-creds', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
+                                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
                             ]) {
                         withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                             buildlib.init_artcd_working_dir()

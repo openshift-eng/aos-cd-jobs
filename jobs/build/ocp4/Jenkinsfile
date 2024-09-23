@@ -215,9 +215,6 @@ node {
                                 string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                                 usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
                                 file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
-                                string(credentialsId: 'konflux-gcp-project', variable: 'GOOGLE_CLOUD_PROJECT'),
-                                string(credentialsId: 'konflux-dataset-id', variable: 'DATASET_ID'),
-                                string(credentialsId: 'konflux-table-id', variable: 'TABLE_ID'),
                                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
                             ]) {
                         withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {

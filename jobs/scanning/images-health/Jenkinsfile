@@ -10,6 +10,7 @@ node() {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.artToolsParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                     booleanParam(
                         name: 'SEND_TO_RELEASE_CHANNEL',

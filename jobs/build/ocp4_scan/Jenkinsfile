@@ -114,8 +114,6 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                             string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
                         ]) {

@@ -146,8 +146,6 @@ node() {
                 echo "Will run ${cmd}"
                 withCredentials([
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
                         ]) {
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {

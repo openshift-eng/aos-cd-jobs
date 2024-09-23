@@ -67,8 +67,6 @@ node {
                         string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                         string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                        string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                        string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                     ]) {
                     echo "Will run ${cmd}"
                     withEnv(["BUILD_URL=${BUILD_URL}"]) {

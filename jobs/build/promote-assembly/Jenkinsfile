@@ -197,8 +197,6 @@ node {
                              file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
                              string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
                              string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                             string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                             string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                              file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
                             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}"]) {

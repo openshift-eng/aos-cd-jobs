@@ -43,8 +43,6 @@ node {
 
         withCredentials([
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                    string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
                 ]) {

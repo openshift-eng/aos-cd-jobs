@@ -113,8 +113,6 @@ node {
                     string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                    string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
                 ]) {
                     echo "Will run ${cmd}"

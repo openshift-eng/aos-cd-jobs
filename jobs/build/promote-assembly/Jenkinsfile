@@ -196,6 +196,7 @@ node {
                              file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
                              file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
                              string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
+                             string(credentialsId: signing_rekor_url, variable: 'REKOR_URL'),
                              string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                              file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
                             ]) {

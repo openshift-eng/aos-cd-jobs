@@ -90,6 +90,7 @@ node {
             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
             file(credentialsId: signing_creds_file, variable: 'KMS_CRED_FILE'),
             string(credentialsId: signing_key_id, variable: 'KMS_KEY_ID'),
+            string(credentialsId: signing_rekor_url, variable: 'REKOR_URL'),
         ]) {
             commonlib.shell(cmd.join(" "))
         }

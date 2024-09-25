@@ -10,6 +10,7 @@ node() {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.artToolsParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                     booleanParam(
                         name: 'SEND_TO_RELEASE_CHANNEL',
@@ -55,7 +56,8 @@ node() {
 
     withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                      string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER')]) {
+                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
+                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
 
         wrap([$class: 'BuildUser']) {
             builderEmail = env.BUILD_USER_EMAIL

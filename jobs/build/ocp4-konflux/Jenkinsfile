@@ -61,6 +61,11 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'SKIP_REBASE',
+                        description: '(For testing) Skip the rebase step',
+                        defaultValue: false
+                    ),
                 ]
             ],
         ]
@@ -101,6 +106,9 @@ node {
             cmd += [
                 "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
             ]
+            if (params.SKIP_REBASE) {
+                cmd << "--skip-rebase"
+            }
 
             // Needed to detect manual builds
                 wrap([$class: 'BuildUser']) {

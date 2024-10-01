@@ -146,7 +146,8 @@ node() {
                 echo "Will run ${cmd}"
                 withCredentials([
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
+                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
                         ]) {
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
                         try {

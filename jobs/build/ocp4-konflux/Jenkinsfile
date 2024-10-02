@@ -121,7 +121,7 @@ node {
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                 ]){
                     withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
-                        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                        buildlib.init_artcd_working_dir()
                         sh(script: cmd.join(' '), returnStdout: true)
                     }
                 }

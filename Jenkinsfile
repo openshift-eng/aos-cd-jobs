@@ -110,7 +110,8 @@ node() {
                                  string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                                  string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                                  string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                                 string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                                 string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     echo "Will run ${cmd}"
                     buildlib.withAppCiAsArtPublish() {
                         if (params.IGNORE_LOCKS) {

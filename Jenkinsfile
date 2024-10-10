@@ -59,8 +59,8 @@ node {
                         ),
                         choice(
                             name: 'PRE_GA_MODE',
-                            description: 'Prepare the advisory for "prerelease" or "advance" operator release',
-                            choices: ["none", "prerelease", "advance"].join("\n"),
+                            description: 'Prepare the advisory for "prerelease" operator release',
+                            choices: ["none", "prerelease"].join("\n"),
                         ),
                         booleanParam(
                             name: 'CUSTOM',

@@ -49,7 +49,7 @@ parse_args() {
   done
 
   if [[ -z "$branch" && -n "$assembly" ]]; then
-    branch="$(awk -F'[.]' '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ && $3 ~ /^[0-9]+(-(rc|fc).[0-9]+)?$/ && NF == 3 {printf("openshift-%s.%s", $1, $2); next} {exit(1)}' <<<"$assembly")"
+    branch="$(awk -F'[.]' '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ && $3 ~ /^[0-9]+(-(rc|fc|ec).[0-9]+)?$/ && NF == 3 {printf("openshift-%s.%s", $1, $2); next} {exit(1)}' <<<"$assembly")"
     [[ -z "$branch" ]] && {
       echo "Could not parse valid looking branch">/dev/stderr
       exit 1
@@ -79,10 +79,10 @@ build_urls() {
       [
         .releases
         | to_entries[]
-        | [ select(.key | test("^([0-9]+[.][0-9]+[.][0-9]+|(rc|fc)[.][0-9]+)$")) ] | .[0]
+        | [ select(.key | test("^([0-9]+[.][0-9]+[.][0-9]+|(rc|fc|ec)[.][0-9]+)$")) ] | .[0]
       ][$index | tonumber]
       | .value.assembly.group
-      | [ ( .advisories
+      | [ ( ( to_entries[] | select(.key | contains("advisories")) .value )
           | to_entries[]
           | @text "\($errata)/\(.value)"
         ),
@@ -98,7 +98,7 @@ build_urls() {
         | to_entries[]
         | select(.key == $assembly)
         | .value.assembly.group
-        | [ ( .advisories
+        | [ ( ( to_entries[] | select(.key | contains("advisories")) .value )
               | to_entries[]
               | @text "\($errata)/\(.value)"
             ),

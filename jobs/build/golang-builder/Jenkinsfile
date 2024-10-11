@@ -69,8 +69,8 @@ node {
             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN',
-            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'))
+            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
         ]) {
             withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                 script {

@@ -51,7 +51,7 @@ node {
         if (!params.FORCE) {
             commonlib.shell(
                 script: """
-                    if curl --fail --silent https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/{params.VERSION}/ >/dev/null 2>&1; then
+                    if curl --fail --silent --location https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/{params.VERSION}/ >/dev/null 2>&1; then
                       echo "Target already exists on mirror. Solicit feedback on what to do"
                       exit 1
                     else

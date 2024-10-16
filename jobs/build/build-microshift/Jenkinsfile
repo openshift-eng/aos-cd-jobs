@@ -46,6 +46,11 @@ node() {
                             description: "(For testing only) Do not rebase microshift code; build the current source we have in the upstream repo",
                             defaultValue: false
                         ),
+                        booleanParam(
+                            name: "NO_ADVISORY_PREP",
+                            description: "(For testing only) Do not prepare microshift advisory for named assemblies",
+                            defaultValue: false
+                        ),
                         string(
                             name: 'DOOZER_DATA_PATH',
                             description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
@@ -105,6 +110,9 @@ node() {
                 }
                 if (params.NO_REBASE) {
                     cmd << "--no-rebase"
+                }
+                if (params.NO_ADVISORY_PREP) {
+                    cmd << "--no-advisory-prep"
                 }
                 withCredentials([
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

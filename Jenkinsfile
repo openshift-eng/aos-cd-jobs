@@ -26,6 +26,10 @@ node {
                         trim: true,
                     ),
                     string(
+                        name: 'FIXED_CVES',
+                        description: 'CVEs that are confirmed to be fixed in all given golang nvrs (comma separated). This will be used to fetch relevant Tracker bugs and move them to ON_QA state if determined to be fixed (fixed builds are found)',
+                    ),
+                    string(
                         name: 'ART_JIRA',
                         description: 'ART jira ticket number as reference - this will be included in the commit message when bumping and building rpms',
                         defaultValue: "",
@@ -67,7 +71,6 @@ node {
 
     stage('Rebuild golang rpms') {
         def golang_nvrs = commonlib.cleanSpaceList(params.GOLANG_NVRS)
-        def rpms_param = params.RPMS ? "--rpms=${params.RPMS}" : ""
 
         script {
             // Prepare working dir
@@ -87,9 +90,14 @@ node {
                 "rebuild-golang-rpms",
                 "--ocp-version=${params.BUILD_VERSION}",
                 "--art-jira=${params.ART_JIRA}",
-                "${rpms_param}",
                 "${golang_nvrs}"
             ]
+            if (params.RPMS) {
+                cmd << "--rpms=${params.RPMS}"
+            }
+            if (params.FIXED_CVES) {
+                cmd << "--cves=${params.FIXED_CVES}"
+            }
             if (params.FORCE_REBUILD) {
                 cmd << "--force"
             }
@@ -100,6 +108,7 @@ node {
                 withCredentials([
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                         ]) {
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
                         try {

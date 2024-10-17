@@ -110,6 +110,9 @@ node {
                     if (params.SCRATCH) {
                         cmd << "--scratch"
                     }
+                    if (params.FORCE_UPDATE_TRACKERS) {
+                        cmd << "--force-update-tracker"
+                    }
                     if (!params.DRY_RUN) {
                         cmd << "--confirm"
                     }

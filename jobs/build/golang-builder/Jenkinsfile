@@ -27,6 +27,14 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'FIXED_CVES',
+                        description: 'CVEs that are confirmed to be fixed in all given golang nvrs (comma separated). This will be used to fetch relevant Tracker bugs and move them to ON_QA state if determined to be fixed (nightly is found containing fixed builds)',
+                    ),
+                    booleanParam(
+                        name: 'FORCE_UPDATE_TRACKERS',
+                        description: 'Force update found tracker bugs for the given CVEs, even if the latest nightly is not found containing fixed builds',
+                    ),
                     booleanParam(
                         name: 'CREATE_TAGGING_TICKET',
                         description: 'Create a CWFCONF Jira ticket for tagging golang builds in ART buildroots',
@@ -70,7 +78,8 @@ node {
             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
+            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
         ]) {
             withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                 script {
@@ -93,11 +102,17 @@ node {
                         "--art-jira=${params.ART_JIRA}",
                         "${golang_nvrs}"
                     ]
+                    if (params.FIXED_CVES) {
+                        cmd << "--cves=${params.FIXED_CVES}"
+                    }
                     if (params.CREATE_TAGGING_TICKET) {
                         cmd << "--create-tagging-ticket"
                     }
                     if (params.SCRATCH) {
                         cmd << "--scratch"
+                    }
+                    if (params.FORCE_UPDATE_TRACKERS) {
+                        cmd << "--force-update-tracker"
                     }
                     if (!params.DRY_RUN) {
                         cmd << "--confirm"

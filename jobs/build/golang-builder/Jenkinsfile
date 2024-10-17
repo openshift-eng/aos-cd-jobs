@@ -27,6 +27,10 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'FIXED_CVES',
+                        description: 'CVEs that are confirmed to be fixed in all given golang nvrs (comma separated). This will be used to move Tracker bugs to MODIFIED state',
+                    ),
                     booleanParam(
                         name: 'CREATE_TAGGING_TICKET',
                         description: 'Create a CWFCONF Jira ticket for tagging golang builds in ART buildroots',
@@ -93,6 +97,9 @@ node {
                         "--art-jira=${params.ART_JIRA}",
                         "${golang_nvrs}"
                     ]
+                    if (params.FIXED_CVES) {
+                        cmd << "--cves=${params.FIXED_CVES}"
+                    }
                     if (params.CREATE_TAGGING_TICKET) {
                         cmd << "--create-tagging-ticket"
                     }

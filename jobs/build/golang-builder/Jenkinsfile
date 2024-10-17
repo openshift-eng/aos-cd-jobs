@@ -34,7 +34,7 @@ node {
                     booleanParam(
                         name: 'FORCE_UPDATE_TRACKERS',
                         description: 'Force update found tracker bugs for the given CVEs, even if the latest nightly is not found containing fixed builds',
-                    )
+                    ),
                     booleanParam(
                         name: 'CREATE_TAGGING_TICKET',
                         description: 'Create a CWFCONF Jira ticket for tagging golang builds in ART buildroots',

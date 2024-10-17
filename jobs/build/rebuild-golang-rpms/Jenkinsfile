@@ -27,7 +27,7 @@ node {
                     ),
                     string(
                         name: 'FIXED_CVES',
-                        description: 'CVEs that are confirmed to be fixed in all given golang nvrs (comma separated). This will be used to move Tracker bugs to MODIFIED state',
+                        description: 'CVEs that are confirmed to be fixed in all given golang nvrs (comma separated). This will be used to fetch relevant Tracker bugs and move them to ON_QA state if determined to be fixed (fixed builds are found)',
                     ),
                     string(
                         name: 'ART_JIRA',

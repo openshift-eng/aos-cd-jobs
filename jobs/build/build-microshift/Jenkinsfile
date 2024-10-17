@@ -46,6 +46,11 @@ node() {
                             description: "(For testing only) Do not rebase microshift code; build the current source we have in the upstream repo",
                             defaultValue: false
                         ),
+                        booleanParam(
+                            name: "NO_ADVISORY_PREP",
+                            description: "(For testing only) Do not prepare microshift advisory for named assemblies",
+                            defaultValue: false
+                        ),
                         string(
                             name: 'DOOZER_DATA_PATH',
                             description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
@@ -106,12 +111,18 @@ node() {
                 if (params.NO_REBASE) {
                     cmd << "--no-rebase"
                 }
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                                 string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                                 string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                                 string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                                 string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                if (params.NO_ADVISORY_PREP) {
+                    cmd << "--no-advisory-prep"
+                }
+                withCredentials([
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    file(credentialsId: 'openshift-bot-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                ]) {
                     echo "Will run ${cmd}"
                     buildlib.withAppCiAsArtPublish() {
                         if (params.IGNORE_LOCKS) {

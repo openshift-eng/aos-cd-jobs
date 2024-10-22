@@ -9,6 +9,13 @@ GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]
 GITHUB_BASE = "git@github.com:openshift"
 
+// dump important tool versions to console
+def dump_versions() {
+    sh "oc version --client"
+    this.doozer "--version"
+    this.elliott "--version"
+}
+
 def initialize(test=false, regAws=false) {
     def hostname = env['HOSTNAME']
 
@@ -19,6 +26,7 @@ def initialize(test=false, regAws=false) {
 
     this.setup_venv()
     this.path_setup()
+    this.dump_versions()
 
     // don't bother logging into a registry or getting a krb5 ticket for tests
     if (!test) {

@@ -11,7 +11,7 @@ GITHUB_BASE = "git@github.com:openshift"
 
 // dump important tool versions to console
 def dump_versions() {
-    sh "ls -l $(which oc)"
+    sh "ls -l \$(which oc)"
     sh "oc version --client"
     this.doozer "--version"
     this.elliott "--version"

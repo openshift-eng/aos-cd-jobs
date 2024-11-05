@@ -35,6 +35,11 @@ node() {
                             description: "(For named assemblies) Rebuild even if a build already exists",
                             defaultValue: false
                         ),
+                        booleanParam(
+                            name: "FORCE_REBUILD_BOOTC",
+                            description: "(For named assemblies) Rebuild bootc image even if a build already exists",
+                            defaultValue: false
+                        ),
                         string(
                             name: 'RELEASE_PAYLOADS',
                             description: '(Optional) List of release payloads to rebase against; can be nightly names or full pullspecs',
@@ -107,6 +112,9 @@ node() {
                 }
                 if (params.FORCE_REBUILD) {
                     cmd << "--force"
+                }
+                if (params.FORCE_REBUILD_BOOTC) {
+                    cmd << "--force-bootc"
                 }
                 if (params.NO_REBASE) {
                     cmd << "--no-rebase"

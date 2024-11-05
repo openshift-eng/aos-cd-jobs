@@ -44,6 +44,8 @@ node {
                         description: "Take no action, just echo what the job would have done.",
                         defaultValue: false
                     ),
+		    commonlib.artToolsParam(),
+		    commonlib.mockParam(),
                 ]
             ],
         ]

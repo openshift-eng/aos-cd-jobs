@@ -70,7 +70,7 @@ node {
             'ppc64le': 'jenkins_serviceaccount_ocp-ppc.stage.psi.redhat.com',
             's390x': 'jenkins_serviceaccount_legacy_rhcos_s390x.psi.redhat.com',
             'aarch64': 'jenkins_serviceaccount_osbs-aarch64-1.engineering.redhat.com',
-            'multi': 'multi_jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
+            'multi': 'rhcos--prod-pipeline_jenkins_api-prod-stable-spoke1-dc-iad2-itup-redhat-com',
         ]
 
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
@@ -87,7 +87,7 @@ node {
             if (multi_builds_enabled) {
                 currentBuild.displayName += "multi"
                 echo "triggering multi builds"
-                def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
+                def jenkins_url = 'https://jenkins-rhcos--prod-pipeline.apps.int.prod-stable-spoke1-dc-iad2.itup.redhat.com'
                 buildlib.init_artcd_working_dir()
 
                 def dryrun = params.DRY_RUN ? '--dry-run' : ''

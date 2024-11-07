@@ -159,9 +159,9 @@ node {
                     def mirror_path = "/pub/openshift-v4/${arch}/microshift/${client_type}/${release_name}/${repo_name}/os"
                     def latest_path = "/pub/openshift-v4/${arch}/microshift/${client_type}/latest-${version}/${repo_name}/os"
                     withEnv(["https_proxy="]) {
-                        commonlib.syncRepoToS3Mirror(mirror_src, mirror_path, true, 10, dry_run)
+                        commonlib.syncRepoToS3Mirror(mirror_src, mirror_path, true, 10, true, dry_run)
                         if (set_latest) {
-                            commonlib.syncRepoToS3Mirror(mirror_src, latest_path, true, 10, dry_run)
+                            commonlib.syncRepoToS3Mirror(mirror_src, latest_path, true, 10, true, dry_run)
                         }
                     }
                 }

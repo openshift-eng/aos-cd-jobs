@@ -66,7 +66,7 @@ node() {
         stage("initialize") {
             currentBuild.displayName += " $params.BUILD_VERSION - $params.ASSEMBLY"
             if (params.DRY_RUN) {
-                currentBuild.displayName += "[DRY RUN] " + currentBuild.displayName
+                currentBuild.displayName = "[DRY RUN] " + currentBuild.displayName
             }
         }
         try {

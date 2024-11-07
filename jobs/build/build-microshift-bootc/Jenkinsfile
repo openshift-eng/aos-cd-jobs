@@ -109,7 +109,7 @@ node() {
                             commonlib.shell(script: cmd.join(' '))
                         } else {
                             lock("build-microshift-bootc-lock-${params.BUILD_VERSION}") {
-                                commonlib.shell(script: cmd.join(' ')) 
+                                commonlib.shell(script: cmd.join(' '))
                             }
                         }
                     }

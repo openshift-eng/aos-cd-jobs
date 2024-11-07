@@ -44,8 +44,8 @@ node {
                         description: "Take no action, just echo what the job would have done.",
                         defaultValue: false
                     ),
-		    commonlib.artToolsParam(),
-		    commonlib.mockParam(),
+                    commonlib.artToolsParam(),
+                    commonlib.mockParam(),
                 ]
             ],
         ]
@@ -70,8 +70,12 @@ node {
             'ppc64le': 'jenkins_serviceaccount_ocp-ppc.stage.psi.redhat.com',
             's390x': 'jenkins_serviceaccount_legacy_rhcos_s390x.psi.redhat.com',
             'aarch64': 'jenkins_serviceaccount_osbs-aarch64-1.engineering.redhat.com',
-            'multi': 'multi_jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
+            'multi': 'rhcos--prod-pipeline_jenkins_api-prod-stable-spoke1-dc-iad2-itup-redhat-com',
         ]
+
+        if (params.BUILD_VERSION in ["4.15", "4.16", "4.17", "4.18", "4.19"]) {
+            kubeconfigs['multi'] = 'multi_jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig'
+        }
 
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
         // but for now, being this strict is slowing down the delivery of nightlies.
@@ -87,7 +91,6 @@ node {
             if (multi_builds_enabled) {
                 currentBuild.displayName += "multi"
                 echo "triggering multi builds"
-                def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
                 buildlib.init_artcd_working_dir()
 
                 def dryrun = params.DRY_RUN ? '--dry-run' : ''

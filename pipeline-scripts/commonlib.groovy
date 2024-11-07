@@ -575,7 +575,7 @@ def checkS3Path(s3_path) {
     }
 }
 
-def invalidateAwsCache(s3_path) {
+def invalidateAwsCache(s3_path, dry_run=false) {
     // https://issues.redhat.com/browse/ART-6607 on why invalidation matters when updating existing filenames.
 
     invalidation_path = s3_path
@@ -584,8 +584,17 @@ def invalidateAwsCache(s3_path) {
     }
     invalidation_path += '*'
 
-    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-        shell(script: "aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths ${invalidation_path}")
+    cmd = "aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths ${invalidation_path}"
+
+    if (dry_run) {
+        echo "Would have run: ${cmd}"
+        return
+    }
+
+    withCredentials([
+        aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
+    ]) {
+        shell(script: cmd)
     }
 
 }
@@ -620,7 +629,7 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, 
                 }
             }
             if (issue_cloudfront_invalidation) {
-                invalidateAwsCache(s3_path)
+                invalidateAwsCache(s3_path, dry_run)
             }
         }
     } catch (e) {

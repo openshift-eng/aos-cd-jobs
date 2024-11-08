@@ -57,7 +57,8 @@ def get_failed_jobs_text():
                 # would be monitored by whoever triggered them
                 # Builds which are triggered by another build will not have userId
                 # so we include them by default
-                user_id = next(a['causes'][0].get('userId') for a in build.get('actions') if a.get('causes'))
+                user_id = next((cause.get('userId') for action in build.get('actions', [])
+                                for cause in action.get('causes', [])), None)
                 if user_id and user_id != ART_BOT_JENKINS_USERID:
                     continue
                 total_eligible_builds += 1

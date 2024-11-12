@@ -72,7 +72,7 @@ node() {
         stage("initialize") {
             currentBuild.displayName += " $params.BUILD_VERSION - $params.ASSEMBLY"
             if (params.DRY_RUN) {
-                currentBuild.displayName += "[DRY RUN] " + currentBuild.displayName
+                currentBuild.displayName = "[DRY RUN] " + currentBuild.displayName
             }
         }
         try {
@@ -106,12 +106,14 @@ node() {
                 if (params.NO_REBASE) {
                     cmd << "--no-rebase"
                 }
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                                 string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                                 string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                                 string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                                 string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                withCredentials([
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                ]) {
                     echo "Will run ${cmd}"
                     buildlib.withAppCiAsArtPublish() {
                         if (params.IGNORE_LOCKS) {

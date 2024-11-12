@@ -6,8 +6,8 @@ node() {
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
 
-        commonlib.describeJob("build-microshift", """
-            <h2>Rebase and build MicroShift for an assembly.</h2>
+        commonlib.describeJob("build-microshift-bootc", """
+            <h2>Build and release microshift-bootc image for an assembly.</h2>
         """)
 
         properties(
@@ -32,18 +32,12 @@ node() {
                         ),
                         booleanParam(
                             name: "FORCE_REBUILD",
-                            description: "(For named assemblies) Rebuild even if a build already exists",
+                            description: "Rebuild even if a build already exists",
                             defaultValue: false
                         ),
-                        string(
-                            name: 'RELEASE_PAYLOADS',
-                            description: '(Optional) List of release payloads to rebase against; can be nightly names or full pullspecs',
-                            defaultValue: "",
-                            trim: true,
-                        ),
                         booleanParam(
-                            name: "NO_REBASE",
-                            description: "(For testing only) Do not rebase microshift code; build the current source we have in the upstream repo",
+                            name: "FORCE_PLASHET_SYNC",
+                            description: "Force plashet sync needed for the build",
                             defaultValue: false
                         ),
                         string(
@@ -90,36 +84,33 @@ node() {
                     cmd << "--dry-run"
                 }
                 cmd += [
-                    "build-microshift",
+                    "build-microshift-bootc",
                     "--data-path", params.DOOZER_DATA_PATH,
                     "-g", "openshift-$params.BUILD_VERSION",
                     "--assembly", params.ASSEMBLY,
                 ]
-                if (params.RELEASE_PAYLOADS) {
-                    for (nightly in commonlib.parseList(params.RELEASE_PAYLOADS)) {
-                        cmd << "--payload" << nightly.trim()
-                    }
-                }
                 if (params.FORCE_REBUILD) {
                     cmd << "--force"
                 }
-                if (params.NO_REBASE) {
-                    cmd << "--no-rebase"
+                if (params.FORCE_PLASHET_SYNC) {
+                    cmd << "--force-plashet-sync"
                 }
                 withCredentials([
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    file(credentialsId: 'openshift-bot-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                    string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                 ]) {
                     echo "Will run ${cmd}"
                     buildlib.withAppCiAsArtPublish() {
                         if (params.IGNORE_LOCKS) {
                             commonlib.shell(script: cmd.join(' '))
                         } else {
-                            lock("build-microshift-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
+                            lock("build-microshift-bootc-lock-${params.BUILD_VERSION}") {
+                                commonlib.shell(script: cmd.join(' '))
+                            }
                         }
                     }
                 }

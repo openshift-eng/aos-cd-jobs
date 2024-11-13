@@ -61,6 +61,12 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                            name: 'LIMIT_ARCHES',
+                            description: '(Optional) Limit included arches to this list. Valid values are (aarch64, ppc64le, s390x, x86_64)',
+                            defaultValue: "",
+                            trim: true,
+                    ),
                     booleanParam(
                         name: 'SKIP_REBASE',
                         description: '(For testing) Skip the rebase step',
@@ -102,6 +108,11 @@ node {
             }
             if (params.DOOZER_DATA_GITREF) {
                 cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+            }
+            if (params.LIMIT_ARCHES) {
+                for (arch in params.LIMIT_ARCHES.split("[,\\s]+")) {
+                    cmd << "--arch" << arch.trim()
+                }
             }
             cmd += [
                 "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"

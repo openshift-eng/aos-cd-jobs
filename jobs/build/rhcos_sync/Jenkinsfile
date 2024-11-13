@@ -80,11 +80,6 @@ node {
                         description: 'Do not update the <b>latest</b> symlink after downloading',
                         defaultValue: false,
                     ),
-                    booleanParam(
-                        name: 'NO_MIRROR',
-                        description: 'Do not run the push.pub script after downloading',
-                        defaultValue: false,
-                    ),
                     commonlib.suppressEmailParam(),
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),

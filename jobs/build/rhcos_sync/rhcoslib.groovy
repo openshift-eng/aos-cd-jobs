@@ -90,17 +90,11 @@ def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name) {
         " --buildid ${rhcosBuild}" +
         " --version ${name}"
 
-    if ( params.FORCE ) {
-            invokeOpts += " --force"
-    }
     if ( params.DRY_RUN ) {
             invokeOpts += " --test"
     }
     if ( params.NO_LATEST ) {
             invokeOpts += " --nolatest"
-    }
-    if ( params.NO_MIRROR ) {
-            invokeOpts += " --nomirror"
     }
 
     withCredentials([

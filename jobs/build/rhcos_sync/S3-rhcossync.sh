@@ -8,11 +8,9 @@ ARCH=x86_64
 BUILDID=
 # release version, like 4.2.0:
 VERSION=
-FORCE=0
 TEST=0
 BASEDIR=
 NOLATEST=0
-NOMIRROR=0
 
 function usage() {
     cat <<EOF
@@ -34,7 +32,6 @@ Optional Options:
 
   --nolatest       Do not update the 'latest' symlink after downloading
   --test           Test inputs, but ensure nothing can ever go out to the mirrors
-  --nomirror       Do not run the push.pub script after downloading
 
 
 EOF
@@ -64,9 +61,13 @@ function downloadImages() {
 }
 
 function genSha256() {
-    sha256sum * > sha256sum.txt
+    sha256sum *[!rhcos-id.txt] > sha256sum.txt
     ls -lh
     cat sha256sum.txt
+}
+
+function genRhcosIdTxt() {
+    echo ${BUILDID} > rhcos-id.txt
 }
 
 function emulateSymlinks() {
@@ -148,10 +149,6 @@ while [ $1 ]; do
         NOLATEST=1;;
     "--test")
         TEST=1;;
-    "--nomirror")
-        NOMIRROR=1;;
-    "--force")
-        FORCE=1;;
     "-h" | "--help")
         usage
         exit 0;;
@@ -176,6 +173,7 @@ EOF
 pushd $DESTDIR
 downloadImages
 genSha256
+genRhcosIdTxt
 
 if [ $TEST -eq 1 -o $NOMIRROR -eq 1 ]; then
   echo Would have copied out to ${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/:

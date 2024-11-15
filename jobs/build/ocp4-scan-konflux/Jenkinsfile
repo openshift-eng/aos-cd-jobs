@@ -45,12 +45,12 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                         defaultValue: "",
                         trim: true,
                     ),
-                        booleanParam(
-                            name: 'DRY_RUN',
-                            description: 'Run scan without triggering subsequent jobs',
-                            defaultValue: false,
-                        ),
-                        commonlib.mockParam(),
+                    booleanParam(
+                        name: 'DRY_RUN',
+                        description: 'Run scan without triggering subsequent jobs',
+                        defaultValue: false,
+                    ),
+                    commonlib.mockParam(),
                     ]
                 ],
                 disableResume()

@@ -139,15 +139,18 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
             "download",
             f"--releasever={rhel_major}",
             "-c", f"{yum_conf_filename}",
-            "--resolve",
             "--disableplugin=subscription-manager",
             "--downloadonly",
-            "--alldeps",
             #f"--installroot={Path(install_root_dir).absolute()}",
             f"--destdir={output_dir}",
             f"--forcearch={arch}",
-            "--",
-        ] + packages
+        ]
+        if rhel_major == 8:
+            cmd.extend(['--resolve', '--alldeps'])
+
+        cmd.append('--')
+        cmd.extend(packages)
+
         LOGGER.info("Running command %s", cmd)
         env = os.environ.copy()
         # yum doesn't honor cachedir in the yum.conf. It keeps a user specific cache

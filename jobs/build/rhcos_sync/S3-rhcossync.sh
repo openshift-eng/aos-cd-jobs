@@ -78,8 +78,8 @@ function emulateSymlinks() {
 
     if [[ "${RHCOS_MIRROR_PREFIX}" == "pre-release" ]]; then
         MAJOR_MINOR_LATEST="latest-${MAJOR_MINOR}"
-        aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/
-        aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+        aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/ $DRY_RUN_FLAG
+        aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT} $DRY_RUN_FLAG
 
         # Is this major.minor the latest Y stream? If it is, we need to set
         # the overall 'latest'.
@@ -98,8 +98,8 @@ function emulateSymlinks() {
         # LATEST_LINK will end up being something like 4.9.0-fc.0 if the next major exists or "" if it does not.
 
         if [[ -z "${LATEST_LINK}" ]]; then
-            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/
-            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/ $DRY_RUN_FLAG
+            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT} $DRY_RUN_FLAG
         fi
 
     else
@@ -109,8 +109,8 @@ function emulateSymlinks() {
         LATEST_CONTENT=$(aws s3 ls "s3://art-srv-enterprise${BASEDIR}/${MAJOR_NEXT_MINOR}/" | grep PRE || true)
 
         if [[ -z "${LATEST_CONTENT}" ]]; then
-            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/latest/
-            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/latest/ $DRY_RUN_FLAG
+            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT} $DRY_RUN_FLAG
         fi
     fi
 
@@ -159,6 +159,11 @@ while [ $1 ]; do
     shift
 done
 
+DRY_RUN_FLAG=""
+if [ $TEST -eq 1 ]; then
+    DRY_RUN_FLAG="--dryrun"
+fi
+
 DESTDIR="${PWD}/staging-${VERSION}"
 mkdir -p "${DESTDIR}"
 
@@ -175,18 +180,12 @@ downloadImages
 genSha256
 genRhcosIdTxt
 
-if [ $TEST -eq 1 ]; then
-  echo Would have copied out to ${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/:
-  ls
-  exit 0
-fi
-
 # Copy the files out to their main location
-aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/"
-aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" $DRY_RUN_FLAG
+aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT} $DRY_RUN_FLAG
 if [ $NOLATEST -eq 0 ]; then
-    aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/"
-    aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+    aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/" $DRY_RUN_FLAG
+    aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT} $DRY_RUN_FLAG
     # CloudFlare does not support the full S3 API and we encountered unimplemented APIs using the AWS CLI to sync from one area of R2 to another area.
     # We therefore re-copy from local content to R2, which does not hit these limitations. This is technically slower, but works with R2.
     emulateSymlinks "./"

@@ -77,7 +77,26 @@ def rhcosSyncPrintArtifacts() {
     writeFile file: syncList, text: "${imageUrls.join('\n')}"
 }
 
+def getRhcosBuildFromMirror(rhcosMirrorPrefix, name) {
+    // curl --fail -L https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/4.18.0-ec.3/rhcos-id.txt
+    def rhcosIdUrl = "https://mirror.openshift.com${s3MirrorBaseDir}/${rhcosMirrorPrefix}/${name}/rhcos-id.txt"
+    def rhcosId = sh(script: "curl --silent --fail -L ${rhcosIdUrl}", returnStdout: true).trim()
+    echo("RHCOS build on mirror: ${rhcosId}")
+    return rhcosId
+}
+
 def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name) {
+    // check if rhcos-id is already on the mirror
+    if ( !params.FORCE ) {
+        def rhcosBuildOnMirror = getRhcosIdFromMirror(rhcosMirrorPrefix, name)
+        if (rhcosBuildOnMirror == rhcosBuild) {
+            echo("RHCOS build ${rhcosBuild} already on mirror, skipping sync")
+            return
+        } else {
+            echo("RHCOS build ${rhcosBuild} not on mirror, syncing")
+        }
+    }
+
     def invokeOpts = " --prefix ${rhcosMirrorPrefix}" +
         " --arch ${arch}" +
         " --buildid ${rhcosBuild}" +

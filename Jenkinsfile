@@ -104,13 +104,11 @@ node() {
                     string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                 ]) {
                     echo "Will run ${cmd}"
-                    buildlib.withAppCiAsArtPublish() {
-                        if (params.IGNORE_LOCKS) {
+                    if (params.IGNORE_LOCKS) {
+                        commonlib.shell(script: cmd.join(' '))
+                    } else {
+                        lock("build-microshift-bootc-lock-${params.BUILD_VERSION}") {
                             commonlib.shell(script: cmd.join(' '))
-                        } else {
-                            lock("build-microshift-bootc-lock-${params.BUILD_VERSION}") {
-                                commonlib.shell(script: cmd.join(' '))
-                            }
                         }
                     }
                 }

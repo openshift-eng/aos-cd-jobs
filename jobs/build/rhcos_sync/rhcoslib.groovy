@@ -56,17 +56,10 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     }
 
     dir ( rhcosWorking ) {
-        if ( params.SYNC_LIST == "" || params.SYNC_LIST.endsWith(".json") ) {
-            sh("wget ${params.SYNC_LIST ?: metaUrl} -O meta.json")
-            artifacts.add("${rhcosWorking}/meta.json")
-        }
-
+        sh("wget ${metaUrl} -O meta.json")
+        artifacts.add("${rhcosWorking}/meta.json")
         commonlib.shell(script: "pip install awscli")
     }
-}
-
-def rhcosSyncManualInput() {
-    sh("wget ${params.SYNC_LIST} -O ${syncList}")
 }
 
 def rhcosSyncPrintArtifacts() {
@@ -90,17 +83,11 @@ def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name) {
         " --buildid ${rhcosBuild}" +
         " --version ${name}"
 
-    if ( params.FORCE ) {
-            invokeOpts += " --force"
-    }
     if ( params.DRY_RUN ) {
             invokeOpts += " --test"
     }
     if ( params.NO_LATEST ) {
             invokeOpts += " --nolatest"
-    }
-    if ( params.NO_MIRROR ) {
-            invokeOpts += " --nomirror"
     }
 
     withCredentials([
@@ -113,14 +100,5 @@ def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name) {
 def rhcosSyncROSA() {
     commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rhcosWorking}/meta.json ${params.DRY_RUN}")
 }
-
-def rhcosSyncGenDocs(rhcosBuild) {
-    dir( rhcosWorking ) {
-        // TODO
-        // sh("sh ../gen-docs.sh < meta.json > rhcos-${rhcosBuild}.adoc")
-    }
-    artifacts.add("${rhcosWorking}/rhcos-${rhcosBuild}.adoc")
-}
-
 
 return this

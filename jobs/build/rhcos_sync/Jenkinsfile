@@ -162,17 +162,6 @@ node {
         *:heavy_exclamation_mark: rhcos_sync ${mirrorPrefix} failed*
         buildvm job: ${commonlib.buildURL('console')}
         """)
-        commonlib.email(
-            to: "aos-art-automation+failed-rhcos-sync@redhat.com",
-            from: "aos-art-automation@redhat.com",
-            replyTo: "aos-team-art@redhat.com",
-            subject: "Error during OCP ${mirrorPrefix} build sync",
-            body: """
-There was an issue running build-sync for OCP ${mirrorPrefix}:
-
-    ${err}
-""")
-        throw ( err )
     } finally {
         commonlib.safeArchiveArtifacts(rhcoslib.artifacts)
         buildlib.cleanWorkspace()

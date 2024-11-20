@@ -65,18 +65,6 @@ node {
     }
 
     tag = params.RELEASE_TAG
-    image = "quay.io/openshift-release-dev/ocp-release:${tag}"
-    if (tag.contains("/")) {
-        // assume instead of a tag it's a pullspec e.g. to registry.ci
-        if (!tag.contains(":")) error("RELEASE_TAG pullspec must include a :tag")
-        image = tag
-        tag = tag.split(":")[-1]
-    }
-
-    name = commonlib.shell(
-        returnStdout: true,
-        script: "oc adm release info -o template --template '{{ .metadata.version }}' ${image}"
-    )
 
     (major, minor) = commonlib.extractMajorMinorVersionNumbers(tag)
     ocpVersion = "$major.$minor"
@@ -84,9 +72,39 @@ node {
     (arch, priv) = releaselib.getReleaseTagArchPriv(tag)
     suffix = releaselib.getArchPrivSuffix(arch, priv)
 
+    pullspec = ""
+    if (tag.contains("/")) {
+        // assume instead of a tag it's a pullspec e.g. to registry.ci
+        if (!tag.contains(":")) error("RELEASE_TAG pullspec must include a :tag")
+        pullspec = tag
+        tag = tag.split(":")[-1]
+    }
+    if (pullspec == "") {
+        if (tag.contains("nightly")) {
+            pullspec = "registry.ci.openshift.org/ocp${suffix}/release${suffix}:${tag}"
+        } else {
+            pullspec = "quay.io/openshift-release-dev/ocp-release:${tag}"
+        }
+    }
+
+    onlyIfDifferent = false
+    noLatest = params.NO_LATEST
+    // for nightlies, sync them to dev dir
+    // This is a special case. see: ART-10946
+    if (tag.contains("nightly")) {
+        name = "dev-${ocpVersion}"
+        noLatest = true
+        onlyIfDifferent = true
+    } else {
+        name = commonlib.shell(
+            returnStdout: true,
+            script: "oc adm release info -o template --template '{{ .metadata.version }}' ${pullspec}"
+        )
+    }
+
     cmd = """
         tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
-        oc image extract --path /manifests/:\$tmp \$(oc adm release info --image-for installer ${image})
+        oc image extract --path /manifests/:\$tmp \$(oc adm release info --image-for installer ${pullspec})
         cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream | jq -r .architectures.${arch}.artifacts.qemu.release
         rm -rf \$tmp
     """
@@ -101,7 +119,7 @@ node {
 
     print("RHCOS build: $rhcosBuild, arch: $arch, mirror prefix: $mirrorPrefix")
 
-    echo("Initializing RHCOS-${params.MIRROR_PREFIX} sync: #${currentBuild.number}")
+    echo("Initializing RHCOS-${mirrorPrefix} sync: #${currentBuild.number}")
     rhcoslib.initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix)
 
     try {
@@ -109,15 +127,17 @@ node {
             rhcoslib.rhcosSyncPrintArtifacts()
         }
         stage("Mirror artifacts") {
-            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name)
+            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name, noLatest, onlyIfDifferent)
         }
         stage("Slack notification to release channel") {
-            slacklib.to(ocpVersion).say("""
-            *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
-            https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
+            if ( !params.DRY_RUN ) {
+                slacklib.to(ocpVersion).say("""
+                *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
+                https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
 
-            buildvm job: ${commonlib.buildURL('console')}
-            """)
+                buildvm job: ${commonlib.buildURL('console')}
+                """)
+            }
         }
 
         // only run for x86_64 since no AMIs for other arches
@@ -136,9 +156,11 @@ node {
                 }
             }
             stage("Slack notification to release channel") {
-                slacklib.to(ocpVersion).say("""
-                *:white_check_mark: rosa_sync (${name}) successful*
-                """)
+                if ( !params.DRY_RUN ) {
+                    slacklib.to(ocpVersion).say("""
+                    *:white_check_mark: rosa_sync (${name}) successful*
+                    """)
+                }
             }
         }
 
@@ -158,10 +180,13 @@ node {
             }
         }
     } catch ( err ) {
-        slacklib.to(ocpVersion).say("""
-        *:heavy_exclamation_mark: rhcos_sync ${mirrorPrefix} failed*
-        buildvm job: ${commonlib.buildURL('console')}
-        """)
+        if ( !params.DRY_RUN ) {
+            slacklib.to(ocpVersion).say("""
+            *:heavy_exclamation_mark: rhcos_sync ${mirrorPrefix} failed*
+            buildvm job: ${commonlib.buildURL('console')}
+            """)
+        }
+        throw (err)
     } finally {
         commonlib.safeArchiveArtifacts(rhcoslib.artifacts)
         buildlib.cleanWorkspace()

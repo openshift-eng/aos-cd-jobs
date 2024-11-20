@@ -87,10 +87,14 @@ node {
         }
     }
 
+    onlyIfDifferent = false
     noLatest = params.NO_LATEST
+    // for nightlies, sync them to dev dir
+    // This is a special case. see: ART-10946
     if (tag.contains("nightly")) {
         name = "dev-${ocpVersion}"
         noLatest = true
+        onlyIfDifferent = true
     } else {
         name = commonlib.shell(
             returnStdout: true,
@@ -123,7 +127,7 @@ node {
             rhcoslib.rhcosSyncPrintArtifacts()
         }
         stage("Mirror artifacts") {
-            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name, noLatest)
+            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name, noLatest, onlyIfDifferent)
         }
         stage("Slack notification to release channel") {
             if ( !params.DRY_RUN ) {

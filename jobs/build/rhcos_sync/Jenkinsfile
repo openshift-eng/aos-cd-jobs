@@ -73,16 +73,20 @@ node {
         tag = tag.split(":")[-1]
     }
 
-    name = commonlib.shell(
-        returnStdout: true,
-        script: "oc adm release info -o template --template '{{ .metadata.version }}' ${image}"
-    )
-
     (major, minor) = commonlib.extractMajorMinorVersionNumbers(tag)
     ocpVersion = "$major.$minor"
 
     (arch, priv) = releaselib.getReleaseTagArchPriv(tag)
-    suffix = releaselib.getArchPrivSuffix(arch, priv)
+
+    if (tag.contains("nightly")) {
+        name = "dev-${ocpVersion}"
+        params.NO_LATEST = true
+    } else {
+        name = commonlib.shell(
+            returnStdout: true,
+            script: "oc adm release info -o template --template '{{ .metadata.version }}' ${image}"
+        )
+    }
 
     cmd = """
         tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
@@ -112,12 +116,14 @@ node {
             rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name)
         }
         stage("Slack notification to release channel") {
-            slacklib.to(ocpVersion).say("""
-            *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
-            https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
+            if ( !params.DRY_RUN ) {
+                slacklib.to(ocpVersion).say("""
+                *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
+                https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
 
-            buildvm job: ${commonlib.buildURL('console')}
-            """)
+                buildvm job: ${commonlib.buildURL('console')}
+                """)
+            }
         }
 
         // only run for x86_64 since no AMIs for other arches
@@ -136,9 +142,11 @@ node {
                 }
             }
             stage("Slack notification to release channel") {
-                slacklib.to(ocpVersion).say("""
-                *:white_check_mark: rosa_sync (${name}) successful*
-                """)
+                if ( !params.DRY_RUN ) {
+                    slacklib.to(ocpVersion).say("""
+                    *:white_check_mark: rosa_sync (${name}) successful*
+                    """)
+                }
             }
         }
 
@@ -158,10 +166,12 @@ node {
             }
         }
     } catch ( err ) {
-        slacklib.to(ocpVersion).say("""
-        *:heavy_exclamation_mark: rhcos_sync ${mirrorPrefix} failed*
-        buildvm job: ${commonlib.buildURL('console')}
-        """)
+        if ( !params.DRY_RUN ) {
+            slacklib.to(ocpVersion).say("""
+            *:heavy_exclamation_mark: rhcos_sync ${mirrorPrefix} failed*
+            buildvm job: ${commonlib.buildURL('console')}
+            """)
+        }
     } finally {
         commonlib.safeArchiveArtifacts(rhcoslib.artifacts)
         buildlib.cleanWorkspace()

@@ -78,9 +78,10 @@ node {
 
     (arch, priv) = releaselib.getReleaseTagArchPriv(tag)
 
+    noLatest = params.NO_LATEST
     if (tag.contains("nightly")) {
         name = "dev-${ocpVersion}"
-        params.NO_LATEST = true
+        noLatest = true
     } else {
         name = commonlib.shell(
             returnStdout: true,
@@ -105,7 +106,7 @@ node {
 
     print("RHCOS build: $rhcosBuild, arch: $arch, mirror prefix: $mirrorPrefix")
 
-    echo("Initializing RHCOS-${params.MIRROR_PREFIX} sync: #${currentBuild.number}")
+    echo("Initializing RHCOS-${mirrorPrefix} sync: #${currentBuild.number}")
     rhcoslib.initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix)
 
     try {
@@ -113,7 +114,7 @@ node {
             rhcoslib.rhcosSyncPrintArtifacts()
         }
         stage("Mirror artifacts") {
-            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name)
+            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name, noLatest)
         }
         stage("Slack notification to release channel") {
             if ( !params.DRY_RUN ) {

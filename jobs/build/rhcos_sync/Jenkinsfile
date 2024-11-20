@@ -186,6 +186,7 @@ node {
             buildvm job: ${commonlib.buildURL('console')}
             """)
         }
+        throw (err)
     } finally {
         commonlib.safeArchiveArtifacts(rhcoslib.artifacts)
         buildlib.cleanWorkspace()

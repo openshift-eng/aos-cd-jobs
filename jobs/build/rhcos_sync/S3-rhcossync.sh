@@ -61,9 +61,7 @@ function downloadImages() {
 }
 
 function genSha256() {
-    shopt -s extglob
-    sha256sum !(rhcos-id.txt) > sha256sum.txt
-    shopt -u extglob
+    sha256sum *[!rhcos-id.txt] > sha256sum.txt
     ls -lh
     cat sha256sum.txt
 }

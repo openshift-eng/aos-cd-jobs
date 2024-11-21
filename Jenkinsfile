@@ -73,10 +73,6 @@ node {
             'multi': 'rhcos--prod-pipeline_jenkins_api-prod-stable-spoke1-dc-iad2-itup-redhat-com',
         ]
 
-        if (params.BUILD_VERSION in ["4.15", "4.16", "4.17", "4.18", "4.19"]) {
-            kubeconfigs['multi'] = 'multi_jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig'
-        }
-
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
         // but for now, being this strict is slowing down the delivery of nightlies.
         //lock("compose-lock-${params.BUILD_VERSION}") {

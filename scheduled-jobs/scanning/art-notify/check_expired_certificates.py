@@ -40,6 +40,7 @@ def check_expired_certificates():
     # List of URLs to check
     urls = [
         "art-dash.engineering.redhat.com",
+        "download.devel.redhat.com"
     ]
 
     expired_certificates = []

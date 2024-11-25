@@ -8,11 +8,9 @@ ARCH=x86_64
 BUILDID=
 # release version, like 4.2.0:
 VERSION=
-FORCE=0
 TEST=0
 BASEDIR=
 NOLATEST=0
-NOMIRROR=0
 
 function usage() {
     cat <<EOF
@@ -34,15 +32,14 @@ Optional Options:
 
   --nolatest       Do not update the 'latest' symlink after downloading
   --test           Test inputs, but ensure nothing can ever go out to the mirrors
-  --nomirror       Do not run the push.pub script after downloading
 
 
 EOF
 }
 
 function downloadImages() {
-    for img in $(<${SYNCLIST}); do
-        curl -L --fail --retry 5 -O $img
+    for img in $(<"${SYNCLIST}"); do
+        curl -L --fail --silent --retry 5 -O "$img"
     done
     # rename files to indicate the release they match (including arch suffix by tradition).
     # also create an unversioned symlink to enable consistent incoming links.
@@ -52,33 +49,37 @@ function downloadImages() {
         # name like "rhcos-buildid-qemu..."
         file="${name/$BUILDID/$release}"  # rhcos-release-qemu...
         link="${name/-$BUILDID/}"         # rhcos-qemu...
-        [[ $name == $file ]] && continue  # skip files that aren't named that way
+        [[ $name == "$file" ]] && continue  # skip files that aren't named that way
         mv "$name" "$file"
         ln --symbolic "$file" "$link"
     done
     # Some customer portals point to the deprecated `rhcos-installer` names rather than `rhcos-live`.
     # Fix those links.
-    for f in $(find . -maxdepth 1 -type l -name 'rhcos-live-*'); do
-        ln -s "$(readlink $f)" "${f/rhcos-live-/rhcos-installer-}"
-    done
+    find . -maxdepth 1 -type l -name 'rhcos-live-*' -exec sh -c '
+        ln -s "$(readlink $1)" "${1/rhcos-live-/rhcos-installer-}"
+    ' sh {} \;
 }
 
 function genSha256() {
-    sha256sum * > sha256sum.txt
+    sha256sum *[!rhcos-id.txt] > sha256sum.txt
     ls -lh
     cat sha256sum.txt
 }
 
+function genRhcosIdTxt() {
+    echo "${BUILDID}" > rhcos-id.txt
+}
+
 function emulateSymlinks() {
     S3_SOURCE="$1"
-    MAJOR_MINOR=$(echo ${VERSION} |awk -F '[.-]' '{print $1 "." $2}')  # e.g. 4.3.0-0.nightly-2019-11-08-080321 -> 4.3
+    MAJOR_MINOR=$(echo "${VERSION}" |awk -F '[.-]' '{print $1 "." $2}')  # e.g. 4.3.0-0.nightly-2019-11-08-080321 -> 4.3
     # We also need to know what Y stream comes after this one.
-    MAJOR_NEXT_MINOR=$(echo ${MAJOR_MINOR} |awk -F '[.-]' '{print $1 "." $2+1}')  # e.g. 4.3 -> 4.4
+    MAJOR_NEXT_MINOR=$(echo "${MAJOR_MINOR}" |awk -F '[.-]' '{print $1 "." $2+1}')  # e.g. 4.3 -> 4.4
 
     if [[ "${RHCOS_MIRROR_PREFIX}" == "pre-release" ]]; then
         MAJOR_MINOR_LATEST="latest-${MAJOR_MINOR}"
-        aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/
-        aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+        "${SYNC_CMD[@]}" "${S3_SOURCE}" "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/"
+        "${SYNC_CMD[@]}" "${S3_SOURCE}" "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_MINOR_LATEST}/" "${CLOUDFLARE_OPTS[@]}"
 
         # Is this major.minor the latest Y stream? If it is, we need to set
         # the overall 'latest'.
@@ -97,8 +98,8 @@ function emulateSymlinks() {
         # LATEST_LINK will end up being something like 4.9.0-fc.0 if the next major exists or "" if it does not.
 
         if [[ -z "${LATEST_LINK}" ]]; then
-            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/
-            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+            "${SYNC_CMD[@]}" "${S3_SOURCE}" "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/"
+            "${SYNC_CMD[@]}" "${S3_SOURCE}" "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/" "${CLOUDFLARE_OPTS[@]}"
         fi
 
     else
@@ -108,8 +109,8 @@ function emulateSymlinks() {
         LATEST_CONTENT=$(aws s3 ls "s3://art-srv-enterprise${BASEDIR}/${MAJOR_NEXT_MINOR}/" | grep PRE || true)
 
         if [[ -z "${LATEST_CONTENT}" ]]; then
-            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/latest/
-            aws s3 sync --no-progress --delete --exact-timestamps ${S3_SOURCE} s3://art-srv-enterprise${BASEDIR}/latest/ --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+            "${SYNC_CMD[@]}" "${S3_SOURCE}" "s3://art-srv-enterprise${BASEDIR}/latest/"
+            "${SYNC_CMD[@]}" "${S3_SOURCE}" "s3://art-srv-enterprise${BASEDIR}/latest/" "${CLOUDFLARE_OPTS[@]}"
         fi
     fi
 
@@ -124,7 +125,7 @@ if [ "${#}" -lt "8" ]; then
     exit 1
 fi
 
-while [ $1 ]; do
+while [ "$1" ]; do
     case "$1" in
     "--prefix")
         shift
@@ -148,10 +149,6 @@ while [ $1 ]; do
         NOLATEST=1;;
     "--test")
         TEST=1;;
-    "--nomirror")
-        NOMIRROR=1;;
-    "--force")
-        FORCE=1;;
     "-h" | "--help")
         usage
         exit 0;;
@@ -161,6 +158,14 @@ while [ $1 ]; do
     esac
     shift
 done
+
+DRY_RUN_FLAG=""
+if [ $TEST -eq 1 ]; then
+    DRY_RUN_FLAG="--dryrun"
+fi
+
+SYNC_CMD=(aws s3 sync --no-progress --exact-timestamps --delete ${DRY_RUN_FLAG})
+CLOUDFLARE_OPTS=(--profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT})
 
 DESTDIR="${PWD}/staging-${VERSION}"
 mkdir -p "${DESTDIR}"
@@ -173,22 +178,17 @@ Sync List: ${SYNCLIST}
 Basedir: ${BASEDIR}
 EOF
 
-pushd $DESTDIR
+pushd "${DESTDIR}"
 downloadImages
 genSha256
-
-if [ $TEST -eq 1 -o $NOMIRROR -eq 1 ]; then
-  echo Would have copied out to ${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/:
-  ls
-  exit 0
-fi
+genRhcosIdTxt
 
 # Copy the files out to their main location
-aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/"
-aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+"${SYNC_CMD[@]}" ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/"
+"${SYNC_CMD[@]}" ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" "${CLOUDFLARE_OPTS[@]}"
 if [ $NOLATEST -eq 0 ]; then
-    aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/"
-    aws s3 sync --no-progress --delete --exact-timestamps ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+    "${SYNC_CMD[@]}" ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/"
+    "${SYNC_CMD[@]}" ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/" "${CLOUDFLARE_OPTS[@]}"
     # CloudFlare does not support the full S3 API and we encountered unimplemented APIs using the AWS CLI to sync from one area of R2 to another area.
     # We therefore re-copy from local content to R2, which does not hit these limitations. This is technically slower, but works with R2.
     emulateSymlinks "./"
@@ -196,4 +196,4 @@ else
     echo "INFO: Not updating 'latest' symlink because --nolatest was given"
 fi
 popd
-rm -rf $DESTDIR
+rm -rf "${DESTDIR}"

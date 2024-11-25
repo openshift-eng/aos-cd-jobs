@@ -18,10 +18,10 @@ import groovy.json.JsonOutput
     "4-dev-preview-ppc64le": [this.&setDevPreviewLatest],
     "4-dev-preview-arm64": [this.&setDevPreviewLatest],
 
-    "4.19.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8],
+    "4.19.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8, this.&startRhcosSyncJob],
     "4.19.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
 
-    "4.18.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8],
+    "4.18.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8, this.&startRhcosSyncJob],
     "4.18.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
 
     "4.17.0-0.nightly":  [this.&startBuildMicroshiftJob],
@@ -32,6 +32,16 @@ import groovy.json.JsonOutput
 
     "4.14.0-0.nightly":  [this.&startBuildMicroshiftJob],
 ]
+
+def startRhcosSyncJob(String releaseStream, Map latestRelease, Map previousRelease) {
+    build(
+        job: '/aos-cd-builds/build%2Frhcos_sync',
+        propagate: false,
+        parameters: [
+            string(name: 'RELEASE_TAG', value: latestRelease.name),
+        ],
+    )
+}
 
 def setDevPreviewLatest(String releaseStream, Map latestRelease, Map previousRelease) {
     def buildVersion = commonlib.extractMajorMinorVersion(latestRelease.name)

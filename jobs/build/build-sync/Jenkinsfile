@@ -163,7 +163,7 @@ node() {
         if (params.DRY_RUN) {
             cmd << "--dry-run"
         }
-        if (params.ENABLE_TELEMETRY) {
+        if (params.TELEMETRY_ENABLED) {
             env.TELEMETRY_ENABLED = "1"
         }
         cmd += [

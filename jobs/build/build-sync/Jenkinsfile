@@ -37,6 +37,8 @@ node() {
                 commonlib.mockParam(),
                 commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                 commonlib.artToolsParam(),
+                commonlib.enableTelemetryParam(),
+                commonlib.telemetryEndpointParam(),
                 string(
                     name: 'ASSEMBLY',
                     description: 'The name of an assembly to sync.',
@@ -160,6 +162,9 @@ node() {
         ]
         if (params.DRY_RUN) {
             cmd << "--dry-run"
+        }
+        if (params.ENABLE_TELEMETRY) {
+            env.TELEMETRY_ENABLED = "1"
         }
         cmd += [
             "build-sync",

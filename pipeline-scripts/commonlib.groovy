@@ -118,6 +118,23 @@ def ocpVersionParam(name='MINOR_VERSION', majorVersion='all', extraOpts=[]) {
     ]
 }
 
+def enableTelemetryParam() {
+    return [
+        name: 'ENABLE_TELEMETRY',
+        description: 'Enable or disable sending traces to otel',
+        $class: 'BooleanParameterDefinition',
+        defaultValue: true
+    ]
+}
+
+def telemetryEndpointParam() {
+    return [
+        name: 'OTEL_EXPORTER_OTLP_ENDPOINT',
+        description: 'A base endpoint URL for any signal type, with an optionally-specified port number. Helpful for when you’re sending more than one signal to the same endpoint and want one environment variable to control the endpoint',
+        $class: 'hudson.model.StringParameterDefinition',
+        defaultValue: 'http://otel-collector-psi-rhv.hosts.prod.psi.rdu2.redhat.com:4317'
+    ]
+}
 
 def suppressEmailParam() {
     return [

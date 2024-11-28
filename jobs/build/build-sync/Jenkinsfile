@@ -165,6 +165,9 @@ node() {
         }
         if (params.TELEMETRY_ENABLED) {
             env.TELEMETRY_ENABLED = "1"
+            if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
+                env.OTEL_EXPORTER_OTLP_ENDPOINT = params.OTEL_EXPORTER_OTLP_ENDPOINT
+            }
         }
         cmd += [
             "build-sync",

@@ -49,6 +49,10 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'FORCE_IMAGE_BUILD',
+                        description: 'Do not check if there is already a golang builder image with the rpm, but build a new one anyway',
+                    ),
                     commonlib.mockParam(),
                     commonlib.dryrunParam(),
                     commonlib.artToolsParam(),
@@ -116,6 +120,9 @@ node {
                     }
                     if (!params.DRY_RUN) {
                         cmd << "--confirm"
+                    }
+                    if (params.FORCE_IMAGE_BUILD) {
+                        cmd << "--force-image-build"
                     }
 
                     // Run pipeline

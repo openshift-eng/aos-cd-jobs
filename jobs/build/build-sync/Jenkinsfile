@@ -37,6 +37,8 @@ node() {
                 commonlib.mockParam(),
                 commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                 commonlib.artToolsParam(),
+                commonlib.enableTelemetryParam(),
+                commonlib.telemetryEndpointParam(),
                 string(
                     name: 'ASSEMBLY',
                     description: 'The name of an assembly to sync.',
@@ -160,6 +162,12 @@ node() {
         ]
         if (params.DRY_RUN) {
             cmd << "--dry-run"
+        }
+        if (params.TELEMETRY_ENABLED) {
+            env.TELEMETRY_ENABLED = "1"
+            if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
+                env.OTEL_EXPORTER_OTLP_ENDPOINT = params.OTEL_EXPORTER_OTLP_ENDPOINT
+            }
         }
         cmd += [
             "build-sync",

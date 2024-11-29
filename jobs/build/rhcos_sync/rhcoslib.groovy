@@ -60,20 +60,23 @@ def getRhcosBuildFromMirror(rhcosMirrorPrefix, name) {
     return rhcosId
 }
 
-def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name, noLatest, onlyIfDifferent) {
-    // check if rhcos-id is already on the mirror
+def rhcosSyncNeedsHappening(rhcosMirrorPrefix, rhcosBuild, name, onlyIfDifferent) {
+    if (!onlyIfDifferent || params.FORCE) {
+        return true
+    }
+    // check if rhcos-id is already on mirror
     def rhcosBuildOnMirror = getRhcosBuildFromMirror(rhcosMirrorPrefix, name)
     echo("RHCOS build requested to sync: ${rhcosBuild}")
     echo("RHCOS build on mirror: ${rhcosBuildOnMirror}")
     if (rhcosBuildOnMirror == rhcosBuild) {
-        if (!params.FORCE && onlyIfDifferent) {
-            echo("RHCOS build is already on mirror, skipping sync")
-            return
-        }
-    } else {
-        echo("RHCOS build ${rhcosBuild} not on mirror, syncing")
+        echo("RHCOS build is already on mirror, skipping sync")
+        return false
     }
+    return true
+}
 
+
+def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name, noLatest) {
     def invokeOpts = " --prefix ${rhcosMirrorPrefix}" +
         " --arch ${arch}" +
         " --buildid ${rhcosBuild}" +

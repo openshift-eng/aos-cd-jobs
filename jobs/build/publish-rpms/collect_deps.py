@@ -32,7 +32,8 @@ PACKAGES = {
         "slirp4netns",
         "conmon-rs",
         "openvswitch3.3",
-        "openvswitch3.4"
+        "openvswitch3.4",
+        "openvswitch-selinux-extra-policy",
     ],
 }
 

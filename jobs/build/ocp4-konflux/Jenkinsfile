@@ -37,6 +37,11 @@ node {
                     commonlib.mockParam(),
                     commonlib.artToolsParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    booleanParam(
+                        name: 'IGNORE_LOCKS',
+                        description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                        defaultValue: false
+                    ),
                     string(
                         name: 'ASSEMBLY',
                         description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
@@ -119,6 +124,9 @@ node {
             ]
             if (params.SKIP_REBASE) {
                 cmd << "--skip-rebase"
+            }
+            if (params.IGNORE_LOCKS) {
+                cmd << "--ignore-locks"
             }
 
             // Needed to detect manual builds

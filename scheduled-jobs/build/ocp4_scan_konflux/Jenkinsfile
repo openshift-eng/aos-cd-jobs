@@ -27,7 +27,8 @@ node {
             "--working-dir=${WORKSPACE}/artcd_working",
             "--config=./config/artcd.toml",
             "schedule-ocp4-scan-konflux",
-            "--version=4.18"  // to be removed once we have full capacity
+            "--version=4.18", // to be removed once we have full capacity
+            "--version=4.19", // to be removed once we have full capacity
         ]
         // Uncomment following lines to scan all arches (to be done once we have full capacity)
         //for ( version in commonlib.ocp4Versions ) {

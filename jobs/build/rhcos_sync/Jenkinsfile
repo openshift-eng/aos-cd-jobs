@@ -88,6 +88,7 @@ node {
     }
 
     onlyIfDifferent = false
+    needsHappening = true
     noLatest = params.NO_LATEST
     // for nightlies, sync them to dev dir
     // This is a special case. see: ART-10946
@@ -125,11 +126,14 @@ node {
     try {
         stage("Get/Generate sync list") {
             rhcoslib.rhcosSyncPrintArtifacts()
+	    needsHappening = rhcoslib.rhcosSyncNeedsHappening(mirrorPrefix, rhcosBuild, name, onlyIfDifferent)
         }
         stage("Mirror artifacts") {
-            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name, noLatest, onlyIfDifferent)
+	    if (!needsHappening) { return }
+            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name, noLatest)
         }
         stage("Slack notification to release channel") {
+	    if (!needsHappening) { return }
             if ( !params.DRY_RUN ) {
                 slacklib.to(ocpVersion).say("""
                 *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
@@ -144,6 +148,7 @@ node {
         // only sync AMI to ROSA Marketplace account when no custom sync list is defined
         if ( arch == "x86_64") {
             stage("Mirror ROSA AMIs") {
+	        if (!needsHappening) { return }
                 if ( arch != 'x86_64' ) {
                     echo "Skipping ROSA sync for non-x86 arch"
                     return
@@ -156,6 +161,7 @@ node {
                 }
             }
             stage("Slack notification to release channel") {
+	        if (!needsHappening) { return }
                 if ( !params.DRY_RUN ) {
                     slacklib.to(ocpVersion).say("""
                     *:white_check_mark: rosa_sync (${name}) successful*
@@ -166,6 +172,7 @@ node {
 
         // run publish_azure_marketplace when publishing RHCOS bootimages for 4.10+
         stage("Publish azure marketplace") {
+	    if (!needsHappening) { return }
             if ( buildlib.cmp_version(ocpVersion, "4.9") == 1 ) {
                 build(
                     job: 'build%252Fpublish_azure_marketplace',

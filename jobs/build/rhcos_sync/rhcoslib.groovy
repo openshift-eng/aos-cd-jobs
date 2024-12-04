@@ -61,7 +61,7 @@ def getRhcosBuildFromMirror(rhcosMirrorPrefix, name) {
 }
 
 def rhcosSyncNeedsHappening(rhcosMirrorPrefix, rhcosBuild, name, onlyIfDifferent) {
-    if (!onlyIfDifferent || params.FORCE) {
+    if (params.FORCE) {
         return true
     }
     // check if rhcos-id is already on mirror

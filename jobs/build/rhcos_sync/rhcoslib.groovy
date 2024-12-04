@@ -72,7 +72,7 @@ def rhcosSyncNeedsHappening(rhcosMirrorPrefix, rhcosBuild, name, onlyIfDifferent
         echo("RHCOS build is already on mirror, skipping sync")
         return false
     }
-    return true
+    return true && onlyIfDifferent
 }
 
 

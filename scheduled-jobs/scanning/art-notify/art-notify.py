@@ -193,12 +193,16 @@ def main():
         response_messages.append(
             f"*Channel:* {channel_handle}\n*Date:* {str_date}Z\n*Age:* {age} {age_type}\n*Message:* <{permalink}|Link>\n*Snippet:* {snippet}...")
 
+    n_threads = len(response_messages)
+    if failed_jobs_text:
+        n_threads += 1
+
     header_block = [
         {
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": f"{header_text} ({len(response_messages)})",
+                "text": f"{header_text} ({n_threads})",
                 "emoji": True
             }
         },

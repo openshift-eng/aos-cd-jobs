@@ -22,7 +22,6 @@ LABEL name="openshift-art/art-cd" \
 
 # Trust Red Hat IT Root CA certificates
 RUN curl -fLo /etc/pki/ca-trust/source/anchors/2022-IT-Root-CA.pem https://certs.corp.redhat.com/certs/2022-IT-Root-CA.pem \
-  && curl -fLo /etc/pki/ca-trust/source/anchors/2015-IT-Root-CA.pem https://certs.corp.redhat.com/certs/2015-IT-Root-CA.pem \
   && curl -fLo /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt https://certs.corp.redhat.com/certs/RH-IT-Root-CA.crt \
  && update-ca-trust extract
 

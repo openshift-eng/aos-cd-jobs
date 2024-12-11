@@ -60,6 +60,15 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    choice(
+                        name: 'IMAGE_BUILD_STRATEGY',
+                        description: 'Which images are candidates for building? "only/except" refer to list below',
+                        choices: [
+                            "only",
+                            "all",
+                            "except",
+                        ].join("\n")
+                    ),
                     string(
                         name: 'IMAGE_LIST',
                         description: '(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES (e.g. logging-kibana5,openshift-jenkins-2)',
@@ -120,6 +129,7 @@ node {
                 }
             }
             cmd += [
+                "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",
                 "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
             ]
             if (params.SKIP_REBASE) {

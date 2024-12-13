@@ -43,6 +43,12 @@ node {
                         defaultValue: false
                     ),
                     string(
+                        name: 'PLR_TEMPLATE_COMMIT',
+                        description: 'Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'ASSEMBLY',
                         description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
                         defaultValue: "test",
@@ -127,6 +133,9 @@ node {
                 for (arch in params.LIMIT_ARCHES.split("[,\\s]+")) {
                     cmd << "--arch" << arch.trim()
                 }
+            }
+            if (params.PLR_TEMPLATE_COMMIT) {
+                cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
             }
             cmd += [
                 "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",

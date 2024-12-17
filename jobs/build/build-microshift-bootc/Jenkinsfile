@@ -103,6 +103,8 @@ node() {
                     file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
                     string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                     file(credentialsId: 'art-publish.app.ci.kubeconfig', variable: 'KUBECONFIG'),
+                    string(credentialsId: 'konflux-art-images-username', variable: 'KONFLUX_ART_IMAGES_USERNAME'),
+                    string(credentialsId: 'konflux-art-images-password', variable: 'KONFLUX_ART_IMAGES_PASSWORD'),
                 ]) {
                     echo "Will run ${cmd}"
                     if (params.IGNORE_LOCKS) {

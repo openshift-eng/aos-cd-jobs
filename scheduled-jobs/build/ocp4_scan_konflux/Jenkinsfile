@@ -41,9 +41,7 @@ node {
         withCredentials([
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                    string(credentialsId: 'konflux-art-images-username', variable: 'KONFLUX_ART_IMAGES_USERNAME'),
-                    string(credentialsId: 'konflux-art-images-password', variable: 'KONFLUX_ART_IMAGES_PASSWORD')]) {
+                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD')]) {
             wrap([$class: 'BuildUser']) {
                 builderEmail = env.BUILD_USER_EMAIL
             }

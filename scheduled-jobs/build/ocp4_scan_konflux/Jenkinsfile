@@ -27,7 +27,6 @@ node {
             "--working-dir=${WORKSPACE}/artcd_working",
             "--config=./config/artcd.toml",
             "schedule-ocp4-scan-konflux",
-            "--version=4.13", // to be removed once we have full capacity
             "--version=4.14", // to be removed once we have full capacity
             "--version=4.15", // to be removed once we have full capacity
             "--version=4.16", // to be removed once we have full capacity

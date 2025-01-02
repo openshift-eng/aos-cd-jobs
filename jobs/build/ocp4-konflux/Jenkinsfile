@@ -166,10 +166,24 @@ node {
                 ]){
                     withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                         buildlib.init_artcd_working_dir()
-                        sh(script: cmd.join(' '), returnStdout: true)
+                        try {
+                            sh(script: cmd.join(' '), returnStdout: true)
+                        } catch (err) {
+                            // If any image build/push failures occurred, mark the job run as unstable
+                            currentBuild.result = "UNSTABLE"
+                        }
                     }
                 }
             }
+        }
+
+        stage("terminate") {
+            commonlib.safeArchiveArtifacts([
+                "artcd_working/doozer_working/*.log",
+                "artcd_working/doozer_working/*.yaml",
+                "artcd_working/doozer_working/*.yml",
+            ])
+            buildlib.cleanWorkspace()
         }
     }
 }

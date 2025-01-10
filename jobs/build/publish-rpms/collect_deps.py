@@ -29,6 +29,7 @@ PACKAGES = {
         "skopeo",
         "openshift-clients",
         "openshift-hyperkube",
+        "openshift-kubelet",
         "slirp4netns",
         "conmon-rs",
         "openvswitch3.3",

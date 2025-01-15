@@ -174,7 +174,7 @@ node {
             if ( buildlib.cmp_version(ocpVersion, "4.9") == 1 ) {
                 build(
                     job: 'build%252Fpublish_azure_marketplace',
-                    wait: true,
+                    wait: false,
                     parameters: [
                         string(name: 'VERSION', value: ocpVersion),
                         booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),

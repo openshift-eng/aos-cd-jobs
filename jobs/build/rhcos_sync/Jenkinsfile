@@ -87,7 +87,6 @@ node {
         }
     }
 
-    onlyIfDifferent = false
     needsHappening = true
     noLatest = params.NO_LATEST
     // for nightlies, sync them to dev dir
@@ -95,7 +94,6 @@ node {
     if (tag.contains("nightly")) {
         name = "dev-${ocpVersion}"
         noLatest = true
-        onlyIfDifferent = true
     } else {
         name = commonlib.shell(
             returnStdout: true,
@@ -126,7 +124,7 @@ node {
     try {
         stage("Get/Generate sync list") {
             rhcoslib.rhcosSyncPrintArtifacts()
-	    needsHappening = rhcoslib.rhcosSyncNeedsHappening(mirrorPrefix, rhcosBuild, name, onlyIfDifferent)
+	    needsHappening = rhcoslib.rhcosSyncNeedsHappening(mirrorPrefix, rhcosBuild, name)
         }
         stage("Mirror artifacts") {
 	    if (!needsHappening) { return }

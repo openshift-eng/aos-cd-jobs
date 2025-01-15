@@ -60,7 +60,7 @@ def getRhcosBuildFromMirror(rhcosMirrorPrefix, name) {
     return rhcosId
 }
 
-def rhcosSyncNeedsHappening(rhcosMirrorPrefix, rhcosBuild, name, onlyIfDifferent) {
+def rhcosSyncNeedsHappening(rhcosMirrorPrefix, rhcosBuild, name) {
     if (params.FORCE) {
         return true
     }
@@ -72,7 +72,8 @@ def rhcosSyncNeedsHappening(rhcosMirrorPrefix, rhcosBuild, name, onlyIfDifferent
         echo("RHCOS build is already on mirror, skipping sync")
         return false
     }
-    return true && onlyIfDifferent
+    echo("Requested RHCOS build is not on mirror, sync is needed")
+    return true
 }
 
 

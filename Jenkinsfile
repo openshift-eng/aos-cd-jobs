@@ -208,9 +208,13 @@ node() {
                 withCredentials([
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
                 ]) {
-                    sh(script: cmd.join(' '), returnStdout: true)
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        sh(script: cmd.join(' '), returnStdout: true)
+                    }
                 }
             }
 
@@ -218,7 +222,6 @@ node() {
                 currentBuild.description += " [PUBLISH]"
             }
         } catch (err) {
-            currentBuild.displayName += " [FAILURE]"
             commonlib.email(
                     to: "aos-art-automation+failed-build-sync@redhat.com",
                     from: "aos-art-automation@redhat.com",

@@ -16,11 +16,22 @@ rhcos_allowlist = [ "gcp", "initramfs", "iso", "kernel", "metal", "openstack", "
 def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     buildlib.cleanWorkdir(rhcosWorking)
 
-    baseUrl = buildlib.doozer("--quiet --group=openshift-${ocpVersion} config:read-group urls.rhcos_release_base.multi --default ''", [capture: true]).trim()
-    baseUrl = "${baseUrl}/${rhcosBuild}/${arch}"
+    // To construct rhcos build url, we do not fetch the url from group.yml
+    // and instead hardcode and construct it from the rhcos build id
+    // This is because we usually are on an older rhcos build after branch cut
+    // e.g. 4.19 nightly will have installer build which references 4.18 rhcos build
+    // but 4.19 rhcos url in group.yml will be pointing to 4.19 rhcos stream.
+    // 418.94.202410090804-0 -> 4.18-9.4
+    buildParts = rhcosBuild.split("\\.")
+    ocpStream = buildParts[0][0] + '.' + buildParts[0][1..-1]
+    rhelStream = buildParts[1][0] + '.' + buildParts[1][1..-1]
+    stream = "${ocpStream}-${rhelStream}"
+
+    baseUrl = "https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/${stream}/builds"
+    buildUrl = "${baseUrl}/${rhcosBuild}/${arch}"
 
     s3MirrorBaseDir = "/pub/openshift-v4/${arch}/dependencies/rhcos"
-    metaUrl = "${baseUrl}/meta.json"
+    metaUrl = "${buildUrl}/meta.json"
 
     currentBuild.displayName = "${name} - ${rhcosBuild}:${arch} - ${mirrorPrefix}"
     currentBuild.description = "Meta JSON: ${metaUrl}"

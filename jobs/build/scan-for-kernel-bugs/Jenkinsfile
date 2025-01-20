@@ -24,6 +24,7 @@ node {
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
                         commonlib.ocpVersionParam('VERSION'),
+                        commonlib.artToolsParam(),
                         booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",

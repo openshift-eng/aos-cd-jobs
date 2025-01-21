@@ -92,6 +92,11 @@ node {
                         description: '(For testing) Skip the rebase step',
                         defaultValue: false
                     ),
+                    booleanParam(
+                        name: 'SKIP_BUNDLE_BUILD',
+                        description: '(For testing) Skip the OLM bundle build step',
+                        defaultValue: true,  // Default to true until we believe bundle build is stable.
+                    ),
                 ]
             ],
         ]
@@ -146,6 +151,9 @@ node {
             }
             if (params.IGNORE_LOCKS) {
                 cmd << "--ignore-locks"
+            }
+            if (params.SKIP_BUNDLE_BUILD) {
+                cmd << "--skip-bundle-build"
             }
 
             // Needed to detect manual builds

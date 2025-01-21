@@ -53,6 +53,11 @@ node {
                             defaultValue: false,
                         ),
                         booleanParam(
+                            name: 'GEN_MICROSHIFT',
+                            description: 'Create microshift entry for named release based on request',
+                            defaultValue: false,
+                        ),
+                        booleanParam(
                             name: 'IGNORE_NON_X86',
                             description: 'When non x86_64 arch are inconsistent with x86_64 nightly, ignore them and only honor the x86_64 nightly',
                             defaultValue: false,
@@ -154,6 +159,9 @@ node {
             }
             if (params.ALLOW_REJECTED) {
                 cmd << "--allow-rejected"
+            }
+            if (params.GEN_MICROSHIFT) {
+                cmd << "--gen-microshift"
             }
             if (params.IGNORE_NON_X86) {
                 cmd << "--ignore-non-x86-nightlies"

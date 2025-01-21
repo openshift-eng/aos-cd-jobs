@@ -35,6 +35,7 @@ PACKAGES = {
         "openvswitch3.3",
         "openvswitch3.4",
         "openvswitch-selinux-extra-policy",
+        "perl-Text-Tabs+Wrap",  # 2025-01-21 this is to assist debugging a weird issue. Please remove if you encounter this.
     ],
 }
 

@@ -95,7 +95,7 @@ node {
                     booleanParam(
                         name: 'SKIP_BUNDLE_BUILD',
                         description: '(For testing) Skip the OLM bundle build step',
-                        defaultValue: true,  // Default to true until we believe bundle build is stable.
+                        defaultValue: false,  // Default to true until we believe bundle build is stable.
                     ),
                 ]
             ],

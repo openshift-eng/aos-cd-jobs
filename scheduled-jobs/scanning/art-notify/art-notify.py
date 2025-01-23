@@ -45,8 +45,8 @@ def get_failed_jobs_text():
         for job in data['jobs']:
             if not job.get('builds', None):
                 continue
-            print(f"Found {len(job['builds'])} builds for job {job['name']}")
             job_name = unquote(job['name'])
+            print(f"Found {len(job['builds'])} builds for job {job_name}")
             failed_job_ids = []
             total_eligible_builds = 0
             oldest_build_hours_ago = None

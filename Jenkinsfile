@@ -191,7 +191,7 @@ node() {
             cmd << "--images=${params.IMAGES}"
         }
         if (params.EXCLUDE_ARCHES) {
-            cmd << "--exclude-arches=${params.EXCLUDE_ARCHES}"
+            cmd << "--exclude-arches=${commonlib.cleanCommaList(params.EXCLUDE_ARCHES)}"
         }
         if (params.SKIP_MULTI_ARCH_PAYLOAD) {
             cmd << "--skip-multiarch-payload"

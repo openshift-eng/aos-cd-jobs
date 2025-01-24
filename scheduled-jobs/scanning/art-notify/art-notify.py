@@ -23,7 +23,7 @@ JENKINS_URL = os.getenv('JENKINS_URL').rstrip('/')
 
 RELEASE_ARTIST_HANDLE = 'release-artists'
 ART_BOT_JENKINS_USERID = 'openshift-art'  # userId of our automation account in jenkins which triggers builds
-FAILED_JOB_HOURS = 8  # Last x hours that we consider for our failed job search
+SEARCH_WINDOW_HOURS = 8  # Window of last X hours that we consider for our failed builds search
 
 
 def get_failed_jobs_text():
@@ -32,26 +32,33 @@ def get_failed_jobs_text():
     # API reference
     # for a job: <jenkins_url>/job/<project>/job/<job_name>/api/json?pretty=true
     # for a build: <jenkins_url>/job/<project>/job/<job_name>/<build_number>/api/json?pretty=true
-    query = "?tree=jobs[name,url,builds[number,result,timestamp,actions[causes[userId]]]]"
+    # by default jenkins returns last 100 builds for each job, which is fine for us
+    # some very frequent running jobs will have more than 100 builds, but we only report on the last 100
+    query = "?tree=jobs[name,url,builds[number,result,timestamp,displayName,actions[causes[userId]]]]"
     now = datetime.now(timezone.utc)
     for project in projects:
         api_url = f"{JENKINS_URL}/job/{project}/api/json"
         response = requests.get(api_url + query, auth=(JENKINS_USER, JENKINS_TOKEN))
         response.raise_for_status()
         data = response.json()
+        print(f"Fetched {len(data['jobs'])} jobs from {api_url}")
         for job in data['jobs']:
-            if 'builds' not in job:
+            if not job.get('builds', None):
                 continue
-            job_name = job['name']
+            job_name = unquote(job['name'])
+            print(f"Found {len(job['builds'])} builds for job {job_name}")
             failed_job_ids = []
             total_eligible_builds = 0
+            oldest_build_hours_ago = None
             for build in job['builds']:
                 dt = datetime.fromtimestamp(build['timestamp'] / 1000, tz=timezone.utc)
                 td = now - dt
-                hours = td.seconds // 3600
-                minutes = (td.seconds // 60) % 60
-                if not (td.days == 0 and hours < FAILED_JOB_HOURS):
+                started_hours_ago = td.days * 24 + td.seconds // 3600
+                if oldest_build_hours_ago is None or oldest_build_hours_ago < started_hours_ago:
+                    oldest_build_hours_ago = started_hours_ago
+                if started_hours_ago > SEARCH_WINDOW_HOURS:
                     continue
+
                 # Filter all builds that were not triggered by our automation account
                 # We do not want to report on these since they are manually triggered and
                 # would be monitored by whoever triggered them
@@ -62,11 +69,22 @@ def get_failed_jobs_text():
                 if user_id and user_id != ART_BOT_JENKINS_USERID:
                     continue
                 total_eligible_builds += 1
+
+                # this is a special case for build-sync job
+                # we want to filter out UNVIABLE builds since they are not real failures
+                if job_name == 'build/build-sync' and 'UNVIABLE' in build['displayName']:
+                    print(f"unviable build-sync run found: {build['number']}. skipping")
+                    continue
+
                 if build['result'] == 'FAILURE':
                     failed_job_ids.append(build['number'])
+
+            if oldest_build_hours_ago < SEARCH_WINDOW_HOURS:
+                print(f"[WARNING] Oldest build in api response for job {job_name} started {oldest_build_hours_ago} hours ago. There maybe older failed builds that were not fetched.")
             if len(failed_job_ids) > 0:
                 fail_rate = (len(failed_job_ids)/total_eligible_builds)*100
-                failed_jobs.append((unquote(job_name), failed_job_ids, fail_rate, job['url']))
+                print(f"Job {job_name} failed {len(failed_job_ids)} times out of {total_eligible_builds} builds. Fail rate: {fail_rate:.1f}%")
+                failed_jobs.append((job_name, failed_job_ids, fail_rate, job['url']))
         
     def slack_link(job_name, job_url, job_id=None, text=None):
         link = job_url
@@ -80,18 +98,23 @@ def get_failed_jobs_text():
         return f"<{link}|{text}>"
 
     if failed_jobs:
+        # sort by highest fail rate
         failed_jobs.sort(key=lambda x: x[2], reverse=True)
         failed_jobs_list = []
         for job_name, failed_job_ids, fail_rate, job_url in failed_jobs:
             link = slack_link(job_name, job_url)
             text = f"* {link}: {len(failed_job_ids)} "
+            # sort job ids by most recent
             failed_job_ids.sort(reverse=True)
-            for i in range(min(3, len(failed_job_ids))):
-                text += f"[{slack_link(job_name, job_url, job_id=failed_job_ids[i], text=i+1)}] "
-            text += f"Fail rate: {fail_rate:.1f}%"
+            # only link to the first 3
+            for i, job_id in enumerate(failed_job_ids[:3]):
+                text += f"[{slack_link(job_name, job_url, job_id=job_id, text=i+1)}] "
+            fail_rate_text = f"Fail rate: {fail_rate:.1f}%"
+            text += fail_rate_text
             failed_jobs_list.append(text)
+            print(f"* {job_name}: {len(failed_job_ids)} {failed_job_ids[:3]}. {fail_rate_text}")
         failed_jobs_list = "\n".join(failed_jobs_list)
-        failed_jobs_text = f"Failed builds in last `{FAILED_JOB_HOURS}` hours triggered by `{ART_BOT_JENKINS_USERID}`: \n{failed_jobs_list}"
+        failed_jobs_text = f"Failed jobs in last `{SEARCH_WINDOW_HOURS}` hours triggered by `{ART_BOT_JENKINS_USERID}`: \n{failed_jobs_list}"
         return failed_jobs_text
     return ''
 

@@ -61,7 +61,7 @@ function downloadImages() {
 }
 
 function genSha256() {
-    sha256sum *[!rhcos-id.txt] > sha256sum.txt
+    sha256sum !(rhcos-id.txt) > sha256sum.txt
     ls -lh
     cat sha256sum.txt
 }

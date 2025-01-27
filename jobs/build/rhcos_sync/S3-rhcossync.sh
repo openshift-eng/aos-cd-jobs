@@ -1,5 +1,6 @@
 #!/bin/bash
 set -exo pipefail
+shopt -s extglob
 
 # Where to put this on the s3 mirror, such as '4.2' or 'pre-release':
 RHCOS_MIRROR_PREFIX=

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -exo pipefail
+shopt -s extglob
 
 # Where to put this on the s3 mirror, such as '4.2' or 'pre-release':
 RHCOS_MIRROR_PREFIX=
@@ -61,7 +62,7 @@ function downloadImages() {
 }
 
 function genSha256() {
-    sha256sum *[!rhcos-id.txt] > sha256sum.txt
+    sha256sum !(rhcos-id.txt) > sha256sum.txt
     ls -lh
     cat sha256sum.txt
 }

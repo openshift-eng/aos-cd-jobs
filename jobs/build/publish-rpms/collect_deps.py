@@ -93,18 +93,21 @@ name = rhel-server-{EL}-baseos
 baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel{EL}/{EL}/{ARCH}/baseos/os
 enabled = 1
 gpgcheck = 0
+exclude = skopeo cri-o cri-tools conmon-rs runc
 
 [rhel-server-{EL}-appstream]
 name = rhel-server-{EL}-appstream
 baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel{EL}/{EL}/{ARCH}/appstream/os/
 enabled = 1
 gpgcheck = 0
+exclude = skopeo cri-o cri-tools conmon-rs runc
 
 [rhel-server-{EL}-fast-datapath]
 name = rhel-server-{EL}-fast-datapath
 baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel{EL}/{ARCH}/fast-datapath/os/
 enabled = 1
 gpgcheck = 0
+exclude = skopeo cri-o cri-tools conmon-rs runc
 
 [rhel-server-{EL}-ose-{OCP_VERSION}-rpms]
 name = rhel-server-{EL}-ose-{OCP_VERSION}-rpms

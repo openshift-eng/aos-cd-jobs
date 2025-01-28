@@ -52,7 +52,7 @@ def rhcosSyncPrintArtifacts() {
         def meta = readJSON file: 'meta.json', text: ''
         meta.images.eachWithIndex { name, value, i ->
             if (!enforce_allowlist || rhcos_allowlist.contains(name)) {
-                imageUrls.add(baseUrl + "/${value.path}")
+                imageUrls.add(buildUrl + "/${value.path}")
             }
         }
     }

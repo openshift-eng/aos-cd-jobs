@@ -36,10 +36,6 @@ node {
                         description: 'Force update found tracker bugs for the given CVEs, even if the latest nightly is not found containing fixed builds',
                     ),
                     booleanParam(
-                        name: 'CREATE_TAGGING_TICKET',
-                        description: 'Create a CWFCONF Jira ticket for tagging golang builds in ART buildroots',
-                    ),
-                    booleanParam(
                         name: 'SCRATCH',
                         description: 'Perform a scratch build (will not use an NVR or update tags)',
                     ),
@@ -108,9 +104,6 @@ node {
                     ]
                     if (params.FIXED_CVES) {
                         cmd << "--cves=${params.FIXED_CVES}"
-                    }
-                    if (params.CREATE_TAGGING_TICKET) {
-                        cmd << "--create-tagging-ticket"
                     }
                     if (params.SCRATCH) {
                         cmd << "--scratch"

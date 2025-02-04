@@ -45,6 +45,11 @@ node() {
                     defaultValue: "stream",
                     trim: true,
                 ),
+                choice(
+                    name: 'BUILD_SYSTEM',
+                    description: 'Whether we should look at Brew or Konflux builds',
+                    choices: ['brew', 'konflux'].join('\n'),
+                ),
                 booleanParam(
                     name        : 'PUBLISH',
                     description : 'Publish release image(s) directly to registry.ci for testing',
@@ -172,7 +177,8 @@ node() {
         cmd += [
             "build-sync",
             "--version=${params.BUILD_VERSION}",
-            "--assembly=${params.ASSEMBLY}"
+            "--assembly=${params.ASSEMBLY}",
+            "--build-system=${params.BUILD_SYSTEM}"
         ]
         if (params.PUBLISH) {
             cmd << "--publish"
@@ -210,7 +216,10 @@ node() {
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    string(credentialsId: 'konflux-art-images-username', variable: 'KONFLUX_ART_IMAGES_USERNAME'),
+                    string(credentialsId: 'konflux-art-images-password', variable: 'KONFLUX_ART_IMAGES_PASSWORD'),
                 ]) {
                     withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                         sh(script: cmd.join(' '), returnStdout: true)

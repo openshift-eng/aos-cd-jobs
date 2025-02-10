@@ -39,6 +39,10 @@ node {
                         name: 'SCRATCH',
                         description: 'Perform a scratch build (will not use an NVR or update tags)',
                     ),
+                    booleanParam(
+                        name: 'TAG_BUILD',
+                        description: 'Tag builds into override tag if they are not tagged',
+                    ),
                     string(
                         name: 'ART_JIRA',
                         description: 'ART jira ticket number to be used for reference when creating tickets/PRs',
@@ -110,6 +114,9 @@ node {
                     }
                     if (params.FORCE_UPDATE_TRACKERS) {
                         cmd << "--force-update-tracker"
+                    }
+                    if (params.TAG_BUILD) {
+                        cmd << "--tag-builds"
                     }
                     if (!params.DRY_RUN) {
                         cmd << "--confirm"

@@ -92,7 +92,7 @@ node {
 
     currentBuild.displayName = "#${currentBuild.number} - ${kind} ${params.VERSION}${(params.DRY_RUN) ? " [DRY_RUN]" : ""}"
 
-    if (kind in ["crc", "odo", "helm"]) {
+    if (kind in ["crc", "odo", "helm", "rosa"]) {
         error "${kind} is published through Content Gateway now. The mirror.openshift.com path is, under the covers, proxying the request to developers.redhat.com"
     }
 

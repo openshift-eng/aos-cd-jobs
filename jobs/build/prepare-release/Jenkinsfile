@@ -60,6 +60,18 @@ node {
                             description: "Do not filter our shipped builds, attach all builds to advisory.(Used at pre-GA time)",
                             defaultValue: false
                         ),
+                        string(
+                            name: 'DOOZER_DATA_PATH',
+                            description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
+                            defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                            trim: true,
+                        ),
+                        string(
+                            name: 'DOOZER_DATA_GITREF',
+                            description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                            defaultValue: "",
+                            trim: true,
+                        ),
                         booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",
@@ -103,7 +115,11 @@ node {
                     "prepare-release",
                     "--group", "openshift-${params.VERSION}",
                     "--assembly", params.ASSEMBLY,
+                    "--data-path=${params.DOOZER_DATA_PATH}"
                 ]
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
                 if (params.DATE) {
                     cmd << "--date" << params.DATE
                 }

@@ -30,6 +30,18 @@ node {
                             trim: true
                         ),
                         string(
+                            name: 'DOOZER_DATA_PATH',
+                            description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                            defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                            trim: true,
+                        ),
+                        string(
+                            name: 'DOOZER_DATA_GITREF',
+                            description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                            defaultValue: "",
+                            trim: true,
+                        ),
+                        string(
                             name: "NAME",
                             description: "The expected release name (e.g. 4.6.42); Do not specify for a non-stream assembly.",
                             trim: true
@@ -104,6 +116,12 @@ node {
                     "--group", "openshift-${params.VERSION}",
                     "--assembly", params.ASSEMBLY,
                 ]
+                if (params.DOOZER_DATA_PATH) {
+                    cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                }
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
                 if (params.DATE) {
                     cmd << "--date" << params.DATE
                 }

@@ -73,6 +73,11 @@ node {
                             defaultValue: false
                         ),
                         booleanParam(
+                            name: "SKIP_BATCH",
+                            description: "Do not create/use Errata batch for shipping advisories",
+                            defaultValue: false
+                        ),
+                        booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",
                             defaultValue: false
@@ -133,6 +138,9 @@ node {
                 }
                 if (params.INCLUDE_SHIPPED) {
                     cmd << "--include-shipped"
+                }
+                if (params.SKIP_BATCH) {
+                    cmd << "--skip-batch"
                 }
                 if (params.PACKAGE_OWNER)
                     cmd << "--package-owner" << params.PACKAGE_OWNER

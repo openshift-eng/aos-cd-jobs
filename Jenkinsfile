@@ -44,7 +44,7 @@ node {
                     ),
                     string(
                         name: 'PLR_TEMPLATE_COMMIT',
-                        description: 'Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                        description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
                         defaultValue: "",
                         trim: true,
                     ),

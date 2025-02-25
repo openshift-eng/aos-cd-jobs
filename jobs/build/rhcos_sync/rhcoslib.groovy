@@ -28,11 +28,12 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     if ( minor[1] > 18 ) {
         // For 4.19 the rhcosBuild name is in format 9.6.20250121-0
         rhelStream = buildParts[0] + '.' + buildParts[1]
+        stream = "rhel-${rhelStream}"
     } else {
         // For 4.18 and below the rhcosBuild name is in format 418.94.202410090804-0
         rhelStream = buildParts[1][0] + '.' + buildParts[1][1..-1]
+        stream = "${ocpStream}-${rhelStream}"
     }
-    stream = "${ocpStream}-${rhelStream}"
 
     baseUrl = "https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/${stream}/builds"
     buildUrl = "${baseUrl}/${rhcosBuild}/${arch}"

@@ -25,7 +25,7 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     buildParts = rhcosBuild.split("\\.")
     ocpStream = ocpVersion
     minor = ocpVersion.split("\\.")
-    if ( minor[1] > 18 ) {
+    if ( minor[1].toInteger() > 18 ) {
         // For 4.19 the rhcosBuild name is in format 9.6.20250121-0
         rhelStream = buildParts[0] + '.' + buildParts[1]
         stream = "rhel-${rhelStream}"

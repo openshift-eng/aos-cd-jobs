@@ -82,6 +82,12 @@ node() {
                     description: 'Rebuild bundle containers, even if they already exist for given operator NVRs',
                     defaultValue: false,
                 ),
+                string(
+                    name: 'PLR_TEMPLATE_COMMIT',
+                    description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                    defaultValue: "",
+                    trim: true,
+                ),
                 booleanParam(
                     name: 'DRY_RUN',
                     description: 'Just show what would happen, without actually executing the steps',
@@ -149,6 +155,9 @@ node() {
                     cmd << "--exclude=${exclude.join(',')}"
                 if (params.FORCE_BUILD)
                     cmd << "--force"
+                if (params.PLR_TEMPLATE_COMMIT) {
+                    cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
+                }
 
                 // Run pipeline
                 timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour

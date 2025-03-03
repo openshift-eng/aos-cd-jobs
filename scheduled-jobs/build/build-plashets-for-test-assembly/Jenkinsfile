@@ -36,7 +36,7 @@ node() {
                     string(name: 'BUILD_VERSION', value: "${cv}"),
                     booleanParam(name: 'IGNORE_LOCKS', value: true),
                     string(name: 'BUILD_IMAGES', value: 'only'),
-                    string(name: 'IMAGES', value: images),
+                    string(name: 'IMAGE_LIST', value: images),
                     booleanParam(name: 'SKIP_PLASHETS', value: false)
                 ],
                 propagate: false

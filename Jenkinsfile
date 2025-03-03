@@ -32,7 +32,7 @@ node {
                     defaultValue: "",
                     trim: true,
                 ),
-                bool(
+                booleanParam(
                     name: "FORCE",
                     description: "Overwrite if exists. Ask permission if needed",
                     defaultValue: false,

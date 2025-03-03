@@ -23,9 +23,9 @@ node() {
     ]
 
     for ( version in commonlib.ocp4Versions ) {
-        cv = "${version}" // make sure we use a locally scoped variable
+        def cv = "${version}" // make sure we use a locally scoped variable
         // Fall back to 4.19 if we did not manage the above list
-        images = base_images['4.19']
+        def images = base_images['4.19']
         if (cv in base_images) { images = base_images[cv] }
 
         // Trigger ocp4 plashet build for test assembly in ${version}

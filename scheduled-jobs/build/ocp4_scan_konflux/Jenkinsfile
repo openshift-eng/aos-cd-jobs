@@ -26,19 +26,11 @@ node {
             "-vv",
             "--working-dir=${WORKSPACE}/artcd_working",
             "--config=./config/artcd.toml",
-            "schedule-ocp4-scan-konflux",
-            "--version=4.12", // to be removed once we have full capacity
-            "--version=4.13", // to be removed once we have full capacity
-            "--version=4.15", // to be removed once we have full capacity
-            "--version=4.16", // to be removed once we have full capacity
-            "--version=4.17", // to be removed once we have full capacity
-            "--version=4.18", // to be removed once we have full capacity
-            "--version=4.19", // to be removed once we have full capacity
+            "schedule-ocp4-scan-konflux"
         ]
-        // Uncomment following lines to scan all arches (to be done once we have full capacity)
-        //for ( version in commonlib.ocp4Versions ) {
-        //    cmd << "--version=${version}"
-        //}
+        for ( version in commonlib.ocp4Versions ) {
+           cmd << "--version=${version}"
+        }
 
         withCredentials([
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),

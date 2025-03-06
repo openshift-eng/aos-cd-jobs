@@ -49,7 +49,9 @@ node() {
                     for (String target : params.MAKE_TARGETS.split(',')) {
                         target = target.trim()
                         echo "Building target: ${target}"
-                        commonlib.shell(script: "make ${target}")
+                        withEnv(['UV_LINK_MODE=symlink', 'PATH+MYCARGO=~/.cargo/bin']) {
+                            commonlib.shell(script: "make ${target}")
+                        }
                     }
                 }
             }

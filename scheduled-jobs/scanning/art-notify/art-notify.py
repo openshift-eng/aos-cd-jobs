@@ -27,7 +27,7 @@ SEARCH_WINDOW_HOURS = 8  # Window of last X hours that we consider for our faile
 
 
 def get_failed_jobs_text():
-    projects = ["aos-cd-builds", "scheduled-builds"]
+    projects = ["aos-cd-builds", "scheduled-builds", "maintenance"]
     failed_jobs = []
     # API reference
     # for a job: <jenkins_url>/job/<project>/job/<job_name>/api/json?pretty=true

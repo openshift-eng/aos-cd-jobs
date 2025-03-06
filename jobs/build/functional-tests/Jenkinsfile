@@ -45,8 +45,12 @@ node() {
                 string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
             ]) {
-                for (String target : params.MAKE_TARGETS.split(',')) {
-                    commonlib.shell(script: "make ${target}")
+                dir("${env.WORKSPACE}/art-tools") {
+                    for (String target : params.MAKE_TARGETS.split(',')) {
+                        target = target.trim()
+                        echo "Building target: ${target}"
+                        commonlib.shell(script: "make ${target}")
+                    }
                 }
             }
         }

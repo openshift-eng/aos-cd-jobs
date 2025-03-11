@@ -183,6 +183,7 @@ def setup_venv() {
             source ${VIRTUAL_ENV}/bin/activate
             cd art-tools
             ./install.sh
+            uv pip install -r doozer/requirements-dev.txt -r pyartcd/requirements-dev.txt -r ocp-build-data-validator/requirements-dev.txt
             echo "Installed art-tools:"
             uv pip list | grep 'doozer\\|elliott\\|pyartcd\\|artcommon'
         """)

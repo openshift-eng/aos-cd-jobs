@@ -24,6 +24,7 @@ JENKINS_URL = os.getenv('JENKINS_URL').rstrip('/')
 RELEASE_ARTIST_HANDLE = 'release-artists'
 ART_BOT_JENKINS_USERID = 'openshift-art'  # userId of our automation account in jenkins which triggers builds
 SEARCH_WINDOW_HOURS = 8  # Window of last X hours that we consider for our failed builds search
+FAIL_RATE_THRESHOLD = 15
 
 
 def get_failed_jobs_text():
@@ -99,6 +100,7 @@ def get_failed_jobs_text():
 
     if failed_jobs:
         # sort by highest fail rate
+        failed_jobs = [job for job in failed_jobs if job[2] >= FAIL_RATE_THRESHOLD]
         failed_jobs.sort(key=lambda x: x[2], reverse=True)
         failed_jobs_list = []
         for job_name, failed_job_ids, fail_rate, job_url in failed_jobs:

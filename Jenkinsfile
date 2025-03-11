@@ -1,68 +1,60 @@
-// Update-branches job
+node() {
+    wrap([$class: "BuildUser"]) {
+        // gomod created files have filemode 444. It will lead to a permission denied error in the next build.
+        sh "chmod u+w -R ."
+        checkout scm
+        def buildlib = load("pipeline-scripts/buildlib.groovy")
+        def commonlib = buildlib.commonlib
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+        commonlib.describeJob("functional-tests", """
+            <h2>Run art-tools functional test suite</h2>
+        """)
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+        properties(
+            [
+                disableResume(),
+                buildDiscarder(
+                    logRotator(
+                        artifactDaysToKeepStr: "30",
+                        artifactNumToKeepStr: "",
+                        daysToKeepStr: "30",
+                        numToKeepStr: "")),
+                [
+                    $class: "ParametersDefinitionProperty",
+                    parameterDefinitions: [
+                        string(
+                            name: 'MAKE_TARGETS',
+                            description: 'The make targets to run (comma separated)',
+                            defaultValue: 'functional-elliott',
+                            trim: true,
+                        ),
+                        commonlib.artToolsParam(),
+                        commonlib.mockParam(),
+                    ]
+                ],
+            ]
+        )
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
+        commonlib.checkMock()
+        stage("initialize") {
+            currentBuild.displayName += " [$params.MAKE_TARGETS]"
         }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
+        stage("build") {
+            withCredentials([
+                string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+            ]) {
+                dir("${env.WORKSPACE}/art-tools") {
+                    for (String target : params.MAKE_TARGETS.split(',')) {
+                        target = target.trim()
+                        echo "Building target: ${target}"
+                        // make doesn't inherit / work with jenkins's withEnv directive
+                        // explicitly pass in PATH which has uv path for make tasks
+                        commonlib.shell(script: "PATH=~/.cargo/bin:$PATH make ${target}")
+                    }
+                }
+            }
         }
-      }
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
 }

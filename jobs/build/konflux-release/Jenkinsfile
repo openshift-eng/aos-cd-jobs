@@ -71,6 +71,9 @@ node() {
                 name = params.CONFIG_FILENAME
             }
             currentBuild.displayName += " ${params.BUILD_VERSION} - ${name}"
+            if (params.RELEASE_CONTEXT) {
+                currentBuild.displayName += " ${params.RELEASE_CONTEXT}"
+            }
             if (params.DRY_RUN) {
                 currentBuild.displayName = "[DRY RUN] " + currentBuild.displayName
             }

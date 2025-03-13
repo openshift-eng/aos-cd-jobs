@@ -36,6 +36,12 @@ node() {
                             defaultValue: false
                         ),
                         string(
+                            name: 'RELEASE_ENVIRONMENT',
+                            description: 'The release environment to operate on from the config file e.g. stage, prod',
+                            defaultValue: '',
+                            trim: true
+                        ),
+                        string(
                             name: 'KONFLUX_RELEASE_DATA_PATH',
                             description: '(Optional) konflux-release-data fork to use (e.g. release definition in your own fork). To point to a branch/commit use repo@commitish',
                             defaultValue: "https://gitlab.cee.redhat.com/hybrid-platforms/art/konflux-release-data",
@@ -44,12 +50,6 @@ node() {
                         string(
                             name: 'CONFIG_FILENAME',
                             description: '(Optional) Release config filename to use. Defaults to assembly name',
-                            defaultValue: '',
-                            trim: true
-                        ),
-                        string(
-                            name: 'RELEASE_CONTEXT',
-                            description: '(Optional) The release context to use from the config file e.g. stage, prod, fbc.stage, etc.',
                             defaultValue: '',
                             trim: true
                         ),
@@ -71,8 +71,8 @@ node() {
                 name = params.CONFIG_FILENAME
             }
             currentBuild.displayName += " ${params.BUILD_VERSION} - ${name}"
-            if (params.RELEASE_CONTEXT) {
-                currentBuild.displayName += " ${params.RELEASE_CONTEXT}"
+            if (params.RELEASE_ENVIRONMENT) {
+                currentBuild.displayName += " ${params.RELEASE_ENVIRONMENT}"
             }
             if (params.DRY_RUN) {
                 currentBuild.displayName = "[DRY RUN] " + currentBuild.displayName
@@ -97,15 +97,13 @@ node() {
                     "--konflux-release-path", params.KONFLUX_RELEASE_DATA_PATH,
                     "--group", "openshift-${params.BUILD_VERSION}",
                     "--assembly", params.ASSEMBLY,
+                    "--env=${params.RELEASE_ENVIRONMENT}",
                 ]
                 if (params.FORCE) {
                     cmd << "--force"
                 }
                 if (params.CONFIG_FILENAME) {
                     cmd << "--config-filename=${params.CONFIG_FILENAME}"
-                }
-                if (params.RELEASE_CONTEXT) {
-                    cmd << "--release-context=${params.RELEASE_CONTEXT}"
                 }
                 withCredentials([
                     file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),

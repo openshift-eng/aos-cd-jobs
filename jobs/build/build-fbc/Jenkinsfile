@@ -102,7 +102,7 @@ node() {
         }
     }
 
-    stage('Import FBC catalog objects') {
+    stage('Build FBC artifacts') {
         script {
             // Prepare working dirs
             buildlib.init_artcd_working_dir()

@@ -97,7 +97,7 @@ node() {
                     "--konflux-release-path", params.KONFLUX_RELEASE_DATA_PATH,
                     "--group", "openshift-${params.BUILD_VERSION}",
                     "--assembly", params.ASSEMBLY,
-                    "--env=${params.RELEASE_ENVIRONMENT}",
+                    params.RELEASE_ENVIRONMENT,
                 ]
                 if (params.FORCE) {
                     cmd << "--force"

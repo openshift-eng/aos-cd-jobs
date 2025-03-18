@@ -108,6 +108,9 @@ node() {
                 withCredentials([
                     file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
                     string(credentialsId: 'sid-gitlab-access-token', variable: 'GITLAB_TOKEN'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    string(credentialsId: 'konflux-art-images-username', variable: 'KONFLUX_ART_IMAGES_USERNAME'),
+                    string(credentialsId: 'konflux-art-images-password', variable: 'KONFLUX_ART_IMAGES_PASSWORD'),
                 ]) {
                     echo "Will run ${cmd}"
                     commonlib.shell(script: cmd.join(' '))

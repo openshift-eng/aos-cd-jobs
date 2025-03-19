@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -euox pipefail
 
 WORKDIR="$1"
 cd "$WORKDIR"
@@ -27,7 +27,7 @@ mkdir "$VERSION"
 
 for rpm in *.rpm; do
   arch="$(awk -F'[.]' '{a = $(NF-1); print a=="x86_64" ? "amd64" : a=="aarch64" ? "arm64" : a}' <<<"$rpm")"
-  if [[ "$rpm" == *el9* ]]; then
+  if [[ "$rpm" == *el9* && $(file -b --mime-type "$rpm") == "application/zstd-compressed"  ]]; then
     rpm2cpio "${rpm}" | zstd -d | cpio -idm --quiet ./usr/bin/coreos-installer
   else
     rpm2cpio "${rpm}" | cpio -idm --quiet ./usr/bin/coreos-installer

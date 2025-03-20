@@ -30,7 +30,7 @@ node {
         ]
         for ( version in commonlib.ocp4Versions ) {
             // Only build OCP versions < 4.17
-            if (commonlib.cmp_version(version, "4.17") == -1) {
+            if (buildlib.cmp_version(version, "4.17") == -1) {
                 cmd << "--version=${version}"
             }
         }

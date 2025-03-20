@@ -123,7 +123,7 @@ def enableTelemetryParam() {
         name: 'TELEMETRY_ENABLED',
         description: 'Enable or disable sending traces to otel',
         $class: 'BooleanParameterDefinition',
-        defaultValue: true
+        defaultValue: false
     ]
 }
 

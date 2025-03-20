@@ -29,7 +29,10 @@ node {
             "schedule-ocp4-scan-konflux"
         ]
         for ( version in commonlib.ocp4Versions ) {
-           cmd << "--version=${version}"
+            // Only build OCP versions > 4.16
+            if (commonlib.cmp_version(version, "4.16") == 1) {
+                cmd << "--version=${version}"
+            }
         }
 
         withCredentials([

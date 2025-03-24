@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euox pipefail
+set -euo pipefail
 
 WORKDIR="$1"
 cd "$WORKDIR"
@@ -22,15 +22,17 @@ if [[ -n "${3-}" ]]; then
   rmdir keep/
 fi
 
-rm -rf "$VERSION" temp_extract
+rm -rf "$VERSION"
 mkdir "$VERSION"
 
 for rpm in *.rpm; do
   arch="$(awk -F'[.]' '{a = $(NF-1); print a=="x86_64" ? "amd64" : a=="aarch64" ? "arm64" : a}' <<<"$rpm")"
-  mkdir temp_extract
-  aunpack "$rpm" --extract-to=temp_extract
-  mv temp_extract/usr/bin/coreos-installer "$VERSION/coreos-installer_$arch"
-  rm -rf temp_extract/
+  if [[ "$rpm" == *el9* ]]; then
+    rpm2cpio "${rpm}" | zstd -d | cpio -idm --quiet ./usr/bin/coreos-installer
+  else
+    rpm2cpio "${rpm}" | cpio -idm --quiet ./usr/bin/coreos-installer
+  fi
+  mv usr/bin/coreos-installer "$VERSION/coreos-installer_$arch"
 done
 
 if [[ -f ${VERSION}/coreos-installer_amd64 ]]; then

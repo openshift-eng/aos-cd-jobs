@@ -22,7 +22,7 @@ node {
                     choice(
                         name: 'JOB_NAME',
                         description: 'RHCOS job name to trigger',
-                        choices: ['build'],
+                        choices: ['build', 'build-node-image'],
                     ),
                     booleanParam(
                         name: 'NEW_BUILD',

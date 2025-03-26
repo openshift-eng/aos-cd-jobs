@@ -35,7 +35,7 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
         stream = "${ocpStream}-${rhelStream}"
     }
 
-    baseUrl = "https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/${stream}/builds"
+    baseUrl = "https://releases-rhcos--prod-pipeline.apps.int.prod-stable-spoke1-dc-iad2.itup.redhat.com/storage/prod/streams/${stream}/builds"
     buildUrl = "${baseUrl}/${rhcosBuild}/${arch}"
 
     s3MirrorBaseDir = "/pub/openshift-v4/${arch}/dependencies/rhcos"

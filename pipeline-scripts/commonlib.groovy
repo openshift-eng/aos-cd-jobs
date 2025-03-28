@@ -667,7 +667,13 @@ def syncDirToS3Mirror(local_dir, s3_path, delete_old=true, include_only='', time
         if (delete_old) {
             extra_args += " --delete"
         }
-         withCredentials([
+
+        // sha256sum.txt file will sometimes not get synced if it's local timestamp is not updated
+        // to get around that, always touch the file before syncing
+        def shasum_file = "${local_dir}/sha256sum.txt"
+        shell(script: "if [ -f ${shasum_file} ]; then touch ${shasum_file}; fi")
+
+        withCredentials([
             file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
             string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
             retry(3) {

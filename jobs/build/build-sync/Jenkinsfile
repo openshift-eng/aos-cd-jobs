@@ -26,8 +26,9 @@ node() {
         disableResume(),
         buildDiscarder(
           logRotator(
-              artifactDaysToKeepStr: '45',
-              daysToKeepStr: '45',
+              artifactDaysToKeepStr: '30',
+              daysToKeepStr: '30',
+              numToKeepStr: '300',
           )
         ),
         [

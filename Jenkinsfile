@@ -78,13 +78,7 @@ node {
             currentBuild.result = "FAILURE"
             throw err
         } finally {
-            commonlib.safeArchiveArtifacts([
-                "artcd_working/email/**",
-                "artcd_working/**/*.json",
-                "artcd_working/**/*.log",
-                "artcd_working/**/*.yaml",
-                "artcd_working/**/*.yml",
-            ])
+            buildlib.cleanWorkdir("./artcd_working")
             buildlib.cleanWorkspace()
         }
     }

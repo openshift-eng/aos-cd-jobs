@@ -160,6 +160,17 @@ node {
                         commonlib.shell(script: cmd.join(' '))
                     }
                 }
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                        string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+                        file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    ]) {
+                        echo "Will run ${cmd}"
+                        commonlib.shell(script: cmd.join(' '))
+                    }
+                }
             }
         } catch (err) {
             currentBuild.result = "FAILURE"

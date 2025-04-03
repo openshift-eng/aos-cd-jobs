@@ -35,7 +35,7 @@ node() {
                 job: '../aos-cd-builds/build%2Focp4',
                 parameters: [
                     string(name: 'BUILD_VERSION', value: "${cv}"),
-		    string(name: 'ASSEMBLY', value: 'test',
+		    string(name: 'ASSEMBLY', value: 'test'),
                     booleanParam(name: 'IGNORE_LOCKS', value: true),
                     string(name: 'BUILD_IMAGES', value: 'only'),
                     string(name: 'IMAGE_LIST', value: images),

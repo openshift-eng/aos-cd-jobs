@@ -14,13 +14,14 @@ in api.ci because of this, and should be considered the ultimate artbiter.
 
 Example imagestreams:
 
-* [`4.5 x86_64`](https://api.ci.openshift.org/console/project/ocp/browse/images/4.5-art-latest/)
-* [`4.4 s390x`](https://api.ci.openshift.org/console/project/ocp-s390x/browse/images/4.4-art-latest-s390x)
-* [`4.6 ppc64le`](https://api.ci.openshift.org/console/project/ocp-ppc64le/browse/images/4.6-art-latest-ppc64le)
+* [`4.19 x86_64`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp/imagestreams/4.19-art-latest)
+* [`4.20 s390x`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp-s390x/imagestreams/4.20-art-latest-s390x)
+* [`4.19 arm64 priv`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp-arm64-priv/imagestreams/4.19-art-latest-arm64-priv)
+
 
 ## Timing
 
-This will nearly always be run by the `ocp4` or `custom` job.
+This will nearly always be run by the `ocp4` job.
 
 A human might want to run this after hand-adjusting the current tagged images
 in brew in order to update the nightlies accordingly. Another option is to sync
@@ -30,7 +31,7 @@ images from an assembly.
 
 Among the archived artifacts for this job are the arch-specific imagestream
 definitions that specify the contents of nightlies. These can be useful for
-monkeying with the contents by hand, for example to [trigger a new nightly](https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#what-to-do-if-the-latest-nightly-is-rejected-).
+monkeying with the contents by hand, for example to [trigger a new nightly](https://art-docs.engineering.redhat.com/release/4.y.z-stream/#what-to-do-if-the-latest-nightly-is-rejected).
 (Although such monkeying for any other reason is probably unwise, and tedious
 for multiple arches.)
 

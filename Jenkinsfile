@@ -11,7 +11,7 @@ node() {
         <b>Timing</b>: usually automated. Human might use to revert or hand-advance nightly membership.
 
         This job gets the latest images from our candidate tags, syncs them to quay.io,
-        and updates the imagestreams on api.ci which feed into nightlies on our
+        and updates the imagestreams on app.ci which feed into nightlies on our
         release-controllers.
 
         build-sync runs a comprehensive set of checks validating the internal consistency
@@ -45,11 +45,6 @@ node() {
                     description: 'The name of an assembly to sync.',
                     defaultValue: "stream",
                     trim: true,
-                ),
-                choice(
-                    name: 'BUILD_SYSTEM',
-                    description: 'Whether we should look at Brew or Konflux builds',
-                    choices: ['brew', 'konflux'].join('\n'),
                 ),
                 booleanParam(
                     name        : 'PUBLISH',
@@ -179,7 +174,7 @@ node() {
             "build-sync",
             "--version=${params.BUILD_VERSION}",
             "--assembly=${params.ASSEMBLY}",
-            "--build-system=${params.BUILD_SYSTEM}"
+            "--build-system=brew"
         ]
         if (params.PUBLISH) {
             cmd << "--publish"

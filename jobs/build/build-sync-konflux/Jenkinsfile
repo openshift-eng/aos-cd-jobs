@@ -6,7 +6,7 @@ node() {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
-    commonlib.describeJob("build-sync", """
+    commonlib.describeJob("build-sync-konflux", """
         <h2>Mirror latest 4.y images to nightlies</h2>
         <b>Timing</b>: usually automated. Human might use to revert or hand-advance nightly membership.
 
@@ -174,7 +174,7 @@ node() {
             "build-sync",
             "--version=${params.BUILD_VERSION}",
             "--assembly=${params.ASSEMBLY}",
-            "--build-system=brew"
+            "--build-system=konflux"
         ]
         if (params.PUBLISH) {
             cmd << "--publish"

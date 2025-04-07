@@ -2,26 +2,25 @@
 
 ## Purpose
 
-This job gets the latest payload images from our candidate tags, syncs them to
-quay.io/openshift-release-dev/ocp-v4.0-art-dev where we publish payload members
-for all 4.y versions, and updates the arch-specific imagestreams on api.ci
+This job gets the latest Konflux payload images from our candidate tags, syncs them to
+quay.io/openshift-release-dev where we publish payload members
+for all 4.y versions, and updates the arch-specific imagestreams on app.ci
 (which feed into nightlies on our release-controllers) to point at the updated
 (arch-specific) image shasum.
 
-Before announcing a new assembly on api.ci, a comprehensive set of internal
+Before announcing a new assembly on app.ci, a comprehensive set of internal
 consistency checks is executed. Build-sync may decide not to create a new entry
-in api.ci because of this, and should be considered the ultimate artbiter.
+in app.ci because of this, and should be considered the ultimate artbiter.
 
 Example imagestreams:
 
-* [`4.19 x86_64`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp/imagestreams/4.19-art-latest)
-* [`4.20 s390x`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp-s390x/imagestreams/4.20-art-latest-s390x)
-* [`4.19 arm64 priv`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp-arm64-priv/imagestreams/4.19-art-latest-arm64-priv)
-
+* [`4.19 x86_64`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp/imagestreams/4.19-konflux-art-latest)
+* [`4.20 s390x`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp-s390x/imagestreams/4.20-konflux-art-latest-s390x)
+* [`4.19 arm64 priv`](https://console-openshift-console.apps.ci.l2s4.p1.openshiftapps.com/k8s/ns/ocp-arm64-priv/imagestreams/4.19-konflux-art-latest-arm64-priv)
 
 ## Timing
 
-This will nearly always be run by the `ocp4` job.
+This will nearly always be run by the `ocp4-konflux` job.
 
 A human might want to run this after hand-adjusting the current tagged images
 in brew in order to update the nightlies accordingly. Another option is to sync

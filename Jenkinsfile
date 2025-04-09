@@ -54,7 +54,7 @@ node {
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
         // but for now, being this strict is slowing down the delivery of nightlies.
         //lock("compose-lock-${params.BUILD_VERSION}") {
-        def lockval = params.DRY_RUN ? "rhcos-lock-${params.BUILD_VERSION}-dryrun" : "rhcos-lock-${params.BUILD_VERSION}"
+        def lockval = params.DRY_RUN ? "rhcos-lock-${params.BUILD_VERSION}-dryrun" : "rhcos-lock-${params.BUILD_VERSION}-${params.JOB_NAME}"
         lock(resource: lockval, skipIfLocked: true) {  // wait for all to succeed or fail for this version before starting more
             skipBuild = false
             echo "triggering rhcos builds"

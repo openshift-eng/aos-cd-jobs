@@ -42,6 +42,11 @@ node {
                             description: "(Optional for public nightlies) List of nightlies to match with <code>doozer get-nightlies</code> (if empty, find latest). If preparing from private nightlies, provide the amd64 nightly as parameter, to match. The automation will find the corresponding nightlies for other arches.",
                             trim: true,
                         ),
+                        choice(
+                            name: 'BUILD_SYSTEM',
+                            description: 'Whether we should look at Brew or Konflux builds',
+                            choices: ['brew', 'konflux'].join('\n'),
+                        ),
                         booleanParam(
                             name: 'ALLOW_PENDING',
                             description: 'Match nightlies that have not completed tests',
@@ -141,6 +146,7 @@ node {
             cmd += [
                 "gen-assembly",
                 "--data-path", params.DOOZER_DATA_PATH,
+                "--build-system", params.BUILD_SYSTEM,
                 "-g", "openshift-$params.BUILD_VERSION",
                 "--assembly", params.ASSEMBLY_NAME,
             ]
@@ -199,7 +205,8 @@ node {
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                 ]) {
                     withEnv(["BUILD_URL=${BUILD_URL}"]) {
                         commonlib.shell(script: cmd.join(' '))

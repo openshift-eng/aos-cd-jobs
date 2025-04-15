@@ -74,11 +74,6 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
-                        name: 'SKIP_ATTACHED_BUG_CHECK',
-                        description: 'Skip attached bug check',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
                         name: 'SKIP_SIGNING',
                         description: 'Do not sign the release (legacy).',
                         defaultValue: false,
@@ -107,7 +102,6 @@ node {
 
     commonlib.checkMock()
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.VERSION)
-    def skipAttachedBugCheck = params.SKIP_ATTACHED_BUG_CHECK
     def next_minor = "${major}.${minor + 1}"
     if (params.DRY_RUN) {
         currentBuild.displayName += " (dry-run)"
@@ -141,9 +135,6 @@ node {
             "--group=openshift-${params.VERSION}",
             "--assembly=${params.ASSEMBLY}",
         ]
-        if (skipAttachedBugCheck) {
-            cmd << "--skip-attached-bug-check"
-        }
         if (params.SKIP_IMAGE_LIST) {
             cmd << "--skip-image-list"
         }

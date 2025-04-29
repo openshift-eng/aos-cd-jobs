@@ -75,7 +75,7 @@ node() {
                 sh "mkdir -p ./artcd_working"
                 def cmd = [
                     "artcd",
-                    "-vv",
+                    "-v",
                     "--working-dir=./artcd_working",
                     "--config", "./config/artcd.toml",
                 ]

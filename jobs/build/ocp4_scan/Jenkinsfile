@@ -84,7 +84,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                 buildlib.init_artcd_working_dir()
                 cmd = [
                     "artcd",
-                    "-vv",
+                    "-v",
                     "--working-dir=${artcd_working}",
                     "--config=./config/artcd.toml",
                 ]

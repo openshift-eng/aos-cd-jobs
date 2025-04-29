@@ -41,7 +41,7 @@ node() {
 
     def cmd = [
         "artcd",
-        "-vv",
+        "-v",
         "--working-dir=${artcd_working}",
         "--config=./config/artcd.toml",
         "images-health",

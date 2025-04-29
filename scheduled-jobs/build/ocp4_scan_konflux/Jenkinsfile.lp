@@ -23,7 +23,7 @@ node {
     stage("scan") {
         cmd = [
             "artcd",
-            "-vv",
+            "-v",
             "--working-dir=${WORKSPACE}/artcd_working",
             "--config=./config/artcd.toml",
             "schedule-ocp4-scan-konflux"

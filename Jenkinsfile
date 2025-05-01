@@ -105,8 +105,15 @@ node() {
                         string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
              ]) {
                 echo "Will run ${cmd}"
-                commonlib.shell(script: cmd.join(" "))
-
+                try {
+                    commonlib.shell(script: cmd.join(" "))
+                } catch (err) {
+                    throw err
+                } finally {
+                    commonlib.safeArchiveArtifacts([
+                        "artcd_working/**/*.log",
+                    ])
+                }
             }
         }
     }

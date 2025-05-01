@@ -261,7 +261,7 @@ View the build artifacts and console output on Jenkins:
     } finally {
         compressBrewLogs()
         commonlib.safeArchiveArtifacts([
-            "artcd_working/doozer_working/*.log",
+            "artcd_working/**/*.log",
             "artcd_working/doozer_working/brew-logs.tar.bz2",
             "artcd_working/doozer_working/*.yaml",
             "artcd_working/doozer_working/*.yml",

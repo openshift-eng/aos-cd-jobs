@@ -115,6 +115,10 @@ node {
                             sh(script: cmd.join(' '), returnStdout: true)
                         } catch (err) {
                             throw err
+                        } finally {
+                            commonlib.safeArchiveArtifacts([
+                                "artcd_working/**/*.log",
+                            ])
                         }
                     } // withEnv
                 } // withCredentials

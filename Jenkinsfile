@@ -112,8 +112,6 @@ node() {
         script {
             // Prepare working dirs
             buildlib.init_artcd_working_dir()
-            def doozer_working = "${WORKSPACE}/doozer_working"
-            buildlib.cleanWorkdir(doozer_working)
 
             // Create artcd command
             def cmd = [
@@ -156,8 +154,7 @@ node() {
                             throw err
                         } finally {
                             commonlib.safeArchiveArtifacts([
-                                "doozer_working/*.log",
-                                "doozer_working/*.yaml",
+                                "artcd_working/**/*.log",
                             ])
                         }
                     } // withEnv

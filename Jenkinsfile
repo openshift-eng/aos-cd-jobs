@@ -47,7 +47,15 @@ node {
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
                 ]) {
             withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
-                sh(script: cmd.join(' '), returnStdout: true)
+                try {
+                    sh(script: cmd.join(' '), returnStdout: true)
+                } catch (err) {
+                    throw err
+                } finally {
+                    commonlib.safeArchiveArtifacts([
+                        "artcd_working/**/*.log",
+                    ])
+                }
             }
         }
     }

@@ -47,6 +47,10 @@ node {
                 } catch (err) {
                     slacklib.to("#art-release").failure("Error running ocp_scan", err)
                     throw err
+                } finally {
+                    commonlib.safeArchiveArtifacts([
+                        "artcd_working/**/*.log",
+                    ])
                 }
             }
         }

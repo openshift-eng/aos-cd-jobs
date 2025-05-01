@@ -55,7 +55,15 @@ node {
 
         buildlib.withAppCiAsArtPublish() {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                sh(script: cmd.join(' '), returnStdout: true)
+                try {
+                    sh(script: cmd.join(' '), returnStdout: true)
+                } catch (err) {
+                    throw err
+                } finally {
+                    commonlib.safeArchiveArtifacts([
+                        "artcd_working/**/*.log",
+                    ])
+                }
             }
         }
     }

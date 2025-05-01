@@ -201,8 +201,16 @@ node {
                              file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
                             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}"]) {
-                    def out = sh(script: cmd.join(' '), returnStdout: true).trim()
-                    echo "artcd returns:\n$out"
+                    try {
+                        def out = sh(script: cmd.join(' '), returnStdout: true).trim()
+                        echo "artcd returns:\n$out"
+                    } catch (err) {
+                        throw err
+                    } finally {
+                        commonlib.safeArchiveArtifacts([
+                            "artcd_working/**/*.log",
+                        ])
+                    }
                 }
             }
         }

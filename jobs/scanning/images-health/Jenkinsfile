@@ -72,10 +72,9 @@ node() {
                 currentBuild.result = "FAILURE"
                 throw exception  // gets us a stack trace FWIW
             } finally {
-                // archive artifacts
-                artifacts = []
-                artifacts.add("artcd_working/doozer_working/debug.log")
-                commonlib.safeArchiveArtifacts(artifacts)
+                commonlib.safeArchiveArtifacts([
+                    "artcd_working/**/*.log",
+                ])
             }
         }
     }

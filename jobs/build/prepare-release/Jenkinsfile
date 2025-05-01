@@ -168,8 +168,7 @@ node {
             throw err
         } finally {
             commonlib.safeArchiveArtifacts([
-                "artcd_working/**/debug.log",
-                "artcd_working/**/record.log",
+                "artcd_working/**/*.log",
                 "artcd_working/**/state.yaml",
             ])
             buildlib.cleanWorkspace()

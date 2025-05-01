@@ -209,7 +209,15 @@ node {
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                 ]) {
                     withEnv(["BUILD_URL=${BUILD_URL}"]) {
-                        commonlib.shell(script: cmd.join(' '))
+                        try {
+                            commonlib.shell(script: cmd.join(' '))
+                        } catch (err) {
+                            throw err
+                        } finally {
+                            commonlib.safeArchiveArtifacts([
+                                "artcd_working/**/*.log",
+                            ])
+                        }
                     }
                 }
             }

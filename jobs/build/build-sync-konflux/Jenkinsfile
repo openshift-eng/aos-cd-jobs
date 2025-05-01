@@ -239,9 +239,12 @@ node() {
     """)
             throw (err)
         } finally {
-            artifacts = []
-            artifacts.addAll(["app.ci-backup.tgz", "gen-payload-artifacts/*", "MIRROR_working/debug.log"])
-            commonlib.safeArchiveArtifacts(artifacts)
+            commonlib.safeArchiveArtifacts([
+                "app.ci-backup.tgz",
+                "gen-payload-artifacts/*",
+                "MIRROR_working/debug.log",
+                "artcd_working/**/*.log",
+            ])
             buildlib.cleanWorkspace()
         }
     } // stage build-sync

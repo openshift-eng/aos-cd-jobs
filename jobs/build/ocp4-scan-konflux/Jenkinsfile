@@ -5,7 +5,9 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
         checkout scm
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
-        def doozer_working = "${WORKSPACE}/doozer_working"
+
+        def artcd_working = "${WORKSPACE}/artcd_working"
+        def doozer_working = "${artcd_working}/doozer_working"
 
         // Expose properties for a parameterized build
         properties(

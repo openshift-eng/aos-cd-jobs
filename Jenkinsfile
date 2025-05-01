@@ -187,7 +187,7 @@ node {
 
         stage("terminate") {
             commonlib.safeArchiveArtifacts([
-                "artcd_working/doozer_working/*.log",
+                "artcd_working/**/*.log",
                 "artcd_working/doozer_working/*.yaml",
                 "artcd_working/doozer_working/*.yml",
             ])

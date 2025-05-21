@@ -18,6 +18,8 @@ import groovy.json.JsonOutput
     "4-dev-preview-ppc64le": [this.&setDevPreviewLatest],
     "4-dev-preview-arm64": [this.&setDevPreviewLatest],
 
+    "4.20.0-0.nightly":  [this.&startBuildMicroshiftJob],
+
     "4.19.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8, this.&startRhcosSyncJob],
     "4.19.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
 

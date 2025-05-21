@@ -108,9 +108,8 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                            string(credentialsId: 'konflux-art-images-username', variable: 'KONFLUX_ART_IMAGES_USERNAME'),
-                            string(credentialsId: 'konflux-art-images-password', variable: 'KONFLUX_ART_IMAGES_PASSWORD'),
-                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
+                            file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
+                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                         ]) {
                         // There is a vanishingly small race condition here, but it is not dangerous;
                         // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).

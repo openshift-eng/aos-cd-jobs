@@ -15,7 +15,7 @@ node() {
                         name: 'CHANNEL',
                         description: 'Where should we notify about ART threads',
                         trim: true,
-                        defaultValue: "#team-art"
+                        defaultValue: "#ocp-sustaining-art-collaboration"
                     ),
                     booleanParam(
                         name: 'DRY_RUN',

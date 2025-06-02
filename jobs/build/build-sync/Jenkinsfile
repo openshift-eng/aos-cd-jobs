@@ -92,6 +92,11 @@ node() {
                     defaultValue: "",
                     trim: true,
                 ),
+                choice(
+                    name: 'BUILD_SYSTEM',
+                    description: 'Whether we should look at Brew or Konflux builds',
+                    choices: ['brew', 'konflux'].join('\n'),
+                ),
                 string(
                     name        : 'EXCLUDE_ARCHES',
                     description : '(Optional) List of problem arch(es) NOT to sync (aarch64, ppc64le, s390x, x86_64)',
@@ -174,7 +179,7 @@ node() {
             "build-sync",
             "--version=${params.BUILD_VERSION}",
             "--assembly=${params.ASSEMBLY}",
-            "--build-system=brew"
+            "--build-system", params.BUILD_SYSTEM
         ]
         if (params.PUBLISH) {
             cmd << "--publish"

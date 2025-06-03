@@ -81,6 +81,11 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'SKIP_PLASHETS',
+                        description: 'Do not build plashets (for example to save time when running multiple builds against test assembly)',
+                        defaultValue: true,
+                    ),
                     string(
                             name: 'LIMIT_ARCHES',
                             description: '(Optional) Limit included arches to this list. Valid values are (aarch64, ppc64le, s390x, x86_64)',
@@ -133,6 +138,9 @@ node {
             }
             if (params.DOOZER_DATA_GITREF) {
                 cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+            }
+            if (params.SKIP_PLASHETS) {
+                cmd << "--skip-plashets"
             }
             if (params.LIMIT_ARCHES) {
                 for (arch in params.LIMIT_ARCHES.split("[,\\s]+")) {

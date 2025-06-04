@@ -105,6 +105,8 @@ node() {
                     file(credentialsId: 'art-publish.app.ci.kubeconfig', variable: 'KUBECONFIG'),
                     string(credentialsId: 'konflux-art-images-username', variable: 'KONFLUX_ART_IMAGES_USERNAME'),
                     string(credentialsId: 'konflux-art-images-password', variable: 'KONFLUX_ART_IMAGES_PASSWORD'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                 ]) {
                     echo "Will run ${cmd}"
                     if (params.IGNORE_LOCKS) {

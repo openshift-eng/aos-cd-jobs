@@ -145,7 +145,7 @@ node() {
 
                 // Run pipeline
                 timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
-                    echo "Will run ${cmd}"
+                    echo "Will run ${cmd.join(' ')}"
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
                         try {
                             sh(script: cmd.join(' '), returnStdout: true)

@@ -120,7 +120,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
 
                         withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                             try {
-                                echo "Will run ${cmd}"
+                                echo "Will run ${cmd.join(' ')}"
 
                                 timeout(activity: true, time: 60, unit: 'MINUTES') {
                                     sh(script: cmd.join(' '))

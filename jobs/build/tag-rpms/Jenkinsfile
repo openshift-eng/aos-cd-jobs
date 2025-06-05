@@ -68,7 +68,7 @@ node {
                         string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                     ]) {
-                    echo "Will run ${cmd}"
+                    echo "Will run ${cmd.join(' ')}"
                     withEnv(["BUILD_URL=${BUILD_URL}"]) {
                         commonlib.shell(script: cmd.join(' '))
                     }

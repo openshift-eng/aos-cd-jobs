@@ -78,7 +78,7 @@ node() {
                 if (params.BUILD_REPO_URL) {
                     cmd += ["--build-repo-url", params.BUILD_REPO_URL]
                 }
-                echo "Will run ${cmd}"
+                echo "Will run ${cmd.join(' ')}"
                 
                 withCredentials([
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

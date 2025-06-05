@@ -115,7 +115,7 @@ node {
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
                 ]) {
-                    echo "Will run ${cmd}"
+                    echo "Will run ${cmd.join(' ')}"
                     wrap([$class: 'BuildUser']) {
                         builderEmail = env.BUILD_USER_EMAIL
                     }

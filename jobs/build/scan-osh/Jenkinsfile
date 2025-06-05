@@ -104,7 +104,7 @@ node() {
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                         string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
              ]) {
-                echo "Will run ${cmd}"
+                echo "Will run ${cmd.join(' ')}"
                 try {
                     commonlib.shell(script: cmd.join(" "))
                 } catch (err) {

@@ -114,7 +114,7 @@ node() {
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                 ]) {
-                    echo "Will run ${cmd}"
+                    echo "Will run ${cmd.join(' ')}"
                     buildlib.withAppCiAsArtPublish() {
                         if (params.IGNORE_LOCKS) {
                             commonlib.shell(script: cmd.join(' '))

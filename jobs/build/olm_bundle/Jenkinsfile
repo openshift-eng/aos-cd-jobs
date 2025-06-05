@@ -141,7 +141,7 @@ node() {
 
             // Run pipeline
             timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
-                echo "Will run ${cmd}"
+                echo "Will run ${cmd.join(' ')}"
                 withCredentials([
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

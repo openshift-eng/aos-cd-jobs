@@ -65,7 +65,7 @@ node() {
 
         withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "DOOZER_DB_NAME=art_dash"]) {
             try {
-                echo "Will run ${cmd}"
+                echo "Will run ${cmd.join(' ')}"
                 commonlib.shell(script: cmd.join(' '))
             } catch (exception) {
                 slacklib.to(BUILD_VERSION).say(":alert: Image health check job failed!\n${BUILD_URL}")

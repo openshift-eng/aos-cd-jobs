@@ -203,7 +203,7 @@ node() {
         }
 
         // Run pipeline
-        echo "Will run ${cmd}"
+        echo "Will run ${cmd.join(' ')}"
 
         try {
             buildlib.withAppCiAsArtPublish() {

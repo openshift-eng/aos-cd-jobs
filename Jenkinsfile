@@ -108,7 +108,7 @@ node() {
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                 ]) {
-                    echo "Will run ${cmd}"
+                    echo "Will run ${cmd.join(' ')}"
                     if (params.IGNORE_LOCKS) {
                         commonlib.shell(script: cmd.join(' '))
                     } else {

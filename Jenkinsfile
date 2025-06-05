@@ -157,7 +157,7 @@ node {
                             string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
                             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                         ]) {
-                            echo "Will run ${cmd}"
+                            echo "Will run ${cmd.join(' ')}"
                             commonlib.shell(script: cmd.join(' '))
                         }
                     }

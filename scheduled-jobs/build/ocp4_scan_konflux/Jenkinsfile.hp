@@ -45,7 +45,7 @@ node {
 
             withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                 try {
-                    echo "Will run ${cmd.join(' ')}"echo "Will run ${cmd}"
+                    echo "Will run ${cmd.join(' ')}"
                     sh(script: cmd.join(' '), returnStdout: true)
                 } catch (err) {
                     slacklib.to("#art-release").failure("Error running ocp_scan", err)

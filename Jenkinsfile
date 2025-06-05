@@ -170,7 +170,7 @@ node {
         }
         def signing_env = params.DRY_RUN? "stage": "prod"
         cmd << "--signing-env=${signing_env}"
-        echo "Will run ${cmd}"
+        echo "Will run ${cmd.join(' ')}"
         def siging_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
         def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
         def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"

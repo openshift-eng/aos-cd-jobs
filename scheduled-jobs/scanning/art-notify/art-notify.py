@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-
+import asyncio
 import json
 import os
 import time
 import requests
 from datetime import datetime, timezone
-from urllib.parse import unquote, quote
+from urllib.parse import unquote
 
 from slack_bolt import App
 from slack_sdk.errors import SlackApiError
 
 from check_expired_certificates import check_expired_certificates
+from rebase_failures import get_rebase_failures
 
 SLACK_API_TOKEN = os.getenv('SLACK_API_TOKEN')
 SLACK_SIGNING_SECRET = os.getenv('SLACK_SIGNING_SECRET')
@@ -119,11 +120,35 @@ def get_failed_jobs_text():
     return ''
 
 
-def message_to_slack(app, channel, text, thread_ts=None):
-    pass
+async def notify_rebase_failures(app):
+    rebase_failures = await get_rebase_failures()
+    if not rebase_failures:
+        print('No rebase failures found.')
+        return
+
+    print('Found rebase failures:')
+    print(json.dumps(rebase_failures, indent=4))
+
+    if DRY_RUN.lower() == "true":
+        print("[DRY RUN] Would have notified rebase failures")
+        return
+
+    for engine, versions in rebase_failures.items():
+        for version, failures in versions.items():
+            major, minor = version.split('.')
+            channel = f'#art-release-{major}-{minor}'
+            message = f':warning: @{RELEASE_ARTIST_HANDLE} following images failed to rebase in *{engine}*'
+            response = app.client.chat_postMessage(channel=channel, text=message)
+
+            for image, counter in failures.items():
+                app.client.chat_postMessage(
+                    channel=channel,
+                    text=f'- `{image}`: failed {counter} times',
+                    thread_ts=response['ts']
+                )
 
 
-def main():
+async def main():
     failed_jobs_text = get_failed_jobs_text()
     expired_certificates = check_expired_certificates()
 
@@ -131,6 +156,8 @@ def main():
         token=SLACK_API_TOKEN,
         signing_secret=SLACK_SIGNING_SECRET,
     )
+
+    await notify_rebase_failures(app)
 
     all_matches = []
     next_cursor = '*'
@@ -152,7 +179,7 @@ def main():
 
     if not (all_matches or failed_jobs_text):
         print('No messages matching attention emoji criteria and no failed jobs found')
-        response = app.client.chat_postMessage(
+        app.client.chat_postMessage(
             channel=CHANNEL,
             text=f':check: no unresolved threads / job failures found'
         )
@@ -282,4 +309,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

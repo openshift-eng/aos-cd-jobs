@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 node {
+    deleteDir()
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib

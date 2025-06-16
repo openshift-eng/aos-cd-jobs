@@ -1,9 +1,8 @@
 
 node() {
     checkout scm
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    def commonlib = buildlib.commonlib
-    def slacklib = commonlib.slacklib
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    slacklib = commonlib.slacklib
 
     properties([
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
@@ -13,23 +12,22 @@ node() {
             $class: 'ParametersDefinitionProperty',
             parameterDefinitions: [
                 string(
-                    name: 'CHANNEL',
-                    description: 'Where should we notify about ART threads',
-                    trim: true,
-                    defaultValue: "#ocp-sustaining-art-collaboration"
-                ),
-                commonlib.dryrunParam(description='Will not message to slack, if dry run is true'),
-                commonlib.artToolsParam(),
+                        name: 'CHANNEL',
+                        description: 'Where should we notify about ART threads',
+                        trim: true,
+                        defaultValue: "#ocp-sustaining-art-collaboration"
+                    ),
+                    booleanParam(
+                        name: 'DRY_RUN',
+                        description: 'Will not message to slack, if dry run is true',
+                        defaultValue: false
+                    ),
                 commonlib.mockParam(),
             ]
         ]
     ])
 
     commonlib.checkMock()
-
-    stage('Initialize') {
-        commonlib.shell("pip install slack_bolt")
-    }
 
     stage('Check unresolved ART threads') {
         try {
@@ -38,8 +36,7 @@ node() {
                                 string(credentialsId: "art-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
                                 string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET"),
                                 string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
                             ]) {
                 withEnv(["CHANNEL=${params.CHANNEL}", "DRY_RUN=${params.DRY_RUN}"]) {
                     retry(10) {

@@ -50,7 +50,6 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     dir ( rhcosWorking ) {
         sh("wget ${metaUrl} -O meta.json")
         artifacts.add("${rhcosWorking}/meta.json")
-        commonlib.shell(script: "pip install awscli")
     }
 }
 

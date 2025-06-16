@@ -1,7 +1,8 @@
 
 node() {
     checkout scm
-    commonlib = load("pipeline-scripts/commonlib.groovy")
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
     slacklib = commonlib.slacklib
 
     properties([
@@ -12,16 +13,13 @@ node() {
             $class: 'ParametersDefinitionProperty',
             parameterDefinitions: [
                 string(
-                        name: 'CHANNEL',
-                        description: 'Where should we notify about ART threads',
-                        trim: true,
-                        defaultValue: "#ocp-sustaining-art-collaboration"
-                    ),
-                    booleanParam(
-                        name: 'DRY_RUN',
-                        description: 'Will not message to slack, if dry run is true',
-                        defaultValue: false
-                    ),
+                    name: 'CHANNEL',
+                    description: 'Where should we notify about ART threads',
+                    trim: true,
+                    defaultValue: "#ocp-sustaining-art-collaboration"
+                ),
+                commonlib.dryrunParam(description='Will not message to slack, if dry run is true'),
+                commonlib.artToolsParam(),
                 commonlib.mockParam(),
             ]
         ]
@@ -30,17 +28,34 @@ node() {
     commonlib.checkMock()
 
     stage('Check unresolved ART threads') {
+        buildlib.cleanWorkdir("./artcd_working")
+        sh "mkdir -p ./artcd_working"
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config", "./config/artcd.toml"
+        ]
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        }
+        cmd += [
+            "art-notify",
+            "--channel=${params.CHANNEL}"
+        ]
+
         try {
             withCredentials([
                                 string(credentialsId: "art-bot-slack-token", variable: "SLACK_API_TOKEN"),
                                 string(credentialsId: "art-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
                                 string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET"),
                                 string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
+                                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                             ]) {
                 withEnv(["CHANNEL=${params.CHANNEL}", "DRY_RUN=${params.DRY_RUN}"]) {
                     retry(10) {
-                        commonlib.shell(script: "python -- scheduled-jobs/scanning/art-notify/art-notify.py")
+                        commonlib.shell(script: cmd.join(' '))
                     }
                 }
             }

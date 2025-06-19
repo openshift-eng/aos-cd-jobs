@@ -108,12 +108,14 @@ node() {
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                 ]) {
-                    echo "Will run ${cmd.join(' ')}"
-                    if (params.IGNORE_LOCKS) {
-                        commonlib.shell(script: cmd.join(' '))
-                    } else {
-                        lock("build-microshift-bootc-lock-${params.BUILD_VERSION}") {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        echo "Will run ${cmd.join(' ')}"
+                        if (params.IGNORE_LOCKS) {
                             commonlib.shell(script: cmd.join(' '))
+                        } else {
+                            lock("build-microshift-bootc-lock-${params.BUILD_VERSION}") {
+                                commonlib.shell(script: cmd.join(' '))
+                            }
                         }
                     }
                 }

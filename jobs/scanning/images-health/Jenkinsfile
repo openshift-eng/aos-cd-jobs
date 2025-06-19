@@ -63,7 +63,7 @@ node() {
             builderEmail = env.BUILD_USER_EMAIL
         }
 
-        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "DOOZER_DB_NAME=art_dash"]) {
+        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "DOOZER_DB_NAME=art_dash", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
             try {
                 echo "Will run ${cmd.join(' ')}"
                 commonlib.shell(script: cmd.join(' '))

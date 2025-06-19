@@ -58,6 +58,11 @@ node() {
                             defaultValue: false
                         ),
                         booleanParam(
+                            name: 'SKIP_PREPARE_RELEASE',
+                            description: 'Do not require microshift advisory prepared, just get it build',
+                            defaultValue: false
+                        ),
+                        booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",
                             defaultValue: false
@@ -102,6 +107,9 @@ node() {
                 }
                 if (params.FORCE_REBUILD) {
                     cmd << "--force"
+                }
+                if (params.SKIP_PREPARE_RELEASE) {
+                    cmd << "--skip-prepare-release"
                 }
                 if (params.NO_REBASE) {
                     cmd << "--no-rebase"

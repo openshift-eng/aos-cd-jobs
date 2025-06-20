@@ -58,7 +58,7 @@ node() {
                             defaultValue: false
                         ),
                         booleanParam(
-                            name: 'SKIP_PREPARE_RELEASE',
+                            name: 'SKIP_PREPARE_ADVISORY',
                             description: 'Do not require microshift advisory prepared, just get it build',
                             defaultValue: false
                         ),

@@ -113,7 +113,7 @@ node() {
                 if (params.FORCE_REBUILD) {
                     cmd << "--force"
                 }
-                if (params.SKIP_PREPARE_RELEASE) {
+                if (params.SKIP_PREPARE_ADVISORY) {
                     cmd << "--skip-prepare-advisory"
                 }
                 if (params.DATE) {

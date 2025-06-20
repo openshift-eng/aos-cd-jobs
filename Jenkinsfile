@@ -58,6 +58,16 @@ node() {
                             defaultValue: false
                         ),
                         booleanParam(
+                            name: 'SKIP_PREPARE_ADVISORY',
+                            description: 'Do not require microshift advisory prepared, just get it build',
+                            defaultValue: false
+                        ),
+                        string(
+                            name: "DATE",
+                            description: "(Optional) Leave empty to use auto-fetched release date. Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
+                            trim: true
+                        ),
+                        booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",
                             defaultValue: false
@@ -102,6 +112,12 @@ node() {
                 }
                 if (params.FORCE_REBUILD) {
                     cmd << "--force"
+                }
+                if (params.SKIP_PREPARE_ADVISORY) {
+                    cmd << "--skip-prepare-advisory"
+                }
+                if (params.DATE) {
+                    cmd << "--date" << params.DATE
                 }
                 if (params.NO_REBASE) {
                     cmd << "--no-rebase"

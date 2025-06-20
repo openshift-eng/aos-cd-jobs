@@ -115,8 +115,7 @@ node() {
                 string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                 string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                 file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
-                string(credentialsId: 'konflux-art-images-username', variable: 'KONFLUX_ART_IMAGES_USERNAME'),
-                string(credentialsId: 'konflux-art-images-password', variable: 'KONFLUX_ART_IMAGES_PASSWORD'),
+                file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                 file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
             ]) {

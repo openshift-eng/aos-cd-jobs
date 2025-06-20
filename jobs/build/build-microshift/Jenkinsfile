@@ -114,7 +114,7 @@ node() {
                     cmd << "--force"
                 }
                 if (params.SKIP_PREPARE_RELEASE) {
-                    cmd << "--skip-prepare-release"
+                    cmd << "--skip-prepare-advisory"
                 }
                 if (params.DATE) {
                     cmd << "--date" << params.DATE

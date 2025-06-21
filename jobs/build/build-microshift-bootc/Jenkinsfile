@@ -107,12 +107,14 @@ node() {
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                     file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                 ]) {
-                    echo "Will run ${cmd.join(' ')}"
-                    if (params.IGNORE_LOCKS) {
-                        commonlib.shell(script: cmd.join(' '))
-                    } else {
-                        lock("build-microshift-bootc-lock-${params.BUILD_VERSION}") {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        echo "Will run ${cmd.join(' ')}"
+                        if (params.IGNORE_LOCKS) {
                             commonlib.shell(script: cmd.join(' '))
+                        } else {
+                            lock("build-microshift-bootc-lock-${params.BUILD_VERSION}") {
+                                commonlib.shell(script: cmd.join(' '))
+                            }
                         }
                     }
                 }

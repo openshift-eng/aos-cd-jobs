@@ -84,9 +84,14 @@ node {
                         cmd << "--tracker=${tracker.trim()}"
                     }
                 }
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                    echo "Will run ${cmd.join(' ')}"
-                    commonlib.shell(script: cmd.join(' '))
+                withCredentials([
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                ]) {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        echo "Will run ${cmd.join(' ')}"
+                        commonlib.shell(script: cmd.join(' '))
+                    }
                 }
             }
         } catch (err) {

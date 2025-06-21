@@ -61,9 +61,14 @@ node {
             ]
             try {
                 sshagent(["openshift-bot"]) {
-                    withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-                        echo "Will run ${cmd.join(' ')}"
-                        commonlib.shell(script: cmd.join(' '))
+                    withCredentials([
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                        string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    ]) {
+                        withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                            echo "Will run ${cmd.join(' ')}"
+                            commonlib.shell(script: cmd.join(' '))
+                        }
                     }
                 }
             } finally {

@@ -58,7 +58,7 @@ node() {
                             defaultValue: false
                         ),
                         booleanParam(
-                            name: 'SKIP_PREPARE_ADVISORY',
+                            name: 'SKIP_PREPARE_RELEASE',
                             description: 'Do not require microshift advisory prepared, just get it build',
                             defaultValue: false
                         ),
@@ -113,8 +113,8 @@ node() {
                 if (params.FORCE_REBUILD) {
                     cmd << "--force"
                 }
-                if (params.SKIP_PREPARE_ADVISORY) {
-                    cmd << "--skip-prepare-advisory"
+                if (params.SKIP_PREPARE_RELEASE) {
+                    cmd << "--skip-prepare-release"
                 }
                 if (params.DATE) {
                     cmd << "--date" << params.DATE

@@ -88,7 +88,9 @@ node() {
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
                 ]) {
-                    commonlib.shell(script: cmd.join(' '))
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        commonlib.shell(script: cmd.join(' '))
+                    }
                 }
             }
         } finally {

@@ -54,15 +54,20 @@ node {
         }
 
         buildlib.withAppCiAsArtPublish() {
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                try {
-                    sh(script: cmd.join(' '), returnStdout: true)
-                } catch (err) {
-                    throw err
-                } finally {
-                    commonlib.safeArchiveArtifacts([
-                        "artcd_working/**/*.log",
-                    ])
+            withCredentials([
+                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+            ]) {
+                withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                    try {
+                        sh(script: cmd.join(' '), returnStdout: true)
+                    } catch (err) {
+                        throw err
+                    } finally {
+                        commonlib.safeArchiveArtifacts([
+                            "artcd_working/**/*.log",
+                        ])
+                    }
                 }
             }
         }

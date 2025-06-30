@@ -21,7 +21,6 @@ node {
         Build OCP 4 images with Konflux
     """)
 
-
     // Expose properties for a parameterized build
     properties(
         [
@@ -102,6 +101,8 @@ node {
                         description: '(For testing) Skip the OLM bundle build step',
                         defaultValue: false,  // Default to true until we believe bundle build is stable.
                     ),
+                    commonlib.enableTelemetryParam(),
+                    commonlib.telemetryEndpointParam(),
                 ]
             ],
         ]
@@ -179,7 +180,14 @@ node {
                             file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                 ]){
-                    withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                    def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
+                    if (params.TELEMETRY_ENABLED) {
+                        envVars << "TELEMETRY_ENABLED=1"
+                        if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
+                            envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"
+                        }
+                    }
+                    withEnv(envVars) {
                         buildlib.init_artcd_working_dir()
                         try {
                             sh(script: cmd.join(' '), returnStdout: true)

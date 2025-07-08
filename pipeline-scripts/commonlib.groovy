@@ -133,7 +133,7 @@ def telemetryEndpointParam() {
         name: 'OTEL_EXPORTER_OTLP_ENDPOINT',
         description: 'A base endpoint URL for any signal type, with an optionally-specified port number. Helpful for when you’re sending more than one signal to the same endpoint and want one environment variable to control the endpoint',
         $class: 'hudson.model.StringParameterDefinition',
-        defaultValue: 'http://internal-a2d249c19274245ee91a0cb1bbd53347-791131844.us-east-1.elb.amazonaws.com:4317'
+        defaultValue: 'http://internal-aa12b822d287541509c9dbafe097da31-1920395731.us-east-1.elb.amazonaws.com:4317'
     ]
 }
 

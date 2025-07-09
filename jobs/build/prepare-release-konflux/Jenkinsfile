@@ -79,16 +79,18 @@ node() {
                     cmd += ["--build-repo-url", params.BUILD_REPO_URL]
                 }
                 echo "Will run ${cmd.join(' ')}"
-                
-                withCredentials([
-                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
-                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                    file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
-                ]) {
-                    commonlib.shell(script: cmd.join(' '))
+
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                        string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                        string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                        file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                        file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    ]) {
+                        commonlib.shell(script: cmd.join(' '))
+                    }
                 }
             }
         } finally {

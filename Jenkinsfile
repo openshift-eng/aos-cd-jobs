@@ -92,11 +92,6 @@ node() {
                     defaultValue: "",
                     trim: true,
                 ),
-                choice(
-                    name: 'BUILD_SYSTEM',
-                    description: 'Whether we should look at Brew or Konflux builds',
-                    choices: ['brew', 'konflux'].join('\n'),
-                ),
                 string(
                     name        : 'EXCLUDE_ARCHES',
                     description : '(Optional) List of problem arch(es) NOT to sync (aarch64, ppc64le, s390x, x86_64)',
@@ -120,6 +115,11 @@ node() {
     commonlib.checkMock()
 
     stage("Initialize") {
+        // Forbid for Konflux releases
+        BUILD_VERSION_MINOR = params.BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
+        if BUILD_VERSION_MINOR >= 20:
+            error("Please run the build-sync-konflux job instead")
+
         echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")
         currentBuild.displayName = "${BUILD_VERSION} - ${ASSEMBLY}"
 
@@ -179,7 +179,6 @@ node() {
             "build-sync",
             "--version=${params.BUILD_VERSION}",
             "--assembly=${params.ASSEMBLY}",
-            "--build-system", params.BUILD_SYSTEM
         ]
         if (params.PUBLISH) {
             cmd << "--publish"

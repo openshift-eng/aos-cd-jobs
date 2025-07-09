@@ -21,7 +21,6 @@ node {
         Build OCP 4 images with Konflux
     """)
 
-
     // Expose properties for a parameterized build
     properties(
         [
@@ -102,6 +101,8 @@ node {
                         description: '(For testing) Skip the OLM bundle build step',
                         defaultValue: false,  // Default to true until we believe bundle build is stable.
                     ),
+                    commonlib.enableTelemetryParam() + [defaultValue: true],
+                    commonlib.telemetryEndpointParam() + [defaultValue: 'http://internal-a68c498d3b8f34033b0651d295a2fd2a-518993245.us-east-1.elb.amazonaws.com:4317'],
                 ]
             ],
         ]

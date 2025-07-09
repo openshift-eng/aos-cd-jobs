@@ -117,7 +117,7 @@ node() {
     stage("Initialize") {
         // Forbid for Konflux releases
         BUILD_VERSION_MINOR = params.BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
-        if BUILD_VERSION_MINOR >= 20:
+        if (BUILD_VERSION_MINOR >= 20):
             error("Please run the build-sync-konflux job instead")
 
         echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")

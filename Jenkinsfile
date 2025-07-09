@@ -102,7 +102,7 @@ node {
                         defaultValue: false,  // Default to true until we believe bundle build is stable.
                     ),
                     commonlib.enableTelemetryParam() + [defaultValue: true],
-                    commonlib.telemetryEndpointParam() + [defaultValue: 'http://internal-ae376ae27a0164533897f63672a9a423-1051671585.us-east-1.elb.amazonaws.com:4317'],
+                    commonlib.telemetryEndpointParam() + [defaultValue: 'http://internal-a68c498d3b8f34033b0651d295a2fd2a-518993245.us-east-1.elb.amazonaws.com:4317'],
                 ]
             ],
         ]

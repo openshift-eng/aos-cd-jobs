@@ -22,3 +22,4 @@ url = "https://issues.redhat.com"
 [jira.templates]
 ocp4 = "ART-4223"
 ocp3 = "ART-4234"
+ocp4-konflux = "ART-13405"

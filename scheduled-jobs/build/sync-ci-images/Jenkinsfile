@@ -176,7 +176,7 @@ node {
                     } else {
                         withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                             if ( (major == 4 && minor >= 12) || major > 4 ) {
-                                other_args = '--add-label "bugzilla/valid-bug" --add-label "cherry-pick-approved" --add-label "backport-risk-assessed"'
+                                other_args = '--add-label "jira/valid-bug"'
                                 for ( label in params.ADD_LABELS.split() ) {
                                     other_args += " --add-label '${label}'"
                                 }

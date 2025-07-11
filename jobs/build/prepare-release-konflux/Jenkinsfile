@@ -31,6 +31,11 @@ node() {
                             trim: true
                         ),
                         string(
+                            name: "DATE",
+                            description: "(Optional) Leave empty to use auto-fetched release date. Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
+                            trim: true
+                        ),
+                        string(
                             name: "BUILD_REPO_URL",
                             description: "(Optional) Override build-data repo. Defaults to group branch - to use a different branch/commit use repo@branch. e.g. https://github.com/thegreyd/ocp-build-data@prep-shipment-4.19.ec5",
                             defaultValue: "",
@@ -72,6 +77,9 @@ node() {
                     "--group", "openshift-${params.BUILD_VERSION}",
                     "--assembly", params.ASSEMBLY,
                 ]
+                if (params.DATE) {
+                    cmd << "--date" << params.DATE
+                }
                 if (params.SHIPMENT_REPO_URL) {
                     cmd += ["--shipment-repo-url", params.SHIPMENT_REPO_URL]
                 }

@@ -96,6 +96,7 @@ node() {
                         string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                         file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                         file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                     ]) {
                         commonlib.shell(script: cmd.join(' '))
                     }

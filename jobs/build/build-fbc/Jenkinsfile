@@ -47,6 +47,11 @@ node() {
                     trim: true,
                 ),
                 booleanParam(
+                    name: 'RESET_TO_PROD',
+                    description: 'Reset FBC builds to the latest production version',
+                    defaultValue: true, // Default to true for safety
+                ),
+                booleanParam(
                     name: 'SKIP_CHECKS',
                     description: 'Skip all post build checks in the pipeline',
                     defaultValue: false,
@@ -116,6 +121,7 @@ node() {
                 file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
             ]) {
                 def cmd = [
                     "artcd",
@@ -142,6 +148,12 @@ node() {
                     cmd << "--operator-nvrs=${operator_nvrs.join(',')}"
                 if (params.SKIP_CHECKS)
                     cmd << "--skip-checks"
+                if (params.RESET_TO_PROD)
+                    cmd << "--reset-to-prod"
+                else
+                    cmd << "--no-reset-to-prod"
+                if (env.KONFLUX_OPERATOR_INDEX_AUTH_FILE)
+                    cmd << "--prod-registry-auth=${env.KONFLUX_OPERATOR_INDEX_AUTH_FILE}"
 
                 // Run pipeline
                 timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour

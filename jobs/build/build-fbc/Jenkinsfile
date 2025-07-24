@@ -72,6 +72,11 @@ node() {
                     trim: true,
                 ),
                 booleanParam(
+                    name: 'FORCE',
+                    description: 'Force the build even if the artifacts already exist',
+                    defaultValue: false,
+                ),
+                booleanParam(
                     name: 'DRY_RUN',
                     description: 'Just show what would happen, without actually executing the steps',
                     defaultValue: false,
@@ -142,6 +147,8 @@ node() {
                     cmd << "--operator-nvrs=${operator_nvrs.join(',')}"
                 if (params.SKIP_CHECKS)
                     cmd << "--skip-checks"
+                if (params.FORCE_BUILD)
+                    cmd << "--force"
 
                 // Run pipeline
                 timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour

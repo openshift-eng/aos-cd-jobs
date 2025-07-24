@@ -72,8 +72,8 @@ node() {
                     trim: true,
                 ),
                 booleanParam(
-                    name: 'FORCE',
-                    description: 'Force the build even if the artifacts already exist',
+                    name: 'FORCE_BUILD',
+                    description: 'Force rebase and build even if fbc build(s) already exist',
                     defaultValue: false,
                 ),
                 booleanParam(

@@ -38,6 +38,11 @@ node {
                             trim: true,
                         ),
                         string(
+                            name: "DATE",
+                            description: "(Optional) Leave empty to use auto-fetched release date. Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
+                            trim: true
+                        ),
+                        string(
                             name: "NIGHTLIES",
                             description: "(Optional for public nightlies) List of nightlies to match with <code>doozer get-nightlies</code> (if empty, find latest). If preparing from private nightlies, provide the amd64 nightly as parameter, to match. The automation will find the corresponding nightlies for other arches.",
                             trim: true,
@@ -159,6 +164,9 @@ node {
                 for (nightly in params.NIGHTLIES.split("[,\\s]+")) {
                     cmd << "--nightly" << nightly.trim()
                 }
+            }
+            if (params.DATE) {
+                cmd << "--date" << params.DATE
             }
             if (params.ALLOW_PENDING) {
                 cmd << "--allow-pending"

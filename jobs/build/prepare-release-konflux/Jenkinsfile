@@ -36,18 +36,18 @@ node() {
                             trim: true
                         ),
                         string(
-                            name: "BUILD_REPO_URL",
+                            name: "BUILD_DATA_REPO_URL",
                             description: "(Optional) Override build-data repo. Defaults to group branch - to use a different branch/commit use repo@branch. e.g. https://github.com/thegreyd/ocp-build-data@prep-shipment-4.19.ec5",
                             defaultValue: "",
                             trim: true
                         ),
                         booleanParam(
-                            name: "INJECT_BUILD_REPO",
+                            name: "INJECT_BUILD_DATA_REPO",
                             description: "If true, this will inject the BUILD_REPO_URL into the Shipment config. This is useful for testing purposes.",
                             defaultValue: false
                         ),
                         string(
-                            name: "SHIPMENT_REPO_URL",
+                            name: "SHIPMENT_DATA_REPO_URL",
                             description: "(Optional) Override shipment-data repo for opening shipment MR. Target branch will be `main`",
                             defaultValue: "",
                             trim: true
@@ -85,14 +85,14 @@ node() {
                 if (params.DATE) {
                     cmd << "--date" << params.DATE
                 }
-                if (params.SHIPMENT_REPO_URL) {
-                    cmd += ["--shipment-repo-url", params.SHIPMENT_REPO_URL]
+                if (params.SHIPMENT_DATA_REPO_URL) {
+                    cmd += ["--shipment-data-repo-url", params.SHIPMENT_DATA_REPO_URL]
                 }
-                if (params.BUILD_REPO_URL) {
-                    cmd += ["--build-repo-url", params.BUILD_REPO_URL]
+                if (params.BUILD_DATA_REPO_URL) {
+                    cmd += ["--build-data-repo-url", params.BUILD_DATA_REPO_URL]
                 }
-                if (params.INJECT_BUILD_REPO) {
-                    cmd += ["--inject-build-repo"]
+                if (params.INJECT_BUILD_DATA_REPO) {
+                    cmd += ["--inject-build-data-repo"]
                 }
                 echo "Will run ${cmd.join(' ')}"
 

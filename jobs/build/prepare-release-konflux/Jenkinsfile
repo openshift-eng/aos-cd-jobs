@@ -41,6 +41,11 @@ node() {
                             defaultValue: "",
                             trim: true
                         ),
+                        booleanParam(
+                            name: "INJECT_BUILD_REPO",
+                            description: "If true, this will inject the BUILD_REPO_URL into the Shipment config. This is useful for testing purposes.",
+                            defaultValue: false
+                        ),
                         string(
                             name: "SHIPMENT_REPO_URL",
                             description: "(Optional) Override shipment-data repo for opening shipment MR. Target branch will be `main`",
@@ -85,6 +90,9 @@ node() {
                 }
                 if (params.BUILD_REPO_URL) {
                     cmd += ["--build-repo-url", params.BUILD_REPO_URL]
+                }
+                if (params.INJECT_BUILD_REPO) {
+                    cmd += ["--inject-build-repo"]
                 }
                 echo "Will run ${cmd.join(' ')}"
 

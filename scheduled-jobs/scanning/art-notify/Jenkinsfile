@@ -55,7 +55,7 @@ node() {
                                 string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                             ]) {
                 withEnv(["CHANNEL=${params.CHANNEL}", "DRY_RUN=${params.DRY_RUN}"]) {
-                    retry(10) {
+                    retry(3) {
                         commonlib.shell(script: cmd.join(' '))
                     }
                 }

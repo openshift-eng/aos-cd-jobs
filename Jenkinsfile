@@ -1,68 +1,141 @@
-// Update-branches job
+node {
+    checkout scm
+    def buildlib = load('pipeline-scripts/buildlib.groovy')
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("build-merged-fbc", """
+        <h2>Merge per-component FBC fragments into one single operator index</h2>
+    """)
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+    properties([
+        disableResume(),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                string(
+                    name: 'ART_TOOLS_COMMIT',
+                    description: 'Override the art-tools submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                    defaultValue: "",
+                    trim: true
+                ),
+                choice(
+                    name: 'BUILD_VERSION',
+                    choices: commonlib.ocpVersions,
+                    description: 'OCP Version',
+                ),
+                string(
+                    name: 'DOOZER_DATA_PATH',
+                    description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                    defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                    trim: true,
+                ),
+                string(
+                    name: 'DOOZER_DATA_GITREF',
+                    description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name: 'SKIP_CHECKS',
+                    description: 'Skip all post build checks in the pipeline',
+                    defaultValue: false,
+                ),
+                string(
+                    name: 'ONLY',
+                    description: '(Optional) List **only** the operators you want '  +
+                                 'to build, everything else gets ignored.\n'         +
+                                 'Format: Comma and/or space separated list of brew '+
+                                 'packages (e.g.: cluster-nfd-operator-container)\n' +
+                                 'Leave empty to build all (except EXCLUDE, if defined)',
+                    defaultValue: '',
+                    trim: true,
+                ),
+                string(
+                    name: 'EXCLUDE',
+                    description: '(Optional) List the operators you **don\'t** want ' +
+                                 'to build, everything else gets built.\n'            +
+                                 'Format: Comma and/or space separated list of brew ' +
+                                 'packages (e.g.: cluster-nfd-operator-container)\n'  +
+                                 'Leave empty to build all (or ONLY, if defined)',
+                    defaultValue: '',
+                    trim: true,
+                ),
+                booleanParam(
+                    name: 'DRY_RUN',
+                    description: 'Just show what would happen, without actually executing the steps',
+                    defaultValue: false,
+                ),
+                booleanParam(
+                    name: 'MOCK',
+                    description: 'Pick up changed job parameters and then exit',
+                    defaultValue: false,
+                ),
+            ], // parameterDefinitions
+        ], // ParametersDefinitionProperty
+    ]) // properties
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+    commonlib.checkMock()
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    def only = []
+    def exclude = []
+
+    stage('Set build info') {
+        only = commonlib.parseList(params.ONLY)
+        exclude = commonlib.parseList(params.EXCLUDE)
+        currentBuild.displayName += " (${params.BUILD_VERSION})"
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
-}
+
+    stage('Build FBC artifacts') {
+        script {
+            // Prepare working dirs
+            buildlib.init_artcd_working_dir()
+            def doozer_working = "${WORKSPACE}/doozer_working"
+            buildlib.cleanWorkdir(doozer_working)
+
+            // Create artcd command
+            withCredentials([
+                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+            ]) {
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
+                    "build-merged-fbc",
+                    "--version=${params.BUILD_VERSION}",
+                    "--data-path=${params.DOOZER_DATA_PATH}",
+                    "--data-gitref=${params.DOOZER_DATA_GITREF}",
+                    "--kubeconfig=${env.KONFLUX_SA_KUBECONFIG}",
+                ]
+                if (only)
+                    cmd << "--only=${only.join(',')}"
+                if (exclude)
+                    cmd << "--exclude=${exclude.join(',')}"
+                if (params.SKIP_CHECKS)
+                    cmd << "--skip-checks"
+
+                // Run pipeline
+                timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
+                    echo "Will run ${cmd.join(' ')}"
+                    withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
+                        try {
+                            sh(script: cmd.join(' '), returnStdout: true)
+                        } catch (err) {
+                            throw err
+                        } finally {
+                            commonlib.safeArchiveArtifacts([
+                                "artcd_working/**/*.log",
+                                "artcd_working/**/*.yaml",
+                            ])
+                        }
+                    } // withEnv
+                } // timeout
+            } // withCredentials
+        } // script
+    } //stage
+} // node

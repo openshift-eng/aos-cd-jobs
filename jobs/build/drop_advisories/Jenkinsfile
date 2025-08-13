@@ -19,6 +19,12 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    string(
+                        name: 'ART_TOOLS_COMMIT',
+                        description: 'Override the art-tools submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                        defaultValue: "",
+                        trim: true
+                    ),
                     commonlib.ocpVersionParam('VERSION', '4'),
                     string(
                         name: 'ADVISORIES',

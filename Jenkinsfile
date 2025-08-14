@@ -190,6 +190,7 @@ node {
                              string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL'),
                              string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                              file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
+                             string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}"]) {
                     try {

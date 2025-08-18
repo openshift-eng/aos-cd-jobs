@@ -118,8 +118,8 @@ node {
                         description: '(For testing) Skip the OLM bundle build step',
                         defaultValue: false,  // Default to true until we believe bundle build is stable.
                     ),
-                    commonlib.enableTelemetryParam(),
-                    commonlib.telemetryEndpointParam(),
+                    commonlib.enableTelemetryParam() + [defaultValue: true],
+                    commonlib.telemetryEndpointParam() + [defaultValue: 'http://internal-a344ed20604f143d7955b3c06c517eb8-1688607883.us-east-1.elb.amazonaws.com:4317'],
                 ]
             ],
         ]

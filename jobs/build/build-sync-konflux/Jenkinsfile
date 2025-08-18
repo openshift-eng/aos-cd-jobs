@@ -38,6 +38,8 @@ node() {
                 commonlib.mockParam(),
                 commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                 commonlib.artToolsParam(),
+                commonlib.enableTelemetryParam(),
+                commonlib.telemetryEndpointParam(),
                 string(
                     name: 'ASSEMBLY',
                     description: 'The name of an assembly to sync.',
@@ -106,8 +108,6 @@ node() {
                     description : 'WARNING: Only enable this if a payload containing embargoed build(s) is being promoted after embargo lift',
                     defaultValue: false,
                 ),
-                commonlib.enableTelemetryParam(),
-                commonlib.telemetryEndpointParam(),
             ],
         ]
     ])  // Please update README.md if modifying parameter names or semantics
@@ -164,6 +164,12 @@ node() {
         if (params.DRY_RUN) {
             cmd << "--dry-run"
         }
+        if (params.TELEMETRY_ENABLED) {
+            env.TELEMETRY_ENABLED = "1"
+            if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
+                env.OTEL_EXPORTER_OTLP_ENDPOINT = params.OTEL_EXPORTER_OTLP_ENDPOINT
+            }
+        }
         cmd += [
             "build-sync",
             "--version=${params.BUILD_VERSION}",
@@ -210,14 +216,7 @@ node() {
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                 ]) {
-                    def envVars = ["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]
-                    if (params.TELEMETRY_ENABLED) {
-                        envVars << "TELEMETRY_ENABLED=1"
-                        if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
-                            envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"
-                        }
-                    }
-                    withEnv(envVars) {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                         sh(script: cmd.join(' '), returnStdout: true)
                     }
                 }

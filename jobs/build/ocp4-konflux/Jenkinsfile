@@ -70,13 +70,30 @@ node {
                         description: 'Which images are candidates for building? "only/except" refer to list below',
                         choices: [
                             "only",
+                            "none",
+                            "all",
+                            "except"
+                        ].join("\n")
+                    ),
+                    string(
+                        name: 'IMAGE_LIST',
+                        description: '(Optional) Comma/space-separated list to include/exclude per IMAGE_BUILD_STRATEGY (e.g. logging-kibana5,openshift-jenkins-2)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    choice(
+                        name: 'RPM_BUILD_STRATEGY',
+                        description: 'Which RPMs are candidates for building? "only/except" refer to list below',
+                        choices: [
+                            "none",
+                            "only",
                             "all",
                             "except",
                         ].join("\n")
                     ),
                     string(
-                        name: 'IMAGE_LIST',
-                        description: '(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES (e.g. logging-kibana5,openshift-jenkins-2)',
+                        name: 'RPM_LIST',
+                        description: '(Optional) Comma/space-separated list to include/exclude per RPM_BUILD_STRATEGY (e.g. openshift-ansible,openshift-clients)',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -153,7 +170,9 @@ node {
             }
             cmd += [
                 "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",
-                "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
+                "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
+                "--rpm-build-strategy=${RPM_BUILD_STRATEGY}",
+                "--rpm-list=${commonlib.cleanCommaList(params.RPM_LIST)}"
             ]
             if (params.SKIP_REBASE) {
                 cmd << "--skip-rebase"

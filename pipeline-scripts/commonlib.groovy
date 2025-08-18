@@ -125,7 +125,7 @@ def enableTelemetryParam() {
         name: 'TELEMETRY_ENABLED',
         description: 'Enable or disable sending traces to otel',
         $class: 'BooleanParameterDefinition',
-        defaultValue: true
+        defaultValue: false
     ]
 }
 
@@ -134,7 +134,7 @@ def telemetryEndpointParam() {
         name: 'OTEL_EXPORTER_OTLP_ENDPOINT',
         description: 'A base endpoint URL for any signal type, with an optionally-specified port number. Helpful for when you’re sending more than one signal to the same endpoint and want one environment variable to control the endpoint',
         $class: 'hudson.model.StringParameterDefinition',
-        defaultValue: 'http://internal-a344ed20604f143d7955b3c06c517eb8-1688607883.us-east-1.elb.amazonaws.com:4317'
+        defaultValue: ''
     ]
 }
 

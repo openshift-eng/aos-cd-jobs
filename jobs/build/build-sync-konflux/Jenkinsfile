@@ -38,8 +38,6 @@ node() {
                 commonlib.mockParam(),
                 commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                 commonlib.artToolsParam(),
-                commonlib.enableTelemetryParam(),
-                commonlib.telemetryEndpointParam(),
                 string(
                     name: 'ASSEMBLY',
                     description: 'The name of an assembly to sync.',
@@ -108,6 +106,8 @@ node() {
                     description : 'WARNING: Only enable this if a payload containing embargoed build(s) is being promoted after embargo lift',
                     defaultValue: false,
                 ),
+                commonlib.enableTelemetryParam(),
+                commonlib.telemetryEndpointParam(),
             ],
         ]
     ])  // Please update README.md if modifying parameter names or semantics

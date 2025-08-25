@@ -12,6 +12,24 @@ node() {
                 parameterDefinitions: [
                     commonlib.artToolsParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION'),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'IMAGE_LIST',
+                        description: '(Optional) Comma/space-separated list to include/exclude per IMAGE_BUILD_STRATEGY (e.g. logging-kibana5,openshift-jenkins-2)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     booleanParam(
                         name: 'SEND_TO_RELEASE_CHANNEL',
                         defaultValue: true,
@@ -47,6 +65,15 @@ node() {
         "images-health",
         "--version=${params.BUILD_VERSION}"
     ]
+    if (params.DOOZER_DATA_PATH) {
+        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+    }
+    if (params.DOOZER_DATA_GITREF) {
+        cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+    }
+    if (params.IMAGE_LIST) {
+        cmd << "--image-list=${params.IMAGE_LIST}"
+    }
     if (params.SEND_TO_RELEASE_CHANNEL) {
         cmd << "--send-to-release-channel"
     }

@@ -50,7 +50,7 @@ node {
                         choice(
                             name: 'BUILD_SYSTEM',
                             description: 'Whether we should look at Brew or Konflux builds',
-                            choices: ['brew', 'konflux'].join('\n'),
+                            choices: ['konflux', 'brew'].join('\n'),
                         ),
                         booleanParam(
                             name: 'ALLOW_PENDING',

@@ -213,7 +213,8 @@ node {
                                 string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                                 usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
                                 file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
-                                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
+                                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                                usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD')
                             ]) {
                         withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                             buildlib.init_artcd_working_dir()

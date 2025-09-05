@@ -28,24 +28,13 @@ node {
                     commonlib.artToolsParam(),
                     string(
                         name: 'VERSION',
-                        description: 'The ocp-build-data branch to use',
+                        description: 'The OADP version group to use with -g flag',
                         defaultValue: "oadp-1.5",
-                        trim: true,
-                    ),
-                    booleanParam(
-                        name: 'IGNORE_LOCKS',
-                        description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
-                        defaultValue: false
-                    ),
-                    string(
-                        name: 'PLR_TEMPLATE_COMMIT',
-                        description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
-                        defaultValue: "",
                         trim: true,
                     ),
                     string(
                         name: 'ASSEMBLY',
-                        description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
+                        description: 'The name of an assembly to rebase & build for',
                         defaultValue: "test",
                         trim: true,
                     ),
@@ -56,63 +45,10 @@ node {
                         trim: true,
                     ),
                     string(
-                        name: 'DOOZER_DATA_GITREF',
-                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    choice(
-                        name: 'IMAGE_BUILD_STRATEGY',
-                        description: 'Which images are candidates for building? "only/except" refer to list below',
-                        choices: [
-                            "only",
-                            "none",
-                            "all",
-                            "except"
-                        ].join("\n")
-                    ),
-                    string(
                         name: 'IMAGE_LIST',
-                        description: '(Optional) Comma/space-separated list to include/exclude per IMAGE_BUILD_STRATEGY (e.g. logging-kibana5,openshift-jenkins-2)',
-                        defaultValue: "",
+                        description: 'Comma/space-separated list of image names to build',
+                        defaultValue: "oadp-operator",
                         trim: true,
-                    ),
-                    choice(
-                        name: 'RPM_BUILD_STRATEGY',
-                        description: 'Which RPMs are candidates for building? "only/except" refer to list below',
-                        choices: [
-                            "none",
-                            "only",
-                            "all",
-                            "except",
-                        ].join("\n")
-                    ),
-                    string(
-                        name: 'RPM_LIST',
-                        description: '(Optional) Comma/space-separated list to include/exclude per RPM_BUILD_STRATEGY (e.g. openshift-ansible,openshift-clients)',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    booleanParam(
-                        name: 'SKIP_PLASHETS',
-                        description: 'Do not build plashets (for example to save time when running multiple builds against test assembly)',
-                        defaultValue: true,
-                    ),
-                    string(
-                            name: 'LIMIT_ARCHES',
-                            description: '(Optional) Limit included arches to this list. Valid values are (aarch64, ppc64le, s390x, x86_64)',
-                            defaultValue: "",
-                            trim: true,
-                    ),
-                    booleanParam(
-                        name: 'SKIP_REBASE',
-                        description: '(For testing) Skip the rebase step',
-                        defaultValue: false
-                    ),
-                    booleanParam(
-                        name: 'SKIP_BUNDLE_BUILD',
-                        description: '(For testing) Skip the OLM bundle build step',
-                        defaultValue: false,  // Default to true until we believe bundle build is stable.
                     ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
@@ -138,46 +74,23 @@ node {
                 "-v",
                 "--working-dir=./artcd_working",
                 "--config=./config/artcd.toml",
+                "build-oadp",
+                "-g",
+                "${params.VERSION}",
+                "--assembly=${params.ASSEMBLY}",
+                "--data-path=${params.DOOZER_DATA_PATH}"
             ]
             if (params.DRY_RUN) {
                 cmd << "--dry-run"
             }
-            cmd += [
-                "beta:ocp4-konflux",
-                "--version=${params.VERSION}",
-                "--assembly=${params.ASSEMBLY}",
-            ]
-            if (params.DOOZER_DATA_PATH) {
-                cmd << "--data-path=${params.DOOZER_DATA_PATH}"
-            }
-            if (params.DOOZER_DATA_GITREF) {
-                cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
-            }
-            if (params.SKIP_PLASHETS) {
-                cmd << "--skip-plashets"
-            }
-            if (params.LIMIT_ARCHES) {
-                for (arch in params.LIMIT_ARCHES.split("[,\\s]+")) {
-                    cmd << "--arch" << arch.trim()
+            
+            // Add image names to command
+            if (params.IMAGE_LIST) {
+                for (image in commonlib.cleanCommaList(params.IMAGE_LIST).split("[,\\s]+")) {
+                    if (image.trim()) {
+                        cmd << "--image-name" << image.trim()
+                    }
                 }
-            }
-            if (params.PLR_TEMPLATE_COMMIT) {
-                cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
-            }
-            cmd += [
-                "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",
-                "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
-                "--rpm-build-strategy=${RPM_BUILD_STRATEGY}",
-                "--rpm-list=${commonlib.cleanCommaList(params.RPM_LIST)}"
-            ]
-            if (params.SKIP_REBASE) {
-                cmd << "--skip-rebase"
-            }
-            if (params.IGNORE_LOCKS) {
-                cmd << "--ignore-locks"
-            }
-            if (params.SKIP_BUNDLE_BUILD) {
-                cmd << "--skip-bundle-build"
             }
 
             // Needed to detect manual builds

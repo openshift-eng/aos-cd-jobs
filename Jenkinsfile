@@ -27,9 +27,14 @@ node {
                     commonlib.mockParam(),
                     commonlib.artToolsParam(),
                     string(
-                        name: 'VERSION',
+                        name: 'GROUP',
                         description: 'The OADP version group to use with -g flag',
                         defaultValue: "oadp-1.5",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'VERSION',
+                        description: 'The OADP version',
                         trim: true,
                     ),
                     string(
@@ -76,7 +81,8 @@ node {
                 "--config=./config/artcd.toml",
                 "build-oadp",
                 "-g",
-                "${params.VERSION}",
+                "${params.GROUP}",
+                "--version=${params.VERSION}",
                 "--assembly=${params.ASSEMBLY}",
                 "--data-path=${params.DOOZER_DATA_PATH}"
             ]

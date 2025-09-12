@@ -97,6 +97,17 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'BUILD_PRIORITY',
+                        description: "Use default 'auto', to let doozer decide. If not, set a value from 1 (highest priority) to 10 (lowest priority).",
+                        defaultValue: 'auto',
+                        trim: true,
+                    ),
+                    booleanParam(
+                        name: 'USE_MASS_REBUILD_LOCKS',
+                        description: 'Allow mass rebuilds to run with locks (i.e. only one OCP y-stream can mass rebuild at a time)',
+                        defaultValue: true,
+                    ),
                     booleanParam(
                         name: 'SKIP_PLASHETS',
                         description: 'Do not build plashets (for example to save time when running multiple builds against test assembly)',
@@ -182,6 +193,12 @@ node {
             }
             if (params.SKIP_BUNDLE_BUILD) {
                 cmd << "--skip-bundle-build"
+            }
+            if (params.BUILD_PRIORITY) {
+               cmd << "--build-priority=${params.BUILD_PRIORITY}"
+            }
+            if (params.USE_MASS_REBUILD_LOCKS) {
+               cmd << "--use-mass-rebuild-locks"
             }
 
             // Needed to detect manual builds

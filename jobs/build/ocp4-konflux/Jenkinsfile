@@ -106,7 +106,7 @@ node {
                     booleanParam(
                         name: 'USE_MASS_REBUILD_LOCKS',
                         description: 'Allow mass rebuilds to run with locks (i.e. only one OCP y-stream can mass rebuild at a time)',
-                        defaultValue: false,
+                        defaultValue: true,
                     ),
                     booleanParam(
                         name: 'SKIP_PLASHETS',

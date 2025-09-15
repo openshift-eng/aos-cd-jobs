@@ -90,14 +90,9 @@ node {
                 cmd << "--dry-run"
             }
             
-            // Add image names to command
-            if (params.IMAGE_LIST) {
-                for (image in commonlib.cleanCommaList(params.IMAGE_LIST).split("[,\\s]+")) {
-                    if (image.trim()) {
-                        cmd << "--image-name" << image.trim()
-                    }
-                }
-            }
+            cmd += [
+                "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
+            ]
 
             // Needed to detect manual builds
                 wrap([$class: 'BuildUser']) {

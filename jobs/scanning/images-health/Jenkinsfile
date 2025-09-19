@@ -11,7 +11,6 @@ node() {
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.artToolsParam(),
-                    commonlib.ocpVersionParam('BUILD_VERSION'),
                     string(
                         name: 'DOOZER_DATA_PATH',
                         description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
@@ -25,8 +24,8 @@ node() {
                         trim: true,
                     ),
                     string(
-                        name: 'IMAGE_LIST',
-                        description: '(Optional) Comma/space-separated list to include/exclude per IMAGE_BUILD_STRATEGY (e.g. logging-kibana5,openshift-jenkins-2)',
+                        name: 'VERSIONS',
+                        description: '(Optional) Comma/space-separated list of OCP version to scan. If empty, scan all versions.',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -47,7 +46,6 @@ node() {
     )
 
     commonlib.checkMock()
-    currentBuild.displayName += " - ${params.BUILD_VERSION}"
 
     // Working dirs
     def artcd_working = "${WORKSPACE}/artcd_working"
@@ -62,17 +60,16 @@ node() {
         "-v",
         "--working-dir=${artcd_working}",
         "--config=./config/artcd.toml",
-        "images-health",
-        "--version=${params.BUILD_VERSION}"
+        "images-health"
     ]
+    if (params.VERSIONS) {
+        cmd << "--versions=${commonlib.cleanCommaList(params.VERSIONS)}"
+    }
     if (params.DOOZER_DATA_PATH) {
         cmd << "--data-path=${params.DOOZER_DATA_PATH}"
     }
     if (params.DOOZER_DATA_GITREF) {
         cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
-    }
-    if (params.IMAGE_LIST) {
-        cmd << "--image-list=${params.IMAGE_LIST}"
     }
     if (params.SEND_TO_RELEASE_CHANNEL) {
         cmd << "--send-to-release-channel"
@@ -94,10 +91,6 @@ node() {
             try {
                 echo "Will run ${cmd.join(' ')}"
                 commonlib.shell(script: cmd.join(' '))
-            } catch (exception) {
-                slacklib.to(BUILD_VERSION).say(":alert: Image health check job failed!\n${BUILD_URL}")
-                currentBuild.result = "FAILURE"
-                throw exception  // gets us a stack trace FWIW
             } finally {
                 commonlib.safeArchiveArtifacts([
                     "artcd_working/**/*.log",

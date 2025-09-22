@@ -4,34 +4,7 @@ properties([
     disableResume(),
 ])
 
-description = ""
 failed = false
-
-def runFor(version) {
-    try {
-        timeout(activity: true, time: 60, unit: 'MINUTES') {
-            b = build(
-                job: '../scanning/scanning%2Fimages-health',
-                parameters: [
-                    string(name: 'BUILD_VERSION', value: version),
-                    booleanParam(name: 'SEND_TO_RELEASE_CHANNEL', value: true),
-                    booleanParam(name: 'SEND_TO_FORUM_OCP_ART', value: true),
-                ],
-                propagate: false,
-            )
-            description += "${version} - ${b.result}\n"
-            failed |= (b.result != "SUCCESS")
-        }
-    } catch(te) {
-        description += "${version - ERROR}\n"
-        failed = true
-    }
-}
-
-@NonCPS
-def sortedVersions() {
-    return commonlib.ocpVersions.sort(false)
-}
 
 node() {
     checkout scm
@@ -40,11 +13,23 @@ node() {
 
     commonlib.shell('sudo systemctl restart stunnel')
 
-    for ( String version : sortedVersions() ) {
-        runFor(version)
+    try {
+        timeout(activity: true, time: 60, unit: 'MINUTES') {
+            b = build(
+                job: '../scanning/scanning%2Fimages-health',
+                parameters: [
+                    booleanParam(name: 'SEND_TO_RELEASE_CHANNEL', value: true),
+                    booleanParam(name: 'SEND_TO_FORUM_OCP_ART', value: true),
+                ],
+                propagate: false,
+            )
+            failed |= (b.result != "SUCCESS")
+        }
+    } catch(te) {
+        failed = true
     }
+
     buildlib.cleanWorkspace()
 }
 
-currentBuild.description = description.trim()
 currentBuild.result = failed ? "FAILURE" : "SUCCESS"

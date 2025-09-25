@@ -152,7 +152,6 @@ node() {
                 ]
                 if (params.GROUP)
                     cmd << "--group=${params.GROUP}"
-                if (params.ASSEMBLY
                 if (only)
                     cmd << "--only=${only.join(',')}"
                 if (exclude)

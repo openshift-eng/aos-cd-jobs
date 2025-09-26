@@ -34,6 +34,11 @@ node() {
                     description: 'OCP Version',
                 ),
                 string(
+                    name: 'GROUP',
+                    description: '(Optional) The group to be used, by default it will be assumed to be openshift-<version>',
+                    trim: true,
+                ),
+                string(
                     name: 'ASSEMBLY',
                     description: 'Assembly name.',
                     defaultValue: "stream",
@@ -146,6 +151,8 @@ node() {
                     "--data-gitref=${params.DOOZER_DATA_GITREF}",
                     "--kubeconfig=${env.KONFLUX_SA_KUBECONFIG}",
                 ]
+                if (params.GROUP)
+                   cmd << "--group=${params.GROUP}"
                 if (operator_nvrs)
                     cmd << "--nvrs=${operator_nvrs.join(',')}"
                 if (only)

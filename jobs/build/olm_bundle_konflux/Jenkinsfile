@@ -34,6 +34,11 @@ node() {
                     description: 'OCP Version',
                 ),
                 string(
+                    name: 'GROUP',
+                    description: '(Optional) The group to be used, by default it will be assumed to be openshift-<version>',
+                    trim: true,
+                ),
+                string(
                     name: 'ASSEMBLY',
                     description: 'Assembly name.',
                     defaultValue: "stream",
@@ -126,6 +131,8 @@ node() {
                 file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
             ]) {
                 def cmd = [
                     "artcd",
@@ -144,6 +151,8 @@ node() {
                     "--data-gitref=${params.DOOZER_DATA_GITREF}",
                     "--kubeconfig=${env.KONFLUX_SA_KUBECONFIG}",
                 ]
+                if (params.GROUP)
+                   cmd << "--group=${params.GROUP}"
                 if (operator_nvrs)
                     cmd << "--nvrs=${operator_nvrs.join(',')}"
                 if (only)

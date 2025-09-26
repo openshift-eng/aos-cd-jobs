@@ -109,6 +109,7 @@ node {
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                             string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                         ]) {
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
                         try {

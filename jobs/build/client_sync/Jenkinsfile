@@ -150,7 +150,7 @@ node {
                 script:
                 """
                 set -euxo pipefail
-                cp -aL ${source_path} ${local_dest_dir}
+                cp --debug --recursive --preserve=all --dereference --update=all ${source_path} ${local_dest_dir}
                 if [ -e ${local_dest_dir}/sha256sum.txt ]; then
                     cat ${local_dest_dir}/sha256sum.txt
                 fi
@@ -181,7 +181,7 @@ node {
                 """
                 set -euxo pipefail
                 rm -rf ${latest_dir}
-                cp -aL ${local_dest_dir} ${latest_dir}
+                cp --debug --recursive --preserve=all --dereference --update=all ${local_dest_dir} ${latest_dir}
                 """
             )
 

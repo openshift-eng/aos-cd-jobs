@@ -28,10 +28,10 @@ node() {
                     defaultValue: "",
                     trim: true
                 ),
-                choice(
+                string(
                     name: 'BUILD_VERSION',
-                    choices: commonlib.ocpVersions,
-                    description: 'OCP Version',
+                    description: 'For example, 4.19 (for OCP), 1.6.3 (for OADP)',
+                    trim: true,
                 ),
                 string(
                     name: 'GROUP',

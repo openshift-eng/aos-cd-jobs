@@ -129,6 +129,16 @@ node {
                         description: '(For testing) Skip the OLM bundle build step',
                         defaultValue: false,  // Default to true until we believe bundle build is stable.
                     ),
+                    choice(
+                        name: 'NETWORK_MODE',
+                        description: 'Override network mode for Konflux builds',
+                        choices: [
+                            "",
+                            "hermetic",
+                            "internal-only",
+                            "open"
+                        ].join("\n")
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -199,6 +209,9 @@ node {
             }
             if (params.USE_MASS_REBUILD_LOCKS) {
                cmd << "--use-mass-rebuild-locks"
+            }
+            if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
+                cmd << "--network-mode=${params.NETWORK_MODE}"
             }
 
             // Needed to detect manual builds

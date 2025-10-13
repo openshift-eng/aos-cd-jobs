@@ -151,7 +151,6 @@ node() {
                     "--assembly=${params.ASSEMBLY}",
                     "--data-path=${params.DOOZER_DATA_PATH}",
                     "--data-gitref=${params.DOOZER_DATA_GITREF}",
-                    "--kubeconfig=${env.KONFLUX_SA_KUBECONFIG}",
                 ]
                 if (params.GROUP)
                    cmd << "--group=${params.GROUP}"

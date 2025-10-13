@@ -40,6 +40,11 @@ node() {
                     trim: true,
                 ),
                 string(
+                    name: 'OCP_TARGET_VERSION',
+                    description: '(Optional) OADP operators, for example, need to be built on multiple OCP versions. This option is not applicable for OCP builds',
+                    trim: true,
+                ),
+                string(
                     name: 'DOOZER_DATA_GITREF',
                     description: '(Optional) Doozer data path git [branch / tag / sha] to use',
                     defaultValue: "",
@@ -170,6 +175,8 @@ node() {
                     cmd << "--prod-registry-auth=${env.KONFLUX_OPERATOR_INDEX_AUTH_FILE}"
                 if (params.FORCE_BUILD)
                     cmd << "--force"
+                if (params.OCP_TARGET_VERSION)
+                    cmd << "--major-minor=${params.OCP_TARGET_VERSION}"
 
                 // Run pipeline
                 timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour

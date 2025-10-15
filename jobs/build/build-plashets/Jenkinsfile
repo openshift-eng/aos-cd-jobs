@@ -6,16 +6,16 @@ node {
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
         def slacklib = commonlib.slacklib
-    
+
         commonlib.describeJob("build-plashets", """
             <h2>Update OCP 4.y repos</h2>
             <b>Timing</b>: Usually run automatically from ocp4 and microshift-bootc.
             Humans may run as needed. Locks prevent conflicts.
-    
+
             Creates new plashets if the automation is not frozen.
         """)
-    
-    
+
+
         // Expose properties for a parameterized build
         properties(
             [
@@ -31,6 +31,12 @@ node {
                         commonlib.mockParam(),
                         commonlib.artToolsParam(),
                         commonlib.ocpVersionParam('VERSION', '4'),
+                        string(
+                            name: 'GROUP',
+                            description: '(Optional) Group name. If specified, VERSION param is ignored',
+                            defaultValue: '',
+                            trim: true,
+                        ),
                         string(
                             name: 'RELEASE',
                             description: 'e.g. 201901011200.p?',
@@ -70,22 +76,23 @@ node {
                 ],
             ]
         )
-    
+
         commonlib.checkMock()
-    
+        def group = params.GROUP ?: "openshift-${params.VERSION}"
+
         stage("Initialize") {
-            currentBuild.displayName = "${VERSION} - ${RELEASE} - ${ASSEMBLY}"
-    
+            currentBuild.displayName = "${group} - ${params.RELEASE} - ${params.ASSEMBLY}"
+
             if (params.DRY_RUN) {
                 currentBuild.displayName += " [DRY_RUN]"
             }
-    
+
             if (currentBuild.description == null) {
                 currentBuild.description = ""
             }
-    
+
         }
-    
+
         stage("Build plashets") {
             buildlib.init_artcd_working_dir()
             def cmd = [
@@ -99,7 +106,7 @@ node {
             }
             cmd += [
                 "build-plashets",
-                "--version=${params.VERSION}",
+                "--group=${group}",
                 "--release=${params.RELEASE}",
                 "--assembly=${params.ASSEMBLY}"
             ]
@@ -115,7 +122,7 @@ node {
             if (params.COPY_LINKS) {
                 cmd << "--copy-links"
             }
-    
+
             try {
                 buildlib.withAppCiAsArtPublish() {
                     withCredentials([

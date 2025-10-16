@@ -57,6 +57,11 @@ node() {
                     trim: true,
                 ),
                 booleanParam(
+                    name: 'IGNORE_LOCKS',
+                    description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                    defaultValue: false
+                ),
+                booleanParam(
                     name: 'RESET_TO_PROD',
                     description: 'Reset FBC builds to the latest production version',
                     defaultValue: true, // Default to true for safety
@@ -166,7 +171,8 @@ node() {
                     cmd << "--operator-nvrs=${operator_nvrs.join(',')}"
                 if (params.SKIP_CHECKS)
                     cmd << "--skip-checks"
-
+                if (params.IGNORE_LOCKS)
+                    cmd << "--ignore-locks"
                 if (params.RESET_TO_PROD)
                     cmd << "--reset-to-prod"
                 else

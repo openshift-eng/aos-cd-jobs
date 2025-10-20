@@ -57,6 +57,11 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                         description: 'Run scan without triggering subsequent jobs',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                    name: 'IGNORE_LOCKS',
+                    description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                    defaultValue: false
+                ),
                     commonlib.mockParam(),
                     ]
                 ],
@@ -104,6 +109,8 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                 if (params.IMAGE_LIST) {
                     cmd << "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
                 }
+                if (params.IGNORE_LOCKS)
+                    cmd << "--ignore-locks"
 
                 // Run pipeline
                 buildlib.withAppCiAsArtPublish() {

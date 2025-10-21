@@ -40,6 +40,11 @@ node() {
                             description: "Force plashet sync needed for the build",
                             defaultValue: false
                         ),
+                        booleanParam(
+                            name: "PREPARE_SHIPMENT",
+                            description: "Prepare shipment for microshift-bootc for the assembly",
+                            defaultValue: true
+                        ),
                         string(
                             name: 'DOOZER_DATA_PATH',
                             description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
@@ -89,6 +94,9 @@ node() {
                     "-g", "openshift-$params.BUILD_VERSION",
                     "--assembly", params.ASSEMBLY,
                 ]
+                if (params.PREPARE_SHIPMENT) {
+                    cmd << "--prepare-shipment"
+                }
                 if (params.FORCE_REBUILD) {
                     cmd << "--force"
                 }
@@ -98,6 +106,7 @@ node() {
                 withCredentials([
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),

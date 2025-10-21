@@ -23,6 +23,7 @@ nonOCPGroups = [
     "oadp-1.5",
     "oadp-1.4",
     "oadp-1.3",
+    "logging-6.3",
 ]
 
 ocpVersions = ocp4Versions + ocp3Versions

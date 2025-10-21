@@ -43,7 +43,7 @@ node() {
                         booleanParam(
                             name: "PREPARE_SHIPMENT",
                             description: "Prepare shipment for microshift-bootc for the assembly",
-                            defaultValue: false
+                            defaultValue: true
                         ),
                         string(
                             name: 'DOOZER_DATA_PATH',

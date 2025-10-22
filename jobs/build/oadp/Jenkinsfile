@@ -69,7 +69,7 @@ node {
     }
     sshagent(["openshift-bot"]) {
         stage("initialize") {
-            currentBuild.displayName = "#${currentBuild.number}"
+            currentBuild.displayName = "#${currentBuild.number} ${params.GROUP}"
         }
 
         stage("build") {

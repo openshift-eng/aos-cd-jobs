@@ -1,68 +1,93 @@
-// Update-branches job
+node() {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    def slacklib = commonlib.slacklib
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+    properties(
+        [
+            disableConcurrentBuilds(),
+            [
+                $class : 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.artToolsParam(),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'VERSIONS',
+                        description: '(Optional) Comma/space-separated list of OCP version to scan. If empty, scan all versions.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'SEND_TO_RELEASE_CHANNEL',
+                        defaultValue: "#art-okd-release",
+                        description: "If set, send output to the Slack channel"
+                    ),
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+    commonlib.checkMock()
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    // Working dirs
+    def artcd_working = "${WORKSPACE}/artcd_working"
+    def doozer_working = "${artcd_working}/doozer_working"
+    buildlib.cleanWorkdir(artcd_working)
+
+    // Run pyartcd
+    sh "mkdir -p ./artcd_working"
+
+    def cmd = [
+        "artcd",
+        "-v",
+        "--working-dir=${artcd_working}",
+        "--config=./config/artcd.toml",
+        "okd-images-health"
+    ]
+    if (params.VERSIONS) {
+        cmd << "--versions=${commonlib.cleanCommaList(params.VERSIONS)}"
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+    if (params.DOOZER_DATA_PATH) {
+        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+    }
+    if (params.DOOZER_DATA_GITREF) {
+        cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+    }
+    if (params.SEND_TO_RELEASE_CHANNEL) {
+        cmd << "--send-to-release-channel=${params.SEND_TO_RELEASE_CHANNEL}"
+    }
+
+    withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
+                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+
+        wrap([$class: 'BuildUser']) {
+            builderEmail = env.BUILD_USER_EMAIL
+        }
+
+        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "DOOZER_DB_NAME=art_dash"]) {
+            try {
+                echo "Will run ${cmd.join(' ')}"
+                commonlib.shell(script: cmd.join(' '))
+            } finally {
+                commonlib.safeArchiveArtifacts([
+                    "artcd_working/**/*.log",
+                ])
+            }
+        }
+    }
 }

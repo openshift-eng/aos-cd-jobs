@@ -50,6 +50,12 @@ node {
                         trim: true,
                     ),
                     string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'IMAGE_LIST',
                         description: 'Comma/space-separated list of image names to build',
                         defaultValue: "oadp-operator",
@@ -86,6 +92,9 @@ node {
                 "--assembly=${params.ASSEMBLY}",
                 "--data-path=${params.DOOZER_DATA_PATH}"
             ]
+            if (params.DOOZER_DATA_GITREF) {
+                cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+            }
             if (params.DRY_RUN) {
                 cmd << "--dry-run"
             }

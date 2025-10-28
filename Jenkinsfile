@@ -26,6 +26,11 @@ node {
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                     commonlib.artToolsParam(),
+                    booleanParam(
+                        name: 'IGNORE_LOCKS',
+                        description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                        defaultValue: false
+                    ),
                     string(
                         name: 'GROUP',
                         description: 'The OADP version group to use with -g flag',
@@ -94,6 +99,9 @@ node {
             ]
             if (params.DOOZER_DATA_GITREF) {
                 cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+            }
+            if (params.IGNORE_LOCKS) {
+                cmd << "--ignore-locks"
             }
             if (params.DRY_RUN) {
                 cmd << "--dry-run"

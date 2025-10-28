@@ -66,6 +66,11 @@ node {
                         defaultValue: "oadp-operator",
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'SKIP_REBASE',
+                        description: '(For testing) Skip the rebase step',
+                        defaultValue: false
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -102,6 +107,9 @@ node {
             }
             if (params.IGNORE_LOCKS) {
                 cmd << "--ignore-locks"
+            }
+            if (params.SKIP_REBASE) {
+                cmd << "--skip-rebase"
             }
             if (params.DRY_RUN) {
                 cmd << "--dry-run"

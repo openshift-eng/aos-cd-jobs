@@ -66,6 +66,11 @@ node {
                         defaultValue: "oadp-operator",
                         trim: true,
                     ),
+                    booleanParam(
+                    name: 'IGNORE_LOCKS',
+                    description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                    defaultValue: false
+                ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -106,6 +111,8 @@ node {
             if (params.DRY_RUN) {
                 cmd << "--dry-run"
             }
+            if (params.IGNORE_LOCKS)
+                cmd << "--ignore-locks"
             
             cmd += [
                 "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",

@@ -53,6 +53,11 @@ node {
                         name: 'FORCE_IMAGE_BUILD',
                         description: 'Do not check if there is already a golang builder image with the rpm, but build a new one anyway',
                     ),
+                    choice(
+                        name: 'BUILD_SYSTEM',
+                        choices: ['brew', 'konflux'],
+                        description: 'Build system to use for golang-builder images (brew or konflux). Defaults to brew for backward compatibility.',
+                    ),
                     commonlib.mockParam(),
                     commonlib.dryrunParam(),
                     commonlib.artToolsParam(),
@@ -123,6 +128,9 @@ node {
                     }
                     if (params.FORCE_IMAGE_BUILD) {
                         cmd << "--force-image-build"
+                    }
+                    if (params.BUILD_SYSTEM) {
+                        cmd << "--build-system=${params.BUILD_SYSTEM}"
                     }
 
                     // Run pipeline

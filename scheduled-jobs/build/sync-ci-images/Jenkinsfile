@@ -149,7 +149,7 @@ node {
             }
 
             doozerWorking = "${env.WORKSPACE}/wd-${version}"
-            def doozerOpts = "--working-dir ${doozerWorking} --group ${group} "
+            def doozerOpts = "--working-dir ${doozerWorking} --group ${group} --build-system konflux"
 
             rc = 0
             try {

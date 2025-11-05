@@ -22,6 +22,18 @@ node {
                         description: 'OCP Version',
                     ),
                     string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'GOLANG_NVRS',
                         description: 'Golang NVRs (one or multiple but atmost one for a rhel version) that you expect to build images for. This is to ensure that the right compiler nvrs are picked up (comma/space separated)',
                         defaultValue: "",
@@ -52,6 +64,11 @@ node {
                     booleanParam(
                         name: 'FORCE_IMAGE_BUILD',
                         description: 'Do not check if there is already a golang builder image with the rpm, but build a new one anyway',
+                    ),
+                    choice(
+                        name: 'BUILD_SYSTEM',
+                        choices: ['brew', 'konflux'],
+                        description: 'Build system to use for golang-builder images (brew or konflux). Defaults to brew for backward compatibility.',
                     ),
                     commonlib.mockParam(),
                     commonlib.dryrunParam(),
@@ -84,6 +101,8 @@ node {
             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
             string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+            file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+            file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
         ]) {
             withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                 script {
@@ -106,6 +125,12 @@ node {
                         "--art-jira=${params.ART_JIRA}",
                         "${golang_nvrs}"
                     ]
+                    if (params.DOOZER_DATA_PATH) {
+                        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                    }
+                    if (params.DOOZER_DATA_GITREF) {
+                        cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                    }
                     if (params.FIXED_CVES) {
                         cmd << "--cves=${params.FIXED_CVES}"
                     }
@@ -123,6 +148,9 @@ node {
                     }
                     if (params.FORCE_IMAGE_BUILD) {
                         cmd << "--force-image-build"
+                    }
+                    if (params.BUILD_SYSTEM) {
+                        cmd << "--build-system=${params.BUILD_SYSTEM}"
                     }
 
                     // Run pipeline

@@ -74,7 +74,8 @@ node {
                 "--assembly",
                 "${params.ASSEMBLY}",
                 "--fbc-pullspecs",
-                "${commonlib.cleanCommaList(params.FBC_PULLSPECS)}"
+                "${commonlib.cleanCommaList(params.FBC_PULLSPECS)}",
+                "--create-mr"
             ]
 
             if (params.DRY_RUN) {

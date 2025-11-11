@@ -38,11 +38,6 @@ node {
                         trim: true,
                     ),
                     string(
-                        name: 'VERSION',
-                        description: 'The OADP version',
-                        trim: true,
-                    ),
-                    string(
                         name: 'ASSEMBLY',
                         description: 'The name of an assembly to rebase & build for',
                         defaultValue: "test",
@@ -98,7 +93,6 @@ node {
                 "build-oadp",
                 "-g",
                 "${params.GROUP}",
-                "--version=${params.VERSION}",
                 "--assembly=${params.ASSEMBLY}",
                 "--data-path=${params.DOOZER_DATA_PATH}"
             ]

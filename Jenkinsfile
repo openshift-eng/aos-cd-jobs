@@ -188,7 +188,7 @@ node() {
                     cmd << "--major-minor=${params.OCP_TARGET_VERSION}"
 
                 // Run pipeline
-                timeout(activity: true, time: 180, unit: 'MINUTES') { // if there is no log activity for 3 hour
+                timeout(activity: true, time: 360, unit: 'MINUTES') {
                     echo "Will run ${cmd.join(' ')}"
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
                         try {

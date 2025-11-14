@@ -66,6 +66,16 @@ node {
                         description: '(For testing) Skip the rebase step',
                         defaultValue: false
                     ),
+                    choice(
+                        name: 'NETWORK_MODE',
+                        description: 'Override network mode for Konflux builds',
+                        choices: [
+                            "",
+                            "hermetic",
+                            "internal-only",
+                            "open"
+                        ].join("\n")
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -107,6 +117,9 @@ node {
             }
             if (params.DRY_RUN) {
                 cmd << "--dry-run"
+            }
+            if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
+                cmd << "--network-mode=${params.NETWORK_MODE}"
             }
             
             cmd += [

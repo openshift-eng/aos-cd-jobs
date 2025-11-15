@@ -29,6 +29,12 @@ node() {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'Assembly name',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
                     booleanParam(
                         name: 'SEND_TO_RELEASE_CHANNEL',
                         defaultValue: true,
@@ -60,7 +66,8 @@ node() {
         "-v",
         "--working-dir=${artcd_working}",
         "--config=./config/artcd.toml",
-        "images-health"
+        "images-health",
+        "--assembly=${params.ASSEMBLY}"
     ]
     if (params.VERSIONS) {
         cmd << "--versions=${commonlib.cleanCommaList(params.VERSIONS)}"

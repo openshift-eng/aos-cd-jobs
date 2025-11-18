@@ -7,6 +7,7 @@ ocp3Versions = [
 
 // All buildable versions of ocp4
 ocp4Versions = [
+    "4.22",
     "4.21",
     "4.20",
     "4.19",

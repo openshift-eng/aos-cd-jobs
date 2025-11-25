@@ -67,8 +67,8 @@ node {
                     ),
                     choice(
                         name: 'BUILD_SYSTEM',
-                        choices: ['brew', 'konflux'],
-                        description: 'Build system to use for golang-builder images (brew or konflux). Defaults to brew for backward compatibility.',
+                        choices: ['both', 'brew', 'konflux'],
+                        description: 'Build system to use for golang-builder images (brew, konflux, or both). Defaults to both.',
                     ),
                     commonlib.mockParam(),
                     commonlib.dryrunParam(),

@@ -152,5 +152,6 @@ Jenkins job: ${env.BUILD_URL}
         throw err
     } finally {
         commonlib.safeArchiveArtifacts(["doozer_working/*.log"])
+        buildlib.cleanWorkspace()
     }
 }

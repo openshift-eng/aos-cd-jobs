@@ -139,6 +139,7 @@ node() {
                     "artcd_working/**/*.json",
                     "artcd_working/**/*.log",
                 ])
+                buildlib.cleanWorkspace()
             }
         }
     }

@@ -96,5 +96,6 @@ node {
             currentBuild.result = "ABORTED"
         }
     } finally {
+        buildlib.cleanWorkspace()
     }
 }

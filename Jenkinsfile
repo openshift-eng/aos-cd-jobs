@@ -181,6 +181,7 @@ node() {
                             commonlib.safeArchiveArtifacts([
                                 "artcd_working/**/*.log",
                             ])
+                            buildlib.cleanWorkspace()
                         }
                     } // withEnv
                 } // timeout

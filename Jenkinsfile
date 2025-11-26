@@ -200,6 +200,7 @@ node() {
                                 "artcd_working/**/*.log",
                                 "artcd_working/**/*.yaml",
                             ])
+                            buildlib.cleanWorkspace()
                         }
                     } // withEnv
                 } // timeout

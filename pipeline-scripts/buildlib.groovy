@@ -117,13 +117,13 @@ def registry_login() {
     }
 }
 
-def registry_quay_dev_login() {
+def registry_quay_dev_login(authfile = null) {
     // Login to the openshift-release-dev/ocp-v4.0-art-dev registry
     // Despite the name, this is the location for both dev and production images.
 
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io',
-                      usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'podman login -u openshift-release-dev+art_quay_dev -p "$PASSWORD" quay.io'
+    withCredentials([usernamePassword(credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'DEV_USER', passwordVariable: 'DEV_PASSWORD')]) {
+        def registry_config_arg = authfile ? "--registry-config=${authfile}" : ""
+        sh "oc registry login ${registry_config_arg} --registry=quay.io/openshift-release-dev --auth-basic=\$DEV_USER:\$DEV_PASSWORD"
     }
 }
 

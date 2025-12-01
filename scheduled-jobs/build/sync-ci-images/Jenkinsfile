@@ -102,16 +102,22 @@ node {
     }
 
     buildlib.withAppCiAsArtPublish() {
+        withCredentials([
+            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+            file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
+        ]) {
+            // Log in to app.ci's internal registry as we push some images there (registry.ci.openshift.org).
+            sh "oc registry login --registry-config=$KONFLUX_ART_IMAGES_AUTH_FILE"
 
-        // Log in to app.ci's internal registry as we push some images there (registry.ci.openshift.org).
-        sh "oc registry login"
+            // Log in to quay.io with credentials necessary to push to DPTP's QCI registry (quay.io/openshift/ci). QCI
+            // will eventually be the source of truth for images being used by CI workloads instead of app.ci's internal registry.
+            // We support this by mirroring important images directly to QCI.
+            withCredentials([usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD')]) {
+                sh "oc registry login --registry=quay.io/openshift --auth-basic=$QCI_USER:$QCI_PASSWORD --registry-config=$KONFLUX_ART_IMAGES_AUTH_FILE"
+            }
 
-        // Log in to quay.io with credentials necessary to push to DPTP's QCI registry (quay.io/openshift/ci). QCI
-        // will eventually be the source of truth for images being used by CI workloads instead of app.ci's internal registry.
-        // We support this by mirroring important images directly to QCI.
-        withCredentials([usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD')]) {
-            sh "oc registry login --registry=quay.io/openshift --auth-basic=$QCI_USER:$QCI_PASSWORD"
-        }
+            // Log in to quay.io/openshift-release-dev to push to locations like quay.io/openshift-release-dev/golang-builder--*-share
+            buildlib.registry_quay_dev_login(env.KONFLUX_ART_IMAGES_AUTH_FILE)
 
         for ( String version : for_versions ) {
             group = "openshift-${version}"
@@ -130,9 +136,9 @@ node {
             }
 
             // Ensure that the base image in ocp-private (base image for private release controller / private images)
-            // is kept in sync with public. ART automation updates the public periodically, but it needs to 
+            // is kept in sync with public. ART automation updates the public periodically, but it needs to
             // also keep priv in sync.
-            sh "oc image mirror registry.ci.openshift.org/ocp/${version}:base registry.ci.openshift.org/ocp-private/${version}-priv:base"
+            sh "oc image mirror --registry-config=$KONFLUX_ART_IMAGES_AUTH_FILE registry.ci.openshift.org/ocp/${version}:base registry.ci.openshift.org/ocp-private/${version}-priv:base"
 
             echo "Current hash: ${now_hash} "
             echo "Previous hash: ${prev_hash}"
@@ -153,18 +159,14 @@ node {
 
             rc = 0
             try {
-                withCredentials([
-                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
-                ]) {
-                    sshagent(["openshift-bot"]) {
+                sshagent(["openshift-bot"]) {
                         sh "rm -rf ${doozerWorking}"
                         buildlib.doozer("${doozerOpts} images:streams gen-buildconfigs ${streamParam} -o ${group}.yaml --apply")
                         mirror_args = ""
                         if ( params.UPDATE_IMAGES_ONLY_WHEN_MISSING ) {
                             mirror_args += "--only-if-missing "
                         }
-                        buildlib.doozer("${doozerOpts} images:streams mirror ${streamParam} ${mirror_args}")
+                        buildlib.doozer("${doozerOpts} images:streams mirror ${streamParam} ${mirror_args} --registry-auth $KONFLUX_ART_IMAGES_AUTH_FILE")
                         buildlib.doozer("${doozerOpts} images:streams start-builds ${streamParam}")
 
                         if (!params.SKIP_WAITS) {
@@ -197,7 +199,6 @@ node {
                             }
                         }
                     }
-                }
             } catch ( ex ) {
                 if ( ONLY_RELEASE != "" ) { // If we are just running for one release, allow exception to propagate out
                     throw ex
@@ -232,6 +233,7 @@ node {
                 sh "rm -rf ${prev_dir_name}"
                 sh "mv ${group} ${prev_dir_name}"
             }
+        }
         }
     }
 

@@ -1,6 +1,7 @@
 import java.text.SimpleDateFormat
 
 node {
+    timestamps {
     wrap([$class: "BuildUser"]) {
         checkout scm
         def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -96,5 +97,6 @@ node {
             commonlib.safeArchiveArtifacts(["artcd_working/*.log"])
             buildlib.cleanWorkspace()
         }
+    }
     }
 }

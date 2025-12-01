@@ -20,6 +20,7 @@ def set_workspace() {
 }
 
 node('openshift-build-1') {
+    timestamps {
   try {
     timeout(time: 30, unit: 'MINUTES') {
       deleteDir()
@@ -65,4 +66,5 @@ Jenkins job: ${env.BUILD_URL}
 """)
     throw err
   }
+    }
 }

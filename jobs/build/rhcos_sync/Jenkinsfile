@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 node {
+    timestamps {
     checkout scm
     def rhcoslib = load("rhcoslib.groovy")
     def releaselib = rhcoslib.releaselib
@@ -195,5 +196,6 @@ node {
     } finally {
         commonlib.safeArchiveArtifacts(rhcoslib.artifacts)
         buildlib.cleanWorkspace()
+    }
     }
 }

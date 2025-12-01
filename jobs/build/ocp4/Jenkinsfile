@@ -12,6 +12,7 @@ def isMassRebuild() {
 }
 
 node {
+    timestamps {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
@@ -268,5 +269,6 @@ View the build artifacts and console output on Jenkins:
             "artcd_working/doozer_working/*.yml",
         ])
         buildlib.cleanWorkspace()
+    }
     }
 }

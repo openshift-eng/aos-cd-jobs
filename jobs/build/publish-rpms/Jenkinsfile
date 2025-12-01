@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 node {
+    timestamps {
     checkout scm
     buildlib = load( "pipeline-scripts/buildlib.groovy" )
     commonlib = buildlib.commonlib
@@ -71,4 +72,5 @@ node {
         )
     }
     buildlib.cleanWorkspace()
+    }
 }

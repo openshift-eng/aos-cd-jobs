@@ -1,5 +1,6 @@
 #!/usr/bin/env groovy
 node {
+    timestamps {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
     commonlib.describeJob("aws-iso-marketplace-quay-image-builder", """
@@ -165,5 +166,6 @@ node {
                 """)
             }
         }
+    }
     }
 }

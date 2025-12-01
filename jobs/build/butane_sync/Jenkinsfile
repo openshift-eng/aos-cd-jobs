@@ -1,4 +1,5 @@
 node {
+    timestamps {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
     commonlib.describeJob("butane_sync", """
@@ -125,5 +126,6 @@ node {
         sh "tree ./${params.VERSION} && cat ./${params.VERSION}/sha256sum.txt"
         commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/butane/${params.VERSION}/")
         commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/butane/latest/")
+    }
     }
 }

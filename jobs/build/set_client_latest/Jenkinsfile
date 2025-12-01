@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 node {
+    timestamps {
     deleteDir()
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -106,5 +107,6 @@ node {
         throw err
     } finally {
         buildlib.cleanWorkspace()
+    }
     }
 }

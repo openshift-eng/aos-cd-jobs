@@ -1,4 +1,5 @@
 node() {
+    timestamps {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
@@ -89,5 +90,6 @@ node() {
                 ])
             }
         }
+    }
     }
 }

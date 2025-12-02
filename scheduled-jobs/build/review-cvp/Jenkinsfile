@@ -1,4 +1,5 @@
 node {
+    timestamps {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
     slacklib = commonlib.slacklib
@@ -24,4 +25,5 @@ node {
     }
 
     parallel versionJobs
+    }
 }

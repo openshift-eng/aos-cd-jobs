@@ -7,6 +7,7 @@ def sortedVersions() {
 }
 
 node {
+    timestamps {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
@@ -239,4 +240,5 @@ node {
 
     // Do not clean blindly. We need information to persist across runs in order to detect change in ocp-build-data.
     // buildlib.cleanWorkspace()
+    }
 }

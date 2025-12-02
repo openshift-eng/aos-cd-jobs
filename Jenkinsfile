@@ -1,4 +1,5 @@
 node {
+    timestamps {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
@@ -81,6 +82,7 @@ node {
                     echo out
                     if (out.contains('failed with')) {
                         currentBuild.result = "FAILURE"
+    }
                     }
                 } // withCredentials
             } // withAppCiAsArtPublish

@@ -1,4 +1,5 @@
 node {
+    timestamps {
     wrap([$class: "BuildUser"]) {
         checkout scm
         def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -165,5 +166,6 @@ node {
             slackChannel.say("Hi @release-artists , rebuilding $params.TYPE $params.DISTGIT_KEY for assembly $params.ASSEMBLY is done. Please check instructions in the build log for the next step.")
         }
         buildlib.cleanWorkspace()
+    }
     }
 }

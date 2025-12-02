@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 node {
+    timestamps {
     checkout scm
     def release = load("pipeline-scripts/release.groovy")
     def buildlib = release.buildlib
@@ -210,5 +211,6 @@ node {
 
     stage("clean") {
         buildlib.cleanWorkspace()
+    }
     }
 }

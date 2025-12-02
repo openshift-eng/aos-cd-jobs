@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 node {
+    timestamps {
     checkout scm
     def release = load("pipeline-scripts/release.groovy")
     def buildlib = release.buildlib
@@ -131,4 +132,5 @@ Jenkins Job: ${buildURL}
     }
     buildlib.cleanWorkdir(env.WORKSPACE)  // at end of job, ok to wipe out code
     buildlib.cleanWorkspace()
+    }
 }

@@ -269,6 +269,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
 }
 
 node {
+    timestamps {
     checkout scm
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -853,5 +854,6 @@ Jenkins job: ${env.BUILD_URL}
         ])
         buildlib.cleanWorkdir(DOOZER_WORKING)
         buildlib.cleanWorkspace()
+    }
     }
 }

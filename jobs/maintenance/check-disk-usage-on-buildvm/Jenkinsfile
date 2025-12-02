@@ -1,5 +1,6 @@
 #!/usr/bin/env groovy
 node {
+    timestamps {
     checkout scm
     def commonlib = load("pipeline-scripts/commonlib.groovy")
 
@@ -68,5 +69,6 @@ notify ART team if it does.
         commonlib.slacklib.to(params.SLACK_CHANNEL).say(message)
     } else {
         echo "No disk space warnings"
+    }
     }
 }

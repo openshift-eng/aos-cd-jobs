@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 node {
+    timestamps {
     checkout scm
     def build = load("build.groovy")
     def commonlib = build.commonlib
@@ -62,5 +63,6 @@ View the build artifacts and console output on Jenkins:
             )
         }
         throw err  // gets us a stack trace FWIW
+    }
     }
 }

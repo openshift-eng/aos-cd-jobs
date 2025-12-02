@@ -1,5 +1,6 @@
 #!/usr/bin/env groovy
 node {
+    timestamps {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
     commonlib.describeJob("camel-k_sync", """
@@ -78,5 +79,6 @@ node {
     stage("Sync to mirror") {
         commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/camel-k/${params.VERSION}/")
         commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/camel-k/latest/")
+    }
     }
 }

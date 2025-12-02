@@ -1,4 +1,5 @@
 node {
+    timestamps {
     checkout scm
     def buildlib = load('pipeline-scripts/buildlib.groovy')
     def commonlib = buildlib.commonlib
@@ -132,6 +133,7 @@ node {
                                 "artcd_working/**/*.log",
                                 "artcd_working/**/*.yaml",
                             ])
+    }
                         }
                     } // withEnv
                 } // timeout

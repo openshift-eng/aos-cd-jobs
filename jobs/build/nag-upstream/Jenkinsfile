@@ -1,4 +1,5 @@
 node() {
+    timestamps {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
@@ -41,9 +42,8 @@ node() {
     if (!(software_lifecycle_phase in ["release", "pre-release"])){
         currentBuild.displayName += " [skipped]"
     } else {
-        timestamps {
-            releaseChannel = slacklib.to(BUILD_VERSION)
-            try {
+        releaseChannel = slacklib.to(BUILD_VERSION)
+        try {
                 withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
                     report = buildlib.doozer("${doozerOpts} images:streams prs list ${include_master}", [capture: true]).trim()
                     if (report) {
@@ -89,6 +89,6 @@ node() {
                 currentBuild.result = "FAILURE"
                 throw exception  // gets us a stack trace FWIW
             }
-        }
+    }
     }
 }

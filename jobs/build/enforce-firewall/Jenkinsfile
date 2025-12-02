@@ -46,6 +46,7 @@ properties(
 )
 
 node(params.JENKINS_AGENT_LABEL) {
+    timestamps {
     checkout scm
     def buildlib = load( "pipeline-scripts/buildlib.groovy" )
     def commonlib = buildlib.commonlib
@@ -124,5 +125,6 @@ node(params.JENKINS_AGENT_LABEL) {
                 echo "The rules were already applied or this was a dry run"
             }
         }
+    }
     }
 }

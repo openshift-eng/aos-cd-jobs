@@ -3,6 +3,7 @@
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 node {
+    timestamps {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
@@ -130,5 +131,6 @@ node {
             ])
             buildlib.cleanWorkspace()
         }
+    }
     }
 }

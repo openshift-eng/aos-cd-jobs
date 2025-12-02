@@ -1,5 +1,6 @@
 
 node() {
+    timestamps {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
@@ -64,5 +65,6 @@ node() {
             slacklib.to('#team-art').say("Error while checking unresolved threads: ${env.BUILD_URL}")
             throw(e)
         }
+    }
     }
 }

@@ -1,4 +1,5 @@
 node {
+    timestamps {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
@@ -153,5 +154,6 @@ Jenkins job: ${env.BUILD_URL}
     } finally {
         commonlib.safeArchiveArtifacts(["doozer_working/*.log"])
         buildlib.cleanWorkspace()
+    }
     }
 }

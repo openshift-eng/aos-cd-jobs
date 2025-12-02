@@ -5,6 +5,7 @@ properties( [
 ] )
 
 node() {
+    timestamps {
     checkout scm
 
     build(
@@ -12,4 +13,5 @@ node() {
         parameters: [string(name: 'THRESHOLD', value: '90'), string(name: 'SLACK_CHANNEL', value: '#art-release')],
         propagate: false,
     )
+    }
 }

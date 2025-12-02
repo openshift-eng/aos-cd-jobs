@@ -2,6 +2,7 @@
 // is no log activity for the specified period.
 timeout(activity: true, time: 60, unit: 'MINUTES') {
     node() {
+        timestamps {
         checkout scm
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
@@ -156,4 +157,5 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
             } // sshagent
         } // stage
     }
+        }
 }

@@ -53,6 +53,7 @@ def sortedVersions() {
 }
 
 node() {
+    timestamps {
     checkout scm
     buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
@@ -72,6 +73,7 @@ node() {
                 runFor('ci-deps', 'ci-deps', 'x86_64')
             }
         }
+    }
     }
 }
 

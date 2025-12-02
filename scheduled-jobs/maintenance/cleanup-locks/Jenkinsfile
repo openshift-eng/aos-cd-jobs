@@ -5,10 +5,12 @@ properties( [
 ] )
 
 node() {
+    timestamps {
     checkout scm
 
     build(
         job: '../maintenance/maintenance%2Fcleanup-locks',
         propagate: false,
     )
+    }
 }

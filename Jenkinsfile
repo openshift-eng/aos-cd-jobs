@@ -1,5 +1,6 @@
 #!/usr/bin/env groovy
 node {
+    timestamps {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
 
@@ -191,5 +192,6 @@ node {
                 commonlib.syncDirToS3Mirror(latest_dir, s3_latest_dir)
             }
         }
+    }
     }
 }

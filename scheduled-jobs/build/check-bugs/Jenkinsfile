@@ -5,10 +5,12 @@ properties( [
 ] )
 
 node() {
+    timestamps {
     checkout scm
 
     b = build(
         job: '../aos-cd-builds/build%2Fcheck-bugs',
         propagate: false
     )
+    }
 }

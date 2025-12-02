@@ -32,6 +32,7 @@ def sortedVersions() {
 }
 
 node() {
+    timestamps {
     checkout scm
     buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
@@ -40,6 +41,7 @@ node() {
         runFor(version)
     }
     buildlib.cleanWorkspace()
+    }
 }
 
 currentBuild.description = description.trim()

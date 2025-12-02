@@ -55,6 +55,7 @@ properties(
 IS_TEST_MODE = TEST.toBoolean()
 
 node(TARGET_NODE) {
+    timestamps {
 
     checkout scm
     
@@ -79,4 +80,5 @@ node(TARGET_NODE) {
     }
 
     buildlib.cleanWorkspace()
+    }
 }

@@ -71,6 +71,16 @@ node {
                         choices: ['both', 'brew', 'konflux'],
                         description: 'Build system to use for golang-builder images (brew, konflux, or both). Defaults to both.',
                     ),
+                    booleanParam(
+                        name: 'SKIP_PR',
+                        description: 'Skip PR generation for ocp-build-data updates.',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'EXTERNAL_GOLANG_RPMS',
+                        description: 'Use golang RPMs from external repos (not tagged in rhaos build tags). Skips tagging and availability checks.',
+                        defaultValue: false,
+                    ),
                     commonlib.mockParam(),
                     commonlib.dryrunParam(),
                     commonlib.artToolsParam(),
@@ -152,6 +162,12 @@ node {
                     }
                     if (params.BUILD_SYSTEM) {
                         cmd << "--build-system=${params.BUILD_SYSTEM}"
+                    }
+                    if (params.SKIP_PR) {
+                        cmd << "--skip-pr"
+                    }
+                    if (params.EXTERNAL_GOLANG_RPMS) {
+                        cmd << "--external-golang-rpms"
                     }
 
                     // Run pipeline

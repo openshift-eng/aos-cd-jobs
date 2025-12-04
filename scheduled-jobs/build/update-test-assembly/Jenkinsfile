@@ -23,6 +23,8 @@ node() {
         '4.18': 'openshift-base-nodejs.rhel9,openshift-base-rhel9,openshift-enterprise-base-rhel9',
         '4.19': 'openshift-base-nodejs.rhel9,openshift-base-rhel9,openshift-enterprise-base-rhel9',
         '4.20': 'openshift-base-nodejs.rhel9,openshift-base-rhel9,openshift-enterprise-base-rhel9',
+        '4.21': 'openshift-base-nodejs.rhel9,openshift-base-rhel9,openshift-enterprise-base-rhel9',
+        '4.22': 'openshift-base-nodejs.rhel9,openshift-base-rhel9,openshift-enterprise-base-rhel9',
     ]
 
     for ( version in commonlib.ocp4Versions ) {
@@ -33,22 +35,8 @@ node() {
 	    images = base_images["4.20"]
 	}
 
-        // Trigger ocp4 plashet build for test assembly in ${version}
-        jobs["plashets-v${version}"] = {
-            build(
-                job: '../aos-cd-builds/build%2Focp4',
-                parameters: [
-                    string(name: 'BUILD_VERSION', value: "${cv}"),
-		    string(name: 'ASSEMBLY', value: 'test'),
-                    booleanParam(name: 'IGNORE_LOCKS', value: true),
-                    string(name: 'BUILD_IMAGES', value: 'only'),
-                    string(name: 'IMAGE_LIST', value: images),
-                    booleanParam(name: 'SKIP_PLASHETS', value: false)
-                ],
-                propagate: false
-            )
-        }
-        jobs["base_image-konflux-v${version}"] = {
+        // Trigger ocp4-konflux to rebuild base images and plashets for test assembly in ${version}
+        jobs["base_image_konflux-plashets-v${version}"] = {
             build(
                 job: '../aos-cd-builds/build%2Focp4-konflux',
                 parameters: [
@@ -57,7 +45,7 @@ node() {
                     booleanParam(name: 'IGNORE_LOCKS', value: true),
                     string(name: 'BUILD_IMAGES', value: 'only'),
                     string(name: 'IMAGE_LIST', value: images),
-                    booleanParam(name: 'SKIP_PLASHETS', value: true)
+                    booleanParam(name: 'SKIP_PLASHETS', value: false)
                 ],
                 propagate: false
             )

@@ -41,19 +41,30 @@ notify ART team if it does.
     // Check for mock build
     commonlib.checkMock()
 
-    partitions_to_check = [
+    def partitions_to_check = [
         "/mnt/jenkins-home",
         "/mnt/jenkins-workspace",
     ]
 
     warnings = []
-
     for (String partition : partitions_to_check) {
-        disk_usage = sh(
-            script: "df -h | grep ${partition} | tr -s ' ' | cut -d ' ' -f5 | tr -d %",
+
+        def result = sh(
+            script: """
+                set +e
+                df -P ${partition} 2>/dev/null | awk 'NR==2 { sub("%","",$5); print $5 }'
+            """,
             returnStdout: true
-        ).trim().toInteger()
-        echo "Disk usage on `${partition}`: ${disk_usage}%"
+        ).trim()
+
+        if (!result.isInteger()) {
+            echo "Warning: Could not determine disk usage for ${partition}. Output: '${result}'"
+            continue
+        }
+
+        def disk_usage = result.toInteger()
+
+        echo "Disk usage on '${partition}': ${disk_usage}%"
 
         if (disk_usage > params.THRESHOLD.toInteger()) {
             warnings.add("Disk usage on \u0060${partition}\u0060: ${disk_usage}%")

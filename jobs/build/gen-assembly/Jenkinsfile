@@ -190,7 +190,7 @@ node {
             if (params.CUSTOM) {
                 cmd << "--custom"
             }
-            if (params.IN_FLIGHT_PREV && params.IN_FLIGHT_PREV != "none") {
+            if (params.IN_FLIGHT_PREV) {
                 cmd << "--in-flight=${params.IN_FLIGHT_PREV}"
             }
             if (params.PREVIOUS) {

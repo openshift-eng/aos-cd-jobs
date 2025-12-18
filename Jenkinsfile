@@ -80,6 +80,12 @@ node {
                         defaultValue: 'auto',
                         trim: true,
                     ),
+                    string(
+                        name: 'IMAGESTREAM_NAMESPACE',
+                        description: '(Optional) Namespace for imagestream updates. Default: origin',
+                        defaultValue: 'origin',
+                        trim: true,
+                    ),
                 ]
             ],
         ]
@@ -129,6 +135,9 @@ node {
             }
             if (params.BUILD_PRIORITY) {
                cmd << "--build-priority=${params.BUILD_PRIORITY}"
+            }
+            if (params.IMAGESTREAM_NAMESPACE) {
+                cmd << "--imagestream-namespace=${params.IMAGESTREAM_NAMESPACE}"
             }
 
             // Needed to detect manual builds

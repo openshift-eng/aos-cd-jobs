@@ -101,7 +101,15 @@ node() {
                         file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                         file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
                     ]) {
-                        commonlib.shell(script: cmd.join(' '))
+                        // Run the command and capture exit code
+                        // Exit code 2 indicates UNSTABLE (partial FBC build failures)
+                        def exitCode = sh(script: cmd.join(' '), returnStatus: true)
+                        if (exitCode == 2) {
+                            currentBuild.result = 'UNSTABLE'
+                            echo "Pipeline completed with UNSTABLE status (FBC build errors occurred)"
+                        } else if (exitCode != 0) {
+                            error("Pipeline failed with exit code ${exitCode}")
+                        }
                     }
                 }
             }

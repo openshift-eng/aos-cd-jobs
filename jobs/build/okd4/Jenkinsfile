@@ -82,8 +82,8 @@ node {
                     ),
                     string(
                         name: 'IMAGESTREAM_NAMESPACE',
-                        description: '(Optional) Namespace for imagestream updates. Default: origin',
-                        defaultValue: 'origin',
+                        description: '(Optional) Namespace for imagestream updates. Default: ocp',
+                        defaultValue: 'ocp',
                         trim: true,
                     ),
                 ]

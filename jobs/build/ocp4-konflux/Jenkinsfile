@@ -231,6 +231,7 @@ node {
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                             file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                            usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD'),
                 ]){
                     def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
                     if (params.TELEMETRY_ENABLED) {

@@ -3,11 +3,10 @@ import java.net.URLEncoder
 
 commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
-slacklib = commonlib.slacklib
 
-GITHUB_URLS = [:]
-GITHUB_BASE_PATHS = [:]
-GITHUB_BASE = "git@github.com:openshift"
+def GITHUB_URLS = [:]
+def GITHUB_BASE_PATHS = [:]
+def GITHUB_BASE = "git@github.com:openshift"
 
 // dump important tool versions to console
 def dump_versions() {
@@ -51,7 +50,7 @@ def withAppCiAsArtPublish(closure) {
 def path_setup() {
     echo "Adding git managed script directories to PATH"
 
-    GOPATH = "${env.WORKSPACE}/go"
+    def GOPATH = "${env.WORKSPACE}/go"
     env.GOPATH = GOPATH
     sh "mkdir -p ${GOPATH}/empty_to_overwrite"
     sh "rsync -a --delete ${GOPATH}{/empty_to_overwrite,}/"  // Remove any cruft
@@ -175,6 +174,7 @@ def setup_venv() {
     // Preparing venv for ART tools
     // The following commands will run automatically every time one of our jobs
     // loads buildlib (ideally, once per pipeline)
+    def VIRTUAL_ENV
     withEnv(['UV_LINK_MODE=symlink', 'PATH+MYCARGO=~/.cargo/bin']) {
         VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
         commonlib.shell(script: """
@@ -669,7 +669,7 @@ def cleanWorkspace() {
     }
 }
 
-WORKDIR_COUNTER=0 // ensure workdir cleanup can be invoked multiple times per job
+def WORKDIR_COUNTER=0 // ensure workdir cleanup can be invoked multiple times per job
 def cleanWorkdir(workdir, synchronous=false) {
     // get a fresh workdir; removing the old one can be synchronous or background.
 

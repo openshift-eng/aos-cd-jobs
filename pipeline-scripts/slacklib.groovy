@@ -27,7 +27,7 @@ import groovy.json.JsonOutput
  */
 
 // Maps builder emails to slack usernames IF email username does not match
-email_to_slack_map = [
+def email_to_slack_map = [
     'lmeyer@redhat.com': '@sosiouxme',
     'jdelft@redhat.com': '@joep',
 ]

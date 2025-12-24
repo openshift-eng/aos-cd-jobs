@@ -1,12 +1,12 @@
 
 slacklib = load("pipeline-scripts/slacklib.groovy")
 
-def ocp3Versions = [
+ocp3Versions = [
     "3.11",
 ]
 
 // All buildable versions of ocp4
-def ocp4Versions = [
+ocp4Versions = [
     "4.22",
     "4.21",
     "4.20",
@@ -20,21 +20,21 @@ def ocp4Versions = [
     "4.12",
 ]
 
-def nonOCPGroups = [
+nonOCPGroups = [
     "oadp-1.5",
     "oadp-1.4",
     "oadp-1.3",
     "logging-6.3",
 ]
 
-def ocpVersions = ocp4Versions + ocp3Versions
+ocpVersions = ocp4Versions + ocp3Versions
 
 // some of our systems refer to golang's chosen architecture nomenclature;
 // most use brew's nomenclature or similar. translate.
-def brewArches = ["x86_64", "s390x", "ppc64le", "aarch64", "multi"]
-def brewArchSuffixes = ["", "-s390x", "-ppc64le", "-aarch64", "-multi"]
-def goArches = ["amd64", "s390x", "ppc64le", "arm64", "multi"]
-def goArchSuffixes = ["", "-s390x", "-ppc64le", "-arm64", "-multi"]
+brewArches = ["x86_64", "s390x", "ppc64le", "aarch64", "multi"]
+brewArchSuffixes = ["", "-s390x", "-ppc64le", "-aarch64", "-multi"]
+goArches = ["amd64", "s390x", "ppc64le", "arm64", "multi"]
+goArchSuffixes = ["", "-s390x", "-ppc64le", "-arm64", "-multi"]
 def goArchForBrewArch(String brewArch) {
     if (brewArch in goArches) return brewArch  // allow to already be a go arch, just keep same
     if (brewArch in brewArches)
@@ -73,7 +73,7 @@ def initialize() {
 }
 
 def describeJob(name, description) {
-    def job = Jenkins.getInstance().getItemByFullName(env.JOB_NAME)
+    job = Jenkins.getInstance().getItemByFullName(env.JOB_NAME)
     if (name) {
         job.setDisplayName(name)
     }
@@ -212,7 +212,7 @@ def buildURL(String append='') {
     env.BUILD_URL.replace('https://buildvm.openshift.eng.bos.redhat.com:8443', 'https://localhost:8888') + append
 }
 
-def emailIndex = 0
+emailIndex = 0
 /**
  * Wrapper to persist email as an artifact and enable suppressing actual email
  */
@@ -356,7 +356,6 @@ def shell(arg) {
         }
     }
 
-    def results
     try {
         results = [
             stdout: readFile("${filebase}.out.txt"),

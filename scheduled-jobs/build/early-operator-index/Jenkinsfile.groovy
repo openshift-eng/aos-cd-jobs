@@ -17,9 +17,9 @@ node {
 
     workDir = "${env.WORKSPACE}/doozer_working"
     sh "rm -rf ${workDir}"
-    ocpVer = "4.21"
-    operatorIndexBaseVersion = "4.20"
-    operatorRegistryVersion = "4.20"
+    ocpVer = "4.22"
+    operatorIndexBaseVersion = "4.21"
+    operatorRegistryVersion = "4.21"
     
     // Print out bundle pullspecs alongside of distgit keys to help identify bundles which have not been built yet.
     echo "Doozer pullspecs by distgit_key"

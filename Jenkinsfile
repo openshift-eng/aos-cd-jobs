@@ -107,11 +107,13 @@ node {
             timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
                 echo "Will run ${cmd.join(' ')}"
                 withCredentials([
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                        ]) {
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                ]) {
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
                         try {
                             sh(script: cmd.join(' '), returnStdout: true)

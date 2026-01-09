@@ -35,6 +35,12 @@ node() {
                         defaultValue: "#art-okd-release",
                         description: "If set, send output to the Slack channel"
                     ),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'Assembly name',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -70,9 +76,13 @@ node() {
     if (params.SEND_TO_RELEASE_CHANNEL) {
         cmd << "--send-to-release-channel=${params.SEND_TO_RELEASE_CHANNEL}"
     }
+    if (params.ASSEMBLY) {
+        cmd << "--assembly=${params.ASSEMBLY}"
+    }
 
     withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                      string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                      usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
                      file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
 

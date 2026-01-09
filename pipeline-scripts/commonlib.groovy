@@ -20,6 +20,11 @@ ocp4Versions = [
     "4.12",
 ]
 
+okdVersions = [
+    "4.22",
+    "4.21",
+]
+
 nonOCPGroups = [
     "oadp-1.5",
     "oadp-1.4",

@@ -1,0 +1,64 @@
+node {
+    timestamps {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+    slacklib = commonlib.slacklib
+
+    properties( [
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+        disableResume(),
+        [
+            $class: "ParametersDefinitionProperty",
+            parameterDefinitions: [
+                commonlib.artToolsParam(),
+                commonlib.mockParam(),
+            ]
+        ]
+    ] )
+
+    commonlib.checkMock()
+    buildlib.init_artcd_working_dir()
+
+    stage("build-sync-multi") {
+        cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=${WORKSPACE}/artcd_working",
+            "--config=./config/artcd.toml",
+            "schedule-build-sync-multi",
+        ]
+        for ( version in commonlib.ocp4Versions ) {
+            // Only schedule for versions > 4.13
+            if (buildlib.cmp_version(version, "4.13") == 1) {
+                cmd << "--version=${version}"
+            }
+        }
+
+        withCredentials([
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD')]) {
+            wrap([$class: 'BuildUser']) {
+                builderEmail = env.BUILD_USER_EMAIL
+            }
+
+            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                try {
+                    echo "Will run ${cmd.join(' ')}"
+                    sh(script: cmd.join(' '), returnStdout: true)
+                } catch (err) {
+                    slacklib.to("#art-release").failure("Error running ocp4_multi-build-sync", err)
+                    throw err
+                } finally {
+                    commonlib.safeArchiveArtifacts([
+                        "artcd_working/**/*.log",
+                    ])
+                }
+            }
+        }
+
+    }
+    }
+}

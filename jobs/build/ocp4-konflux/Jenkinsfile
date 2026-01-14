@@ -193,7 +193,7 @@ node {
             cmd += [
                 "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",
                 "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
-                "--rpm-build-strategy=${RPM_BUILD_STRATEGY}",
+                "--rpm-build-strategy=${params.RPM_BUILD_STRATEGY}",
                 "--rpm-list=${commonlib.cleanCommaList(params.RPM_LIST)}"
             ]
             if (params.SKIP_REBASE) {

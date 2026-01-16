@@ -1,0 +1,90 @@
+node {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+    slacklib = commonlib.slacklib
+
+    properties( [
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+        disableResume(),
+        [
+            $class: "ParametersDefinitionProperty",
+            parameterDefinitions: [
+                commonlib.artToolsParam(),
+                string(
+                    name: 'ASSEMBLIES',
+                    description: '(Optional) Comma-separated list of assemblies to scan. If empty, defaults to "stream"',
+                    defaultValue: "stream",
+                    trim: true,
+                ),
+                commonlib.mockParam(),
+            ]
+        ]
+    ] )
+
+    commonlib.checkMock()
+    buildlib.init_artcd_working_dir()
+
+    // Build list of groups to scan
+    def groupsToScan = []
+
+    // Add all OCP4 versions
+    for ( version in commonlib.ocp4Versions ) {
+        groupsToScan << "openshift-${version}"
+    }
+
+    // Add RHEL RHCOS groups
+    groupsToScan << "rhocp-rhel-9.6"
+
+    // Set friendly build name
+    def assemblies = params.ASSEMBLIES ?: "stream"
+    currentBuild.displayName = "#${currentBuild.number} ${groupsToScan.size()} groups, ${assemblies}"
+
+    stage("schedule-scan") {
+        cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=${WORKSPACE}/artcd_working",
+            "--config=./config/artcd.toml",
+            "schedule-scan-plashet-rpms",
+        ]
+
+        // Add all groups
+        for ( group in groupsToScan ) {
+            cmd << "--group=${group}"
+        }
+
+        // Add assemblies if specified
+        if (params.ASSEMBLIES) {
+            def assemblyList = commonlib.cleanCommaList(params.ASSEMBLIES).split(',')
+            for ( assembly in assemblyList ) {
+                cmd << "--assembly=${assembly.trim()}"
+            }
+        }
+
+        withCredentials([
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD')]) {
+            wrap([$class: 'BuildUser']) {
+                builderEmail = env.BUILD_USER_EMAIL
+            }
+
+            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                try {
+                    echo "Will run ${cmd.join(' ')}"
+                    sh(script: cmd.join(' '), returnStdout: true)
+                } catch (err) {
+                    slacklib.to("#art-release").failure("Error running schedule-scan-plashet-rpms", err)
+                    throw err
+                } finally {
+                    commonlib.safeArchiveArtifacts([
+                        "artcd_working/**/*.log",
+                    ])
+                }
+            }
+        }
+
+    }
+}

@@ -20,6 +20,11 @@ ocp4Versions = [
     "4.12",
 ]
 
+// All buildable versions of ocp5
+ocp5Versions = [
+    "5.0",
+]
+
 okdVersions = [
     "4.22",
     "4.21",
@@ -33,7 +38,7 @@ nonOCPGroups = [
     "logging-6.3",
 ]
 
-ocpVersions = ocp4Versions + ocp3Versions
+ocpVersions = ocp5Versions + ocp4Versions + ocp3Versions
 
 // some of our systems refer to golang's chosen architecture nomenclature;
 // most use brew's nomenclature or similar. translate.
@@ -66,6 +71,7 @@ def goSuffixForArch(String arch) {
 }
 
 ocpMajorVersions = [
+    "5": ocp5Versions,
     "4": ocp4Versions,
     "3": ocp3Versions,
     "all": ocpVersions,

@@ -1,10 +1,10 @@
-# Mirror latest 4.y images to nightlies
+# Mirror latest 4.y/5.y images to nightlies
 
 ## Purpose
 
 This job gets the latest Konflux payload images from our candidate tags, syncs them to
 quay.io/openshift-release-dev where we publish payload members
-for all 4.y versions, and updates the arch-specific imagestreams on app.ci
+for all 4.y/5.y versions, and updates the arch-specific imagestreams on app.ci
 (which feed into nightlies on our release-controllers) to point at the updated
 (arch-specific) image shasum.
 
@@ -30,7 +30,7 @@ images from an assembly.
 
 Among the archived artifacts for this job are the arch-specific imagestream
 definitions that specify the contents of nightlies. These can be useful for
-monkeying with the contents by hand, for example to [trigger a new nightly](https://art-docs.engineering.redhat.com/release/4.y.z-stream/#what-to-do-if-the-latest-nightly-is-rejected).
+monkeying with the contents by hand, for example to trigger a new nightly.
 (Although such monkeying for any other reason is probably unwise, and tedious
 for multiple arches.)
 

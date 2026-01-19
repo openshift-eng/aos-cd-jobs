@@ -73,6 +73,7 @@ def goSuffixForArch(String arch) {
 ocpMajorVersions = [
     "5": ocp5Versions,
     "4": ocp4Versions,
+    "4plus": ocp5Versions + ocp4Versions,
     "3": ocp3Versions,
     "all": ocpVersions,
 ]

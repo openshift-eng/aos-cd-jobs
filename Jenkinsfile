@@ -8,7 +8,7 @@ node() {
     def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
     commonlib.describeJob("build-sync-konflux", """
-        <h2>Mirror latest 4.y/5.y images to nightlies</h2>
+        <h2>Mirror latest 4.y images to nightlies</h2>
         <b>Timing</b>: usually automated. Human might use to revert or hand-advance nightly membership.
 
         This job gets the latest images from our candidate tags, syncs them to quay.io,
@@ -37,7 +37,7 @@ node() {
             parameterDefinitions: [
                 commonlib.suppressEmailParam(),
                 commonlib.mockParam(),
-                commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                 commonlib.artToolsParam(),
                 string(
                     name: 'ASSEMBLY',

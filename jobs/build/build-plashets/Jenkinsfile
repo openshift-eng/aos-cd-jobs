@@ -31,7 +31,7 @@ node {
                         commonlib.dryrunParam(),
                         commonlib.mockParam(),
                         commonlib.artToolsParam(),
-                        commonlib.ocpVersionParam('VERSION', '4'),
+                        commonlib.ocpVersionParam('VERSION', '4plus'),
                         string(
                             name: 'GROUP',
                             description: '(Optional) Group name. If specified, VERSION param is ignored',

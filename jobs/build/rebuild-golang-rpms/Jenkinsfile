@@ -15,11 +15,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    choice(
-                        name: 'BUILD_VERSION',
-                        choices: commonlib.ocpVersions,
-                        description: 'OCP Version',
-                    ),
+                    commonlib.ocpVersionParam('BUILD_VERSION', 'all'),
                     string(
                         name: 'GOLANG_NVRS',
                         description: 'Golang NVRs (one or multiple but atmost one for a rhel version) you want to build rpms for (comma/space separated)',

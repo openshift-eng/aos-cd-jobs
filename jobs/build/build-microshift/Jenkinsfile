@@ -23,7 +23,7 @@ node() {
                 [
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
-                        commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                        commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                         commonlib.artToolsParam(),
                         string(
                             name: "ASSEMBLY",

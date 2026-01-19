@@ -18,11 +18,7 @@ node() {
                     defaultValue: "",
                     trim: true
                 ),
-                choice(
-                    name: 'BUILD_VERSION',
-                    choices: commonlib.ocpVersions,
-                    description: 'OCP Version',
-                ),
+                commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                 string(
                     name: 'ASSEMBLY',
                     description: 'Assembly name.',

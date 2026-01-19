@@ -17,11 +17,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    choice(
-                        name: 'BUILD_VERSION',
-                        choices: commonlib.ocpVersions,
-                        description: 'OCP Version',
-                    ),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                     string(
                         name: 'DOOZER_DATA_PATH',
                         description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',

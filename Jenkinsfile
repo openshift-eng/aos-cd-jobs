@@ -1,238 +1,217 @@
 #!/usr/bin/env groovy
 
-import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
-
-def compressBrewLogs() {
-    echo "Compressing brew logs.."
-    commonlib.shell(script: "./find-and-compress-brew-logs.sh")
-}
-
-def isMassRebuild() {
-    return currentBuild.displayName.contains("[mass rebuild]")
-}
-
-node {
+node() {
     timestamps {
+
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
+    commonlib.describeJob("build-sync-konflux", """
+        <h2>Mirror latest 4.y/5.y images to nightlies</h2>
+        <b>Timing</b>: usually automated. Human might use to revert or hand-advance nightly membership.
 
-    commonlib.describeJob("ocp5", """
-        Build OCP 5 images with Konflux
+        This job gets the latest images from our candidate tags, syncs them to quay.io,
+        and updates the imagestreams on app.ci which feed into nightlies on our
+        release-controllers.
+
+        build-sync runs a comprehensive set of checks validating the internal consistency
+        of the proposed imagestream, and may halt the process accordingly. It can be considered
+        the main artbiter.
+
+        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/build-sync/README.md" target="_blank">README</a>
     """)
 
-    // Expose properties for a parameterized build
-    properties(
+    // Please update README.md if modifying parameter names or semantics
+    properties([
+        disableResume(),
+        buildDiscarder(
+          logRotator(
+              artifactDaysToKeepStr: '30',
+              daysToKeepStr: '30',
+              numToKeepStr: '300',
+          )
+        ),
         [
-            disableResume(),
-            buildDiscarder(
-                logRotator(
-                    artifactDaysToKeepStr: '30',
-                    daysToKeepStr: '30')),
-            [
-                $class: 'ParametersDefinitionProperty',
-                parameterDefinitions: [
-                    commonlib.dryrunParam(),
-                    commonlib.mockParam(),
-                    commonlib.artToolsParam(),
-                    commonlib.ocpVersionParam('BUILD_VERSION', '5'),
-                    booleanParam(
-                        name: 'IGNORE_LOCKS',
-                        description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
-                        defaultValue: false
-                    ),
-                    string(
-                        name: 'PLR_TEMPLATE_COMMIT',
-                        description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'ASSEMBLY',
-                        description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
-                        defaultValue: "test",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'DOOZER_DATA_PATH',
-                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
-                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'DOOZER_DATA_GITREF',
-                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    choice(
-                        name: 'IMAGE_BUILD_STRATEGY',
-                        description: 'Which images are candidates for building? "only/except" refer to list below',
-                        choices: [
-                            "only",
-                            "none",
-                            "all",
-                            "except"
-                        ].join("\n")
-                    ),
-                    string(
-                        name: 'IMAGE_LIST',
-                        description: '(Optional) Comma/space-separated list to include/exclude per IMAGE_BUILD_STRATEGY (e.g. logging-kibana5,openshift-jenkins-2)',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    choice(
-                        name: 'RPM_BUILD_STRATEGY',
-                        description: 'Which RPMs are candidates for building? "only/except" refer to list below',
-                        choices: [
-                            "none",
-                            "only",
-                            "all",
-                            "except",
-                        ].join("\n")
-                    ),
-                    string(
-                        name: 'RPM_LIST',
-                        description: '(Optional) Comma/space-separated list to include/exclude per RPM_BUILD_STRATEGY (e.g. openshift-ansible,openshift-clients)',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'BUILD_PRIORITY',
-                        description: "Use default 'auto', to let doozer decide. If not, set a value from 1 (highest priority) to 10 (lowest priority).",
-                        defaultValue: 'auto',
-                        trim: true,
-                    ),
-                    booleanParam(
-                        name: 'USE_MASS_REBUILD_LOCKS',
-                        description: 'Allow mass rebuilds to run with locks (i.e. only one OCP y-stream can mass rebuild at a time)',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
-                        name: 'SKIP_PLASHETS',
-                        description: 'Do not build plashets (for example to save time when running multiple builds against test assembly)',
-                        defaultValue: true,
-                    ),
-                    string(
-                            name: 'LIMIT_ARCHES',
-                            description: '(Optional) Limit included arches to this list. Valid values are (aarch64, ppc64le, s390x, x86_64)',
-                            defaultValue: "",
-                            trim: true,
-                    ),
-                    booleanParam(
-                        name: 'SKIP_REBASE',
-                        description: '(For testing) Skip the rebase step',
-                        defaultValue: false
-                    ),
-                    booleanParam(
-                        name: 'SKIP_BUNDLE_BUILD',
-                        description: '(For testing) Skip the OLM bundle build step',
-                        defaultValue: false,  // Default to true until we believe bundle build is stable.
-                    ),
-                    choice(
-                        name: 'NETWORK_MODE',
-                        description: 'Override network mode for Konflux builds',
-                        choices: [
-                            "",
-                            "hermetic",
-                            "internal-only",
-                            "open"
-                        ].join("\n")
-                    ),
-                    commonlib.enableTelemetryParam(),
-                    commonlib.telemetryEndpointParam(),
-                ]
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                commonlib.suppressEmailParam(),
+                commonlib.mockParam(),
+                commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                commonlib.artToolsParam(),
+                string(
+                    name: 'ASSEMBLY',
+                    description: 'The name of an assembly to sync.',
+                    defaultValue: "stream",
+                    trim: true,
+                ),
+                booleanParam(
+                    name        : 'PUBLISH',
+                    description : 'Publish release image(s) directly to registry.ci for testing',
+                    defaultValue: false,
+                ),
+                string(
+                    name: 'DOOZER_DATA_PATH',
+                    description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
+                    defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                    trim: true,
+                ),
+                booleanParam(
+                    name        : 'EMERGENCY_IGNORE_ISSUES',
+                    description : ['Ignore all issues with constructing payload.',
+                                   'In gen-payload, viable will be true whatever is the case,',
+                                   'allowing internal inconsistencies.',
+                                   'Only supported for assemblies of type Stream.<br/>',
+                                   '<b/>Do not use without approval.</b>'].join(' '),
+                    defaultValue: false,
+                ),
+                booleanParam(
+                    name        : 'RETRIGGER_CURRENT_NIGHTLY',
+                    description : ['Forces the release controller to re-run with existing images, ',
+                                   'by marking the current ImageStream as new again for Release Controller. ',
+                                   'No change will be made to payload images in the release.',
+                                   '<br/><b/>Purpose:</b> To run tests again on an already existing nightly. ',
+                                   'All other parameters will be ignored.'].join(' '),
+                    defaultValue: false,
+                ),
+                string(
+                    name: 'DOOZER_DATA_GITREF',
+                    description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name        : 'DRY_RUN',
+                    description : 'Run "oc" commands with the dry-run option set to true',
+                    defaultValue: false,
+                ),
+                string(
+                    name        : 'IMAGES',
+                    description : '(Optional) Limited list of images to sync, for testing purposes',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                string(
+                    name        : 'EXCLUDE_ARCHES',
+                    description : '(Optional) List of problem arch(es) NOT to sync (aarch64, ppc64le, s390x, x86_64)',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name        : 'SKIP_MULTI_ARCH_PAYLOAD',
+                    description : 'Multi-arch payloads are now generated by build-sync-multi pipeline. Set to false only if you need legacy multi-arch payload generation behavior.',
+                    defaultValue: true,
+                ),
+                booleanParam(
+                    name        : 'EMBARGO_PERMIT_ACK',
+                    description : 'WARNING: Only enable this if a payload containing embargoed build(s) is being promoted after embargo lift',
+                    defaultValue: false,
+                ),
+                commonlib.enableTelemetryParam(),
+                commonlib.telemetryEndpointParam(),
             ],
         ]
-    )
+    ])  // Please update README.md if modifying parameter names or semantics
 
     commonlib.checkMock()
 
-    if (currentBuild.description == null) {
-        currentBuild.description = ""
-    }
-    sshagent(["openshift-bot"]) {
-        stage("initialize") {
-            currentBuild.displayName = "#${currentBuild.number}"
+    stage("Initialize") {
+        echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")
+        currentBuild.displayName = "${BUILD_VERSION} - ${ASSEMBLY}"
+
+        // doozer_working must be in WORKSPACE in order to have artifacts archived
+        mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
+        buildlib.cleanWorkdir(mirrorWorking)
+
+        if (params.DRY_RUN) {
+            currentBuild.displayName += " [DRY_RUN]"
         }
 
-        stage("ocp5") {
-            // artcd command - note: uses "ocp4" command which works for both OCP4 and OCP5
-            def cmd = [
-                "artcd",
-                "-v",
-                "--working-dir=./artcd_working",
-                "--config=./config/artcd.toml",
-            ]
-            if (params.DRY_RUN) {
-                cmd << "--dry-run"
-            }
-            cmd += [
-                "beta:ocp4-konflux",
-                "--version=${params.BUILD_VERSION}",
-                "--assembly=${params.ASSEMBLY}",
-            ]
-            if (params.DOOZER_DATA_PATH) {
-                cmd << "--data-path=${params.DOOZER_DATA_PATH}"
-            }
-            if (params.DOOZER_DATA_GITREF) {
-                cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
-            }
-            if (params.SKIP_PLASHETS) {
-                cmd << "--skip-plashets"
-            }
-            if (params.LIMIT_ARCHES) {
-                for (arch in params.LIMIT_ARCHES.split("[,\\s]+")) {
-                    cmd << "--arch" << arch.trim()
-                }
-            }
-            if (params.PLR_TEMPLATE_COMMIT) {
-                cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
-            }
-            cmd += [
-                "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",
-                "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
-                "--rpm-build-strategy=${params.RPM_BUILD_STRATEGY}",
-                "--rpm-list=${commonlib.cleanCommaList(params.RPM_LIST)}"
-            ]
-            if (params.SKIP_REBASE) {
-                cmd << "--skip-rebase"
-            }
-            if (params.IGNORE_LOCKS) {
-                cmd << "--ignore-locks"
-            }
-            if (params.SKIP_BUNDLE_BUILD) {
-                cmd << "--skip-bundle-build"
-            }
-            if (params.BUILD_PRIORITY) {
-               cmd << "--build-priority=${params.BUILD_PRIORITY}"
-            }
-            if (params.USE_MASS_REBUILD_LOCKS) {
-               cmd << "--use-mass-rebuild-locks"
-            }
-            if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
-                cmd << "--network-mode=${params.NETWORK_MODE}"
-            }
+        def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
+        if ( params.EXCLUDE_ARCHES ) {
+            excludeArches = commonlib.parseList(params.EXCLUDE_ARCHES)
+            currentBuild.displayName += " [EXCLUDE ${excludeArches.join(', ')}]"
+            if ( !arches.containsAll(excludeArches) )
+                error("Trying to exclude arch ${excludeArches} not present in known arches ${arches}")
+            arches.removeAll(excludeArches)
+        }
 
-            // Needed to detect manual builds
-                wrap([$class: 'BuildUser']) {
-                        builderEmail = env.BUILD_USER_EMAIL
-                }
+        if (currentBuild.description == null) {
+            currentBuild.description = ""
+        }
+        currentBuild.description += "Arches: ${arches.join(', ')}"
 
+        imageList = commonlib.cleanCommaList(params.IMAGES)
+        if ( imageList ) {
+            echo("Only syncing specified images: ${imageList}")
+            currentBuild.description += "<br>Images: ${imageList}"
+        }
+    }
+
+    stage("Version dumps") {
+        buildlib.doozer "--version"
+        buildlib.elliott "--version"
+        buildlib.oc("version --client=true -o yaml")
+    }
+
+    stage ("build sync") {
+        buildlib.init_artcd_working_dir()
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+        ]
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        }
+        cmd += [
+            "build-sync",
+            "--version=${params.BUILD_VERSION}",
+            "--assembly=${params.ASSEMBLY}",
+            "--build-system=konflux"
+        ]
+        if (params.PUBLISH) {
+            cmd << "--publish"
+        }
+        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+        if (params.EMERGENCY_IGNORE_ISSUES) {
+            cmd << "--emergency-ignore-issues"
+        }
+        if (params.RETRIGGER_CURRENT_NIGHTLY) {
+            cmd << "--retrigger-current-nightly"
+        }
+        if (params.DOOZER_DATA_GITREF) {
+            cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+        }
+        if (params.IMAGES) {
+            cmd << "--images=${params.IMAGES}"
+        }
+        if (params.EXCLUDE_ARCHES) {
+            cmd << "--exclude-arches=${commonlib.cleanCommaList(params.EXCLUDE_ARCHES)}"
+        }
+        if (params.SKIP_MULTI_ARCH_PAYLOAD) {
+            cmd << "--skip-multiarch-payload"
+        }
+        if (params.EMBARGO_PERMIT_ACK) {
+            cmd << "--embargo-permit-ack"
+        }
+
+        // Run pipeline
+        echo "Will run ${cmd.join(' ')}"
+
+        try {
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([
-                            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                            string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                            file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
-                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                ]){
-                    def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
+                ]) {
+                    def envVars = ["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]
                     if (params.TELEMETRY_ENABLED) {
                         envVars << "TELEMETRY_ENABLED=1"
                         if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
@@ -240,26 +219,35 @@ node {
                         }
                     }
                     withEnv(envVars) {
-                        buildlib.init_artcd_working_dir()
-                        try {
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        } catch (err) {
-                            // If any image build/push failures occurred, mark the job run as unstable
-                            currentBuild.result = "UNSTABLE"
-                        }
+                        sh(script: cmd.join(' '), returnStdout: true)
                     }
                 }
             }
-        }
 
-        stage("terminate") {
+            if (params.PUBLISH && !params.DRY_RUN) {
+                currentBuild.description += " [PUBLISH]"
+            }
+        } catch (err) {
+            commonlib.email(
+                    to: "aos-art-automation+failed-build-sync@redhat.com",
+                    from: "aos-art-automation@redhat.com",
+                    replyTo: "aos-team-art@redhat.com",
+                    subject: "Error during OCP ${params.BUILD_VERSION} build sync",
+                    body: """
+    There was an issue running build-sync for OCP ${params.BUILD_VERSION}:
+
+        ${err}
+    """)
+            throw (err)
+        } finally {
             commonlib.safeArchiveArtifacts([
+                "app.ci-backup.tgz",
+                "gen-payload-artifacts/*",
+                "MIRROR_working/debug.log",
                 "artcd_working/**/*.log",
-                "artcd_working/doozer_working/*.yaml",
-                "artcd_working/doozer_working/*.yml",
             ])
             buildlib.cleanWorkspace()
         }
-    }
+    } // stage build-sync
     }
 }

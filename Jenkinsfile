@@ -36,7 +36,7 @@ node {
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                     commonlib.artToolsParam(),
-                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                     booleanParam(
                         name: 'IGNORE_LOCKS',
                         description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',

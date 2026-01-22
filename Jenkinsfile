@@ -31,7 +31,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.ocpVersionParam('VERSION', '4'),  // not used by "stream" assembly
+                    commonlib.ocpVersionParam('VERSION', '4plus'),  // not used by "stream" assembly
                     commonlib.artToolsParam(),
                     string(
                         name: 'ASSEMBLY',

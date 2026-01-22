@@ -78,11 +78,6 @@ node {
                             description: 'Allow matching nightlies built from matching commits but with inconsistent RPMs',
                             defaultValue: false,
                         ),
-                        choice(
-                            name: 'PRE_GA_MODE',
-                            description: 'Prepare the advisory for "prerelease" operator release',
-                            choices: ["none", "prerelease"].join("\n"),
-                        ),
                         booleanParam(
                             name: 'CUSTOM',
                             description: 'Custom assemblies are not for official release. They can, for example, not have all required arches for the group.',
@@ -183,9 +178,6 @@ node {
             }
             if (params.ALLOW_INCONSISTENCY) {
                 cmd << "--allow-inconsistency"
-            }
-            if (params.PRE_GA_MODE && params.PRE_GA_MODE != "none") {
-                cmd << "--pre-ga-mode=${params.PRE_GA_MODE}"
             }
             if (params.CUSTOM) {
                 cmd << "--custom"

@@ -26,7 +26,7 @@ node {
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
                         commonlib.artToolsParam(),
-                        commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                        commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                         string(
                             name: "ASSEMBLY_NAME",
                             description: "The name of the proposed assembly (e.g. 4.9.12, ec.0, or art1234)",

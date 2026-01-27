@@ -35,7 +35,7 @@ node() {
             parameterDefinitions: [
                 commonlib.suppressEmailParam(),
                 commonlib.mockParam(),
-                commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                 commonlib.artToolsParam(),
                 string(
                     name: 'ASSEMBLY',

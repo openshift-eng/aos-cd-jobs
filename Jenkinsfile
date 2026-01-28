@@ -5,6 +5,7 @@ node() {
 
     properties(
         [
+            buildDiscarder(logRotator(daysToKeepStr: '30')),
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [

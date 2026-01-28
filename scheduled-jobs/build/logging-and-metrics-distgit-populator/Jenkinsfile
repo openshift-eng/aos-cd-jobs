@@ -1,3 +1,7 @@
+properties([
+    buildDiscarder(logRotator(daysToKeepStr: '30')),
+])
+
 node("openshift-build-1") {
     timestamps {
   try {
@@ -12,7 +16,7 @@ node("openshift-build-1") {
 Jenkins job: ${env.BUILD_URL}
 """);
             // Re-throw the error in order to fail the job
-            throw err    
+            throw err
   }
     }
 }

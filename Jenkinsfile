@@ -8,6 +8,7 @@ node() {
     properties(
         [
             disableConcurrentBuilds(),
+            buildDiscarder(logRotator(daysToKeepStr: '30')),
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [

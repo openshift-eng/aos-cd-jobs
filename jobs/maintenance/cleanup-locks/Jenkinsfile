@@ -18,6 +18,7 @@ node {
     properties(
         [
             disableResume(),
+            buildDiscarder(logRotator(daysToKeepStr: '30')),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [

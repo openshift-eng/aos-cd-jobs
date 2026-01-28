@@ -28,9 +28,9 @@ ocp5Versions = [
 
 
 okdVersions = [
+    "4.23",
     "4.22",
     "4.21",
-    "4.20",
 ]
 
 nonOCPGroups = [

@@ -14,6 +14,7 @@ node {
     // Expose properties for a parameterized build
     properties(
         [
+            buildDiscarder(logRotator(daysToKeepStr: '30')),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [

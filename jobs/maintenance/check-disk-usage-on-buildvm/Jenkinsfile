@@ -53,7 +53,7 @@ notify ART team if it does.
         def result = sh(
             script: """
                 set +e
-                df -P ${partition} 2>/dev/null | awk 'NR==2 { sub("%","",$5); print $5 }'
+                df -P ${partition} 2>/dev/null | awk 'NR==2 { sub("%","",\\$5); print \\$5 }'
             """,
             returnStdout: true
         ).trim()

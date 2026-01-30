@@ -133,8 +133,10 @@ for arch in ${ARCHES}; do
       # and readability. The check on MAJOR_MINOR is just a sanity check that it starts with a digit (e.g. "4.16")
       # so we are deleting only expected items.
       echo "Cleaning up old entries in ocp-dev-preview/"
-      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${PREVIOUS_MAJOR_MINOR}.*"
-      aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${PREVIOUS_MAJOR_MINOR}.*" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+      for kind in ec fc nightly; do
+        aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${PREVIOUS_MAJOR_MINOR}\.[0-9-]*${kind}\..*"
+        aws s3 rm "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/" --recursive --exclude "*" --include "${PREVIOUS_MAJOR_MINOR}\.[0-9-]*${kind}\..*" --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+      done
     fi
 
     # List the all the other "latest-4.x" or "stable-4.x" directory names. s3 ls

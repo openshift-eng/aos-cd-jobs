@@ -70,6 +70,7 @@ node {
                         name: 'IMAGE_BUILD_STRATEGY',
                         description: 'Which images are candidates for building? "only/except" refer to list below',
                         choices: [
+                            "none",
                             "only",
                             "none",
                             "all",

@@ -28,6 +28,7 @@ ocp5Versions = [
 
 
 okdVersions = [
+    "5.0",
     "4.23",
     "4.22",
     "4.21",
@@ -140,6 +141,15 @@ def ocpVersionParam(name='MINOR_VERSION', majorVersion='all', extraOpts=[]) {
         description: 'OSE Version',
         $class: 'hudson.model.ChoiceParameterDefinition',
         choices: (extraOpts + ocpMajorVersions[majorVersion]).join('\n'),
+    ]
+}
+
+def okdVersionParam(name='VERSION', extraOpts=[]) {
+    return [
+        name: name,
+        description: 'OKD Version',
+        $class: 'hudson.model.ChoiceParameterDefinition',
+        choices: (extraOpts + okdVersions).join('\n'),
     ]
 }
 

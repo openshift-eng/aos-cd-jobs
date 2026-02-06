@@ -1,70 +1,183 @@
-// Update-branches job
+#!/usr/bin/env groovy
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
 
-node('openshift-build-1') {
+node {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    def slacklib = commonlib.slacklib
+
+    commonlib.describeJob("okd", """
+        Build OKD images with Konflux
+    """)
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '30',
+                    daysToKeepStr: '30')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.dryrunParam(),
+                    commonlib.mockParam(),
+                    commonlib.artToolsParam(),
+                    commonlib.okdVersionParam('BUILD_VERSION'),
+                    booleanParam(
+                        name: 'IGNORE_LOCKS',
+                        description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                        defaultValue: false
+                    ),
+                    string(
+                        name: 'PLR_TEMPLATE_COMMIT',
+                        description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    choice(
+                        name: 'IMAGE_BUILD_STRATEGY',
+                        description: 'Which images are candidates for building? "only/except" refer to list below',
+                        choices: [
+                            "only",
+                            "none",
+                            "all",
+                            "except"
+                        ].join("\n")
+                    ),
+                    string(
+                        name: 'IMAGE_LIST',
+                        description: '(Optional) Comma/space-separated list to include/exclude per IMAGE_BUILD_STRATEGY (e.g. logging-kibana5,openshift-jenkins-2)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'BUILD_PRIORITY',
+                        description: "Use default 'auto', to let doozer decide. If not, set a value from 1 (highest priority) to 10 (lowest priority).",
+                        defaultValue: 'auto',
+                        trim: true,
+                    ),
+                    string(
+                        name: 'IMAGESTREAM_NAMESPACE',
+                        description: '(Optional) Namespace for imagestream updates. Default: ocp',
+                        defaultValue: 'origin',
+                        trim: true,
+                    ),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    if (currentBuild.description == null) {
+        currentBuild.description = ""
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+    sshagent(["openshift-bot"]) {
+        stage("initialize") {
+            currentBuild.displayName = "#${currentBuild.number}"
+        }
+
+        stage("okd") {
+            // artcd command
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=./artcd_working",
+                "--config=./config/artcd.toml",
+            ]
+            if (params.DRY_RUN) {
+                cmd << "--dry-run"
+            }
+            cmd += [
+                "okd",
+                "--version=${params.BUILD_VERSION}",
+                "--assembly=${params.ASSEMBLY}",
+            ]
+            if (params.DOOZER_DATA_PATH) {
+                cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+            }
+            if (params.DOOZER_DATA_GITREF) {
+                cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+            }
+            if (params.PLR_TEMPLATE_COMMIT) {
+                cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
+            }
+            cmd += [
+                "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",
+                "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
+            ]
+            if (params.IGNORE_LOCKS) {
+                cmd << "--ignore-locks"
+            }
+            if (params.BUILD_PRIORITY) {
+               cmd << "--build-priority=${params.BUILD_PRIORITY}"
+            }
+            if (params.IMAGESTREAM_NAMESPACE) {
+                cmd << "--imagestream-namespace=${params.IMAGESTREAM_NAMESPACE}"
+            }
+
+            // Needed to detect manual builds
+            wrap([$class: 'BuildUser']) {
+                builderEmail = env.BUILD_USER_EMAIL
+            }
+
+            buildlib.withAppCiAsArtPublish() {
+                withCredentials([
+                            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                            string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                            file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                ]){
+                    def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
+
+                    withEnv(envVars) {
+                        buildlib.init_artcd_working_dir()
+                        try {
+                            sh(script: cmd.join(' '), returnStdout: true)
+                        } catch (err) {
+                            // If any image build/push failures occurred, mark the job run as unstable
+                            currentBuild.result = "UNSTABLE"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("terminate") {
+            commonlib.safeArchiveArtifacts([
+                "artcd_working/**/*.log",
+                "artcd_working/doozer_working/*.yaml",
+                "artcd_working/doozer_working/*.yml",
+            ])
+            buildlib.cleanWorkspace()
+        }
+    }
     }
 }

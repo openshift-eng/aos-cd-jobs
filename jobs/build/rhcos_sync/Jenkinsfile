@@ -36,6 +36,7 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.artToolsParam(),
                     string(
                         name: 'RELEASE_TAG',
                         description: 'Release Name (or pullspec with a tag) from which to get RHCOS buildID reference (ex. 4.12.0-ec.2-x86_64). <b>Note:</b> The buildID is pulled from the installer image in the payload, which is often different from what is in the rhcos image - so make sure the installer image points to the right buildID.',
@@ -102,9 +103,11 @@ node {
         )
     }
 
+    rhcos_file = "${env.WORKSPACE}/rhcos-${arch}.json"
     cmd = """
         tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
         oc image extract --path /manifests/:\$tmp \$(oc adm release info --image-for installer ${pullspec})
+        cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream > ${rhcos_file}
         cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream | jq -r .architectures.${arch}.artifacts.qemu.release
         rm -rf \$tmp
     """
@@ -130,6 +133,36 @@ node {
         stage("Mirror artifacts") {
 	    if (!needsHappening) { return }
             rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name, noLatest)
+        }
+        stage("Sign RHCOS container images") {
+            def signing_env = params.DRY_RUN ? "stage" : "prod"
+            def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
+            def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
+
+            withCredentials([
+                file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
+                string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
+                string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL')
+            ]) {
+                buildlib.init_artcd_working_dir()
+                def dryrun = params.DRY_RUN ? "--dry-run" : ""
+                def cmd = """
+                    artcd -vv ${dryrun} \\
+                        --config=${env.WORKSPACE}/config/artcd.toml \\
+                        --working-dir=${env.WORKSPACE}/artcd_working \\
+                        sign-rhcos-containers \\
+                        --rhcos-file ${rhcos_file} \\
+                        --arch ${arch} \\
+                        --signing-env ${signing_env}
+                """
+                try {
+                    commonlib.shell(script: cmd)
+                    echo "Successfully signed RHCOS container images"
+                } catch (err) {
+                    echo "WARNING: Failed to sign RHCOS container images: ${err}"
+                    currentBuild.description += "\n[WARNING] RHCOS container signing failed"
+                }
+            }
         }
         stage("Slack notification to release channel") {
 	    if (!needsHappening) { return }

@@ -106,7 +106,7 @@ node() {
             currentBuild.displayName += " [DRY_RUN]"
         }
 
-        def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
+        def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}", false, params.DOOZER_DATA_GITREF ?: '').toList()
         if ( params.EXCLUDE_ARCHES ) {
             excludeArches = commonlib.parseList(params.EXCLUDE_ARCHES)
             currentBuild.displayName += " [EXCLUDE ${excludeArches.join(', ')}]"

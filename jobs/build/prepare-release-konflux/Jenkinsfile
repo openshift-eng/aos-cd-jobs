@@ -48,6 +48,12 @@ node() {
                             defaultValue: "",
                             trim: true
                         ),
+                        string(
+                            name: 'PLR_TEMPLATE_COMMIT',
+                            description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                            defaultValue: "",
+                            trim: true,
+                        ),
                         commonlib.dryrunParam(),
                         commonlib.mockParam(),
                     ]
@@ -86,6 +92,9 @@ node() {
                 }
                 if (params.INJECT_BUILD_DATA_REPO) {
                     cmd += ["--inject-build-data-repo"]
+                }
+                if (params.PLR_TEMPLATE_COMMIT) {
+                    cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
                 }
                 echo "Will run ${cmd.join(' ')}"
 

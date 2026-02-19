@@ -732,36 +732,38 @@ node {
             }
 
             stage("build images") {
-                if (params.BUILD_CONTAINER_IMAGES) {
-                    try {
-                        exclude = ""
-                        if (BUILD_EXCLUSIONS != "") {
-                            exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                withCredentials([file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    if (params.BUILD_CONTAINER_IMAGES) {
+                        try {
+                            exclude = ""
+                            if (BUILD_EXCLUSIONS != "") {
+                                exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                            }
+                            buildlib.doozer """
+                                ${doozerOpts}
+                                ${ODCS_FLAG}
+                                ${exclude}
+                                images:build
+                                --filter-by-os amd64
+                                --push-to-defaults ${ODCS_OPT}
+                                --build-retries 3
+                            """
                         }
-                        buildlib.doozer """
-                            ${doozerOpts}
-                            ${ODCS_FLAG}
-                            ${exclude}
-                            images:build
-                            --filter-by-os amd64
-                            --push-to-defaults ${ODCS_OPT}
-                            --build-retries 3
-                        """
-                    }
-                    catch (err) {
-                        record_log = buildlib.parse_record_log(DOOZER_WORKING)
-                        def failed_map = buildlib.get_failed_builds(record_log, true)
-                        if (!failed_map) { throw err }  // failed so badly we don't know what failed; assume all
+                        catch (err) {
+                            record_log = buildlib.parse_record_log(DOOZER_WORKING)
+                            def failed_map = buildlib.get_failed_builds(record_log, true)
+                            if (!failed_map) { throw err }  // failed so badly we don't know what failed; assume all
 
-                        BUILD_FAILURES = failed_map.keySet().join(",")  // will make email show PARTIAL
-                        currentBuild.result = "UNSTABLE"
-                        currentBuild.description = "Failed images: ${BUILD_FAILURES}"
+                            BUILD_FAILURES = failed_map.keySet().join(",")  // will make email show PARTIAL
+                            currentBuild.result = "UNSTABLE"
+                            currentBuild.description = "Failed images: ${BUILD_FAILURES}"
 
-                        def r = buildlib.determine_build_failure_ratio(record_log)
-                        if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
-                            echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
-                        } else {
-                            buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                            def r = buildlib.determine_build_failure_ratio(record_log)
+                            if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
+                                echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
+                            } else {
+                                buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                            }
                         }
                     }
                 }

@@ -205,6 +205,9 @@ node {
             if (params.SKIP_BUNDLE_BUILD) {
                 cmd << "--skip-bundle-build"
             }
+            if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
+                cmd << "--skip-build-sync-konflux"
+            }
             if (params.BUILD_PRIORITY) {
                cmd << "--build-priority=${params.BUILD_PRIORITY}"
             }

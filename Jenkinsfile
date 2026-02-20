@@ -62,6 +62,8 @@ node {
 
     commonlib.checkMock()
 
+    buildlib.initialize()
+
     if (!params.RELEASE_TAG) {
         error("Need RELEASE_TAG")
     }
@@ -130,9 +132,36 @@ node {
             rhcoslib.rhcosSyncPrintArtifacts()
 	    needsHappening = rhcoslib.rhcosSyncNeedsHappening(mirrorPrefix, rhcosBuild, name)
         }
-        stage("Mirror artifacts") {
+        stage("Mirror artifacts and sign sha256sum") {
 	    if (!needsHappening) { return }
-            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name, noLatest)
+            def signing_env = params.DRY_RUN ? "stage" : "prod"
+            def signing_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
+
+            withCredentials([
+                file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
+                file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
+                file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
+            ]) {
+                buildlib.init_artcd_working_dir()
+                def dryrun = params.DRY_RUN ? "--dry-run" : ""
+                def noLatestFlag = noLatest ? "--no-latest" : ""
+                def cmd = """
+                    artcd -vv ${dryrun} \\
+                        --config=${env.WORKSPACE}/config/artcd.toml \\
+                        --working-dir=${env.WORKSPACE}/artcd_working \\
+                        sync-rhcos \\
+                        --arch ${arch} \\
+                        --build-id ${rhcosBuild} \\
+                        --version ${name} \\
+                        --mirror-prefix ${mirrorPrefix} \\
+                        --base-dir ${s3MirrorBaseDir} \\
+                        --synclist ${env.WORKSPACE}/${syncList} \\
+                        --signing-env ${signing_env} \\
+                        ${noLatestFlag}
+                """
+                commonlib.shell(script: cmd)
+            }
         }
         stage("Sign RHCOS container images") {
             def signing_env = params.DRY_RUN ? "stage" : "prod"

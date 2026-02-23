@@ -176,9 +176,15 @@ node() {
                     echo "Will run ${cmd.join(' ')}"
                     withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
                         try {
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        } catch (err) {
-                            throw err
+                            // Run the command and capture exit code
+                            // Exit code 2 indicates UNSTABLE (partial bundle build success)
+                            def exitCode = sh(script: cmd.join(' '), returnStatus: true)
+                            if (exitCode == 2) {
+                                currentBuild.result = 'UNSTABLE'
+                                echo "Pipeline completed with UNSTABLE status (some bundle builds failed, but FBC triggered for successful bundles)"
+                            } else if (exitCode != 0) {
+                                error("Pipeline failed with exit code ${exitCode}")
+                            }
                         } finally {
                             commonlib.safeArchiveArtifacts([
                                 "artcd_working/**/*.log",

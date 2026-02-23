@@ -57,6 +57,12 @@ node {
                         trim: true,
                     ),
                     string(
+                        name: 'PLR_TEMPLATE_COMMIT',
+                        description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'IMAGE_LIST',
                         description: 'Comma/space-separated list of image names to build',
                         defaultValue: "oadp-operator",
@@ -121,6 +127,9 @@ node {
             }
             if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                 cmd << "--network-mode=${params.NETWORK_MODE}"
+            }
+            if (params.PLR_TEMPLATE_COMMIT) {
+                cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
             }
             
             cmd += [

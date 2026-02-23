@@ -53,6 +53,12 @@ node() {
                     trim: true,
                 ),
                 string(
+                    name: 'PLR_TEMPLATE_COMMIT',
+                    description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                string(
                     name: 'OPERATOR_NVRS',
                     description: '(Optional) List **only** the operator NVRs you want to build bundles for, everything else gets ignored. The operators should not be mode:disabled/wip in ocp-build-data',
                     defaultValue: "",
@@ -189,6 +195,8 @@ node() {
                     cmd << "--force"
                 if (params.OCP_TARGET_VERSION)
                     cmd << "--major-minor=${params.OCP_TARGET_VERSION}"
+                if (params.PLR_TEMPLATE_COMMIT)
+                    cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
 
                 // Run pipeline
                 timeout(activity: true, time: 360, unit: 'MINUTES') {

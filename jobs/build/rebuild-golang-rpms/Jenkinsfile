@@ -40,6 +40,11 @@ node {
                         trim: true,
                     ),
                     booleanParam(
+                        name: 'ALL',
+                        defaultValue: false,
+                        description: '(Warning) Rebuild all golang rpms found in candidate tags. By default only rpms whose OCPBUGS jira trackers are found to be open are rebuilt',
+                    ),
+                    booleanParam(
                         name: 'FORCE_REBUILD',
                         defaultValue: false,
                         description: 'Force rebuild even if the rpm is already on given golang',
@@ -90,6 +95,9 @@ node {
                 "--art-jira=${params.ART_JIRA}",
                 "${golang_nvrs}"
             ]
+            if (params.ALL) {
+                cmd << "--all"
+            }
             if (params.RPMS) {
                 cmd << "--rpms=${params.RPMS}"
             }

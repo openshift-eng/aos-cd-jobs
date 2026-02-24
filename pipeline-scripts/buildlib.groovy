@@ -515,21 +515,23 @@ def parse_record_log( working_dir ) {
 // @param branch <String>: The name of the branch to get configs
 //   for. For example: 'openshift-4.3'
 // @param gaOnly <boolean>: If you only want group arches and do not care about arches_override.
+// @param gitref <String>: Optional git ref (branch/tag/sha) to use instead of the default branch.
 //
 // @return arches <List>: A list of the arches built for this branch
-def branch_arches(String branch, boolean gaOnly=false) {
-    echo("Fetching group config for '${branch}'")
+def branch_arches(String branch, boolean gaOnly=false, String gitref='') {
+    def groupParam = gitref ? "${branch}@${gitref}" : branch
+    echo("Fetching group config for '${groupParam}'")
 
     // Check if arches_override has been specified. This is used in group.yaml
     // when we temporarily want to build for CPU architectures that are not yet GA.
-    def arches_override = doozer("--group=${branch} config:read-group --yaml arches_override --default '[]'",
+    def arches_override = doozer("--group=${groupParam} config:read-group --yaml arches_override --default '[]'",
             [capture: true]).trim()
     def arches_override_list = readYaml(text: arches_override)
     if ( !gaOnly && arches_override_list ) {
         return arches_override_list
     }
 
-    def arches = doozer("--group=${branch} config:read-group --yaml arches",
+    def arches = doozer("--group=${groupParam} config:read-group --yaml arches",
 		   [capture: true]).trim()
     def arches_list = readYaml(text: arches)
     return arches_list

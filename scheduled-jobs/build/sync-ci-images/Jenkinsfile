@@ -70,7 +70,7 @@ node {
                     name: 'UPDATE_IMAGES_ONLY_WHEN_MISSING',
                     description: 'By default, if an image exists, this job does not update it (i.e. doozer runs with --only-if-missing). It would normally be updated by the ocp4 job when the API server successfully builds.',
                     $class: 'BooleanParameterDefinition',
-                    defaultValue: true
+                    defaultValue: false
                 ],
                 commonlib.artToolsParam(),
                 commonlib.dryrunParam(),

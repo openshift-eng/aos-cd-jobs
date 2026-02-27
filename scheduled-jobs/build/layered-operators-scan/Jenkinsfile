@@ -27,7 +27,7 @@ node {
             "-v",
             "--working-dir=${WORKSPACE}/artcd_working",
             "--config=./config/artcd.toml",
-            "schedule-oadp-scan",
+            "schedule-layered-products-scan",
         ]
         for ( group in commonlib.nonOCPGroups ) {
             cmd << "--group=${group}"
@@ -46,7 +46,7 @@ node {
                     echo "Will run ${cmd.join(' ')}"
                     sh(script: cmd.join(' '), returnStdout: true)
                 } catch (err) {
-                    slacklib.to("#art-release").failure("Error running oadp_scan", err)
+                    slacklib.to("#art-release").failure("Error running schedule-layered-products-scan", err)
                     throw err
                 } finally {
                     commonlib.safeArchiveArtifacts([

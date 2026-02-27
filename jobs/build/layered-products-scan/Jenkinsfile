@@ -92,7 +92,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                     cmd << "--dry-run"
                 }
                 cmd += [
-                    "beta:konflux:oadp-scan",
+                    "layered-products-scan",
                     "--group=${params.GROUP}",
                     "--assembly=${params.ASSEMBLY}",
                 ]

@@ -23,7 +23,12 @@ node() {
                 [
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
-                        commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                        [
+                            name: 'BUILD_VERSION',
+                            description: 'OSE Version',
+                            $class: 'hudson.model.ChoiceParameterDefinition',
+                            choices: commonlib.ocp4Versions.findAll { it >= '4.15' }.join('\n'),
+                        ],
                         commonlib.artToolsParam(),
                         string(
                             name: "ASSEMBLY",

@@ -105,6 +105,11 @@ node() {
                     defaultValue: false,
                 ),
                 booleanParam(
+                    name: 'INSERT_MISSING_ENTRY',
+                    description: 'Insert the new bundle entry in version order instead of appending. Use this to fix missing entries that were removed from the catalog.',
+                    defaultValue: false,
+                ),
+                booleanParam(
                     name: 'DRY_RUN',
                     description: 'Just show what would happen, without actually executing the steps',
                     defaultValue: false,
@@ -193,6 +198,8 @@ node() {
                     cmd << "--prod-registry-auth=${env.KONFLUX_OPERATOR_INDEX_AUTH_FILE}"
                 if (params.FORCE_BUILD)
                     cmd << "--force"
+                if (params.INSERT_MISSING_ENTRY)
+                    cmd << "--insert-missing-entry"
                 if (params.OCP_TARGET_VERSION)
                     cmd << "--major-minor=${params.OCP_TARGET_VERSION}"
                 if (params.PLR_TEMPLATE_COMMIT)

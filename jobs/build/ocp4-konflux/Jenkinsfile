@@ -2,15 +2,6 @@
 
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
-def compressBrewLogs() {
-    echo "Compressing brew logs.."
-    commonlib.shell(script: "./find-and-compress-brew-logs.sh")
-}
-
-def isMassRebuild() {
-    return currentBuild.displayName.contains("[mass rebuild]")
-}
-
 node {
     timestamps {
     checkout scm

@@ -70,8 +70,8 @@ node {
                         ),
                         booleanParam(
                             name: 'IGNORE_NON_X86',
-                            description: 'When non x86_64 arch are inconsistent with x86_64 nightly, ignore them and only honor the x86_64 nightly',
-                            defaultValue: false,
+                            description: 'When non x86_64 arch are inconsistent with x86_64 nightly, ignore them and only honor the x86_64 nightly. Default is to use only x86_64; uncheck to require all architectures.',
+                            defaultValue: true,
                         ),
                         booleanParam(
                             name: 'ALLOW_INCONSISTENCY',

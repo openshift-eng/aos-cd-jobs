@@ -22,18 +22,23 @@ This Jenkins job scans OKD image sources for changes and triggers OKD builds whe
 
 ## What It Does
 
-1. **Initializes environment** with proper credentials and workspace
-2. **Scans OKD images** using `artcd okd-scan`
-3. **Filters changes** based on valid rebuild reasons:
-   - NO_LATEST_BUILD
-   - LAST_BUILD_FAILED
-   - NEW_UPSTREAM_COMMIT
-   - UPSTREAM_COMMIT_MISMATCH
-   - ANCESTOR_CHANGING
-   - CONFIG_CHANGE
-   - BUILDER_CHANGING
-   - DEPENDENCY_NEWER
-4. **Triggers OKD build** if valid changes are detected
+1. **Checks if version is enabled** - Exits early if version not in `OKD_ENABLED_VERSIONS`
+2. **Initializes environment** with proper credentials and workspace
+3. **Scans OKD images** using `artcd okd-scan` with `--variant=okd`
+   - The `--variant=okd` flag tells doozer to skip checks not relevant for OKD:
+     - ARCHES_CHANGE (OKD doesn't rebuild for arch changes)
+     - NETWORK_MODE_CHANGE (OKD always uses open network)
+     - PACKAGE_CHANGE (OKD doesn't rebuild for RPM changes)
+   - Only valid OKD rebuild reasons are reported:
+     - NO_LATEST_BUILD
+     - LAST_BUILD_FAILED
+     - NEW_UPSTREAM_COMMIT
+     - UPSTREAM_COMMIT_MISMATCH
+     - ANCESTOR_CHANGING
+     - CONFIG_CHANGE
+     - BUILDER_CHANGING
+     - DEPENDENCY_NEWER
+4. **Triggers OKD build** if changes are detected (all reported changes are valid)
 5. **Archives logs** for debugging
 
 ## Example Usage
@@ -80,7 +85,7 @@ The job requires the following Jenkins credentials:
 ## Locking
 
 The job uses two locks to prevent conflicts:
-- `SCAN_OKD_KONFLUX` - Prevents multiple scan jobs for the same version
+- `SCAN_OKD` - Prevents multiple scan jobs for the same version
 - `BUILD_OKD` - Prevents scanning while a build is in progress
 
 If either lock is held, the job will skip execution.

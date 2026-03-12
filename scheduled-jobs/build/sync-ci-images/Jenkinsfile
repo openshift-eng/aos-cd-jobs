@@ -181,7 +181,12 @@ node {
                         if (skip_prs) {
                             echo "Skipping opening PRs"
                         } else {
-                            withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                            withCredentials([
+                                string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                                string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                                file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                            ]) {
                                 if ( (major == 4 && minor >= 12) || major > 4 ) {
                                     other_args = '--add-label "jira/valid-bug" --add-label "verified"'
                                     for ( label in params.ADD_LABELS.split() ) {

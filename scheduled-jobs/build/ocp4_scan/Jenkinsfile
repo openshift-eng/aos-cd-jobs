@@ -29,7 +29,7 @@ node {
             "--config=./config/artcd.toml",
             "schedule-ocp4-scan",
         ]
-        for ( version in commonlib.ocp4Versions ) {
+        for ( version in commonlib.ocpMajorVersions["4plus"] ) {
             cmd << "--version=${version}"
         }
 

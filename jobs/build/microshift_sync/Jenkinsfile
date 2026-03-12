@@ -23,7 +23,12 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    [
+                        name: 'BUILD_VERSION',
+                        description: 'OSE Version',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: commonlib.ocp4Versions.findAll { it >= '4.16' }.join('\n'),
+                    ],
                     string(
                         name: 'ASSEMBLY',
                         description: 'Which assembly contains the microshift to sync.',

@@ -184,6 +184,8 @@ node {
                              string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                              string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                              string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                             string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                             file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                              file(credentialsId: "${siging_cert_id}.crt", variable: 'SIGNING_CERT'),
                              file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
                              file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),

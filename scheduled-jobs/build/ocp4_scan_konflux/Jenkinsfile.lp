@@ -28,7 +28,7 @@ node {
             "--config=./config/artcd.toml",
             "schedule-ocp4-scan-konflux"
         ]
-        for ( version in commonlib.ocp4Versions ) {
+        for ( version in commonlib.ocpMajorVersions["4plus"] ) {
             // Only build OCP versions < 4.17
             if (buildlib.cmp_version(version, "4.17") == -1) {
                 cmd << "--version=${version}"

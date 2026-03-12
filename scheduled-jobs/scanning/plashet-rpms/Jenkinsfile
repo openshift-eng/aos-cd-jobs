@@ -30,7 +30,7 @@ node {
     def groupsToScan = []
 
     // Add all OCP4 versions
-    for ( version in commonlib.ocp4Versions ) {
+    for ( version in commonlib.ocpMajorVersions["4plus"] ) {
         groupsToScan << "openshift-${version}"
     }
 

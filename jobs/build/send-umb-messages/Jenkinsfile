@@ -31,10 +31,10 @@ node {
 
     // Send UMB messages for these new nightlies, yields a list like:
     //     [[4.6.0-0.nightly, 4.6.0-0.nightly-s390x, ..], 4.5.0-0.nightly, 4.4.0-0.nightly, ...]
-    def nightlies = commonlib.ocp4Versions.collect { version -> return commonlib.goArchSuffixes.collect { version + ".0-0.nightly" + it } }
+    def nightlies = commonlib.ocpMajorVersions["4plus"].collect { version -> return commonlib.goArchSuffixes.collect { version + ".0-0.nightly" + it } }
     // Send UMB messages for these new stables, yields a list like:
     //     [[4-stable:4.6, 4-stable-s390x:4.6, ..], 4-stable:4.5, 4-stable:4.4, ...]
-    def stables = commonlib.ocp4Versions.collect { version -> return commonlib.goArchSuffixes.collect { "4-stable" + it + ":" + version } }
+    def stables = commonlib.ocpMajorVersions["4plus"].collect { version -> return commonlib.goArchSuffixes.collect { "4-stable" + it + ":" + version } }
     def releaseStreams = stables.flatten() + nightlies.flatten()
     currentBuild.description = ""
     // currentBuild.displayName = ""

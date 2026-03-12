@@ -27,7 +27,7 @@ node() {
         '4.22': 'openshift-base-nodejs.rhel9,openshift-base-rhel9,openshift-enterprise-base-rhel9',
     ]
 
-    for ( version in commonlib.ocp4Versions ) {
+    for ( version in commonlib.ocpMajorVersions["4plus"] ) {
         def cv = "${version}" // make sure we use a locally scoped variable
         // Fall back to 4.19 if we did not manage the above list
         def images = base_images[cv]

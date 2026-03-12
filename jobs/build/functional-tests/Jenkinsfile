@@ -43,6 +43,8 @@ node() {
         stage("build") {
             withCredentials([
                 string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                 string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
             ]) {

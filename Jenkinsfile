@@ -23,7 +23,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                     $class: 'ParametersDefinitionProperty',
                     parameterDefinitions: [
                         commonlib.artToolsParam(),
-                        commonlib.ocpVersionParam('VERSION', '4'),
+                        commonlib.ocpVersionParam('VERSION', '4plus'),
                         string(
                             name: 'ASSEMBLY',
                             description: 'Assembly to be scanned',

@@ -36,10 +36,6 @@ import groovy.json.JsonOutput
     "4.17.0-0.nightly":  [this.&startBuildMicroshiftJob],
 
     "4.16.0-0.nightly":  [this.&startBuildMicroshiftJob],
-
-    "4.15.0-0.nightly":  [this.&startBuildMicroshiftJob],
-
-    "4.14.0-0.nightly":  [this.&startBuildMicroshiftJob],
 ]
 
 def startRhcosSyncJob(String releaseStream, Map latestRelease, Map previousRelease) {

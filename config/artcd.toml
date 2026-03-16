@@ -18,7 +18,7 @@ promote_image_list_recipients = ["openshift-ccs@redhat.com"]
 promote_complete_recipients = ['aos-cicd@redhat.com', 'aos-qe@redhat.com', 'aos-art-automation+new-release@redhat.com']
 
 [jira]
-url = "https://issues.redhat.com"
+url = "https://redhat.atlassian.net"
 [jira.templates]
 ocp4 = "ART-4223"
 ocp3 = "ART-4234"

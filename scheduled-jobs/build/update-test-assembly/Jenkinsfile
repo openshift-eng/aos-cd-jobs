@@ -9,8 +9,6 @@ node() {
         disableResume(),
     ] )
 
-    def jobs = [:]
-
     // Define base images we want to keep current
     def base_images = [
 
@@ -27,31 +25,29 @@ node() {
         '4.22': 'openshift-base-nodejs.rhel9,openshift-base-rhel9,openshift-enterprise-base-rhel9',
     ]
 
+    // Trigger builds sequentially to avoid overwhelming the system.
+    // IGNORE_LOCKS=true ensures we don't hold a lock on the ocp ystream.
     for ( version in commonlib.ocpMajorVersions["4plus"] ) {
         def cv = "${version}" // make sure we use a locally scoped variable
-        // Fall back to 4.19 if we did not manage the above list
+        // Fall back to 4.20 if we did not manage the above list
         def images = base_images[cv]
 	if (!(images)) {
 	    images = base_images["4.20"]
 	}
 
         // Trigger ocp4-konflux to rebuild base images and plashets for test assembly in ${version}
-        jobs["base_image_konflux-plashets-v${version}"] = {
-            build(
-                job: '../aos-cd-builds/build%2Focp4-konflux',
-                parameters: [
-                    string(name: 'BUILD_VERSION', value: "${cv}"),
-		    string(name: 'ASSEMBLY', value: 'test'),
-                    booleanParam(name: 'IGNORE_LOCKS', value: true),
-                    string(name: 'BUILD_IMAGES', value: 'only'),
-                    string(name: 'IMAGE_LIST', value: images),
-                    booleanParam(name: 'SKIP_PLASHETS', value: false)
-                ],
-                propagate: false
-            )
-        }
+        build(
+            job: '../aos-cd-builds/build%2Focp4-konflux',
+            parameters: [
+                string(name: 'BUILD_VERSION', value: "${cv}"),
+                string(name: 'ASSEMBLY', value: 'test'),
+                booleanParam(name: 'IGNORE_LOCKS', value: true),
+                string(name: 'BUILD_IMAGES', value: 'only'),
+                string(name: 'IMAGE_LIST', value: images),
+                booleanParam(name: 'SKIP_PLASHETS', value: false)
+            ],
+            propagate: false
+        )
     }
-
-    parallel jobs
     }
 }

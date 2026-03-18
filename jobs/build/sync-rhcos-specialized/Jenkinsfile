@@ -6,15 +6,16 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
-    commonlib.describeJob("sync-rhcos-bfb", """
-        <h2>Sync RHCOS NVIDIA BFB artifacts to mirror</h2>
+    commonlib.describeJob("sync-rhcos-specialized", """
+        <h2>Sync specialized RHCOS artifacts to mirror</h2>
         <p>
-        Syncs RHCOS NVIDIA .bfb artifacts from the internal RHCOS s3 bucket to mirror.openshift.com.
+        Syncs specialized RHCOS artifacts from the internal RHCOS s3 bucket to mirror.openshift.com.
+        Supports multiple artifact types including NVIDIA BFB (aarch64) and confidential clusters (x86_64).
         </p>
         <p>
-        <strong>The pipeline copies BFB artifacts to two locations:</strong><br/>
-        • <code>/pub/openshift-v4/aarch64/dependencies/nvidia-bfb/pre-release/{major.minor}-latest/</code><br/>
-        • <code>/pub/openshift-v4/aarch64/dependencies/nvidia-bfb/pre-release/{major.minor}-{build}/</code>
+        <strong>Supported types:</strong><br/>
+        • <code>bfb</code> - NVIDIA BFB artifacts for aarch64<br/>
+        • <code>confidential</code> - Confidential clusters images for x86_64
         </p>
     """)
 
@@ -35,7 +36,7 @@ node {
                     commonlib.artToolsParam(),
                     string(
                         name: "STREAM",
-                        description: "RHCOS stream identifier (e.g., '4.20-9.6-nvidia-bfb')",
+                        description: "RHCOS stream identifier (e.g., '4.20-9.6-nvidia-bfb', 'rhel-9.6-te-preview')",
                         defaultValue: "",
                         trim: true
                     ),
@@ -61,10 +62,10 @@ node {
             error("BUILD must be specified")
         }
 
-        echo("Initializing RHCOS BFB sync: stream=${params.STREAM}, build=${params.BUILD}")
+        echo("Initializing RHCOS specialized sync: stream=${params.STREAM}, build=${params.BUILD}")
     }
 
-    stage("Sync RHCOS BFB") {
+    stage("Sync RHCOS Specialized") {
         def cmd = [
             "artcd",
             "-vv",
@@ -77,7 +78,7 @@ node {
         }
 
         cmd += [
-            "sync-rhcos-bfb",
+            "sync-rhcos-specialized",
             "--type=bfb",
             "--stream", params.STREAM,
             "--build", params.BUILD,

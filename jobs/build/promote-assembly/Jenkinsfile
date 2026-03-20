@@ -84,11 +84,6 @@ node {
                         description: 'Do not sign the release with the newer sigstore method.',
                         defaultValue: false,
                     ),
-                    booleanParam(
-                        name: 'SIGN_ONLY',
-                        description: 'One-off: only run sigstore/cosign for an already-promoted release (e.g. repromote cosign). Skips promotion, shipment, and all other steps.',
-                        defaultValue: false,
-                    ),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -112,10 +107,6 @@ node {
     if (params.DRY_RUN) {
         currentBuild.displayName += " (dry-run)"
         currentBuild.description += " [DRY RUN]"
-    }
-    if (params.SIGN_ONLY) {
-        currentBuild.displayName += " (sign-only)"
-        currentBuild.description += " [SIGN ONLY]"
     }
     currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"
 
@@ -171,9 +162,6 @@ node {
         }
         if (params.MULTI_ONLY) {
             cmd << "--multi-only"
-        }
-        if (params.SIGN_ONLY) {
-            cmd << "--sign-only"
         }
         if (major == 4 && minor <= 11) {
             // Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue (#incident-cincinnati-sha-mismatch-for-multi-images).

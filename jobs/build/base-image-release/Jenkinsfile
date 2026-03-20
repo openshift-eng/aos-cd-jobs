@@ -1,0 +1,192 @@
+#!/usr/bin/env groovy
+
+node() {
+    timestamps {
+
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("base-image-release", """
+        <h2>Release base image to base repository</h2>
+        <b>Timing</b>: This is only ever run by humans, as needed. No job should be calling it.
+
+        This job takes a built base image (like openshift-enterprise-base-rhel9) and releases it
+        to the base repository using the doozer images:release-to-base-repo command.
+        
+        The job requires the image name, NVR, and pullspec to perform the release operation.
+    """)
+
+    properties([
+        disableResume(),
+        buildDiscarder(
+          logRotator(
+              artifactDaysToKeepStr: '30',
+              daysToKeepStr: '30',
+              numToKeepStr: '300',
+          )
+        ),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                commonlib.suppressEmailParam(),
+                commonlib.mockParam(),
+                commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                commonlib.artToolsParam(),
+                string(
+                    name: 'ASSEMBLY',
+                    description: 'The name of an assembly to use.',
+                    defaultValue: "stream",
+                    trim: true,
+                ),
+                string(
+                    name: 'DOOZER_DATA_PATH',
+                    description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                    defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                    trim: true,
+                ),
+                string(
+                    name: 'DOOZER_DATA_GITREF',
+                    description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                string(
+                    name: 'IMAGE',
+                    description: 'Base image name to release (e.g. openshift-enterprise-base-rhel9)',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                string(
+                    name: 'NVR',
+                    description: 'Full NVR of the image build to release (e.g. openshift-enterprise-base-rhel9-container-v4.22.0-202602202227.p2.gcf42b3d.assembly.stream.el9)',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                string(
+                    name: 'IMAGE_PULLSPEC',
+                    description: 'Full image pullspec with digest (e.g. quay.io/redhat-user-workloads/ocp-art-tenant/art-images@sha256:...)',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name: 'DRY_RUN',
+                    description: 'Run in dry-run mode without making actual changes',
+                    defaultValue: false,
+                ),
+            ],
+        ]
+    ])
+
+    commonlib.checkMock()
+
+    stage('Validate Parameters') {
+        if (!params.IMAGE) {
+            error("IMAGE parameter is required. Please specify the base image name (e.g. openshift-enterprise-base-rhel9)")
+        }
+        if (!params.NVR) {
+            error("NVR parameter is required. Please specify the full NVR of the image build to release")
+        }
+        if (!params.IMAGE_PULLSPEC) {
+            error("IMAGE_PULLSPEC parameter is required. Please specify the full image pullspec with digest")
+        }
+        
+        echo("Base Image Release Parameters:")
+        echo("  BUILD_VERSION: ${params.BUILD_VERSION}")
+        echo("  ASSEMBLY: ${params.ASSEMBLY}")
+        echo("  IMAGE: ${params.IMAGE}")
+        echo("  NVR: ${params.NVR}")
+        echo("  IMAGE_PULLSPEC: ${params.IMAGE_PULLSPEC}")
+        echo("  DRY_RUN: ${params.DRY_RUN}")
+        
+        currentBuild.displayName = "${params.BUILD_VERSION} - ${params.IMAGE}"
+        if (params.DRY_RUN) {
+            currentBuild.displayName += " [DRY_RUN]"
+        }
+    }
+
+    stage("Version dumps") {
+        buildlib.doozer "--version"
+        buildlib.elliott "--version"
+        buildlib.oc("version --client=true -o yaml")
+    }
+
+    stage("Release base image") {
+        doozer_working = "${env.WORKSPACE}/doozer_working"
+        buildlib.cleanWorkdir(doozer_working)
+        
+        try {
+            def cmd = [
+                "doozer",
+                "--group", "openshift-${params.BUILD_VERSION}",
+                "--assembly", "${params.ASSEMBLY}"
+            ]
+            
+            if (params.DOOZER_DATA_PATH) {
+                cmd += ["--data-path", "${params.DOOZER_DATA_PATH}"]
+            }
+            
+            if (params.DOOZER_DATA_GITREF) {
+                cmd += ["--data-gitref", "${params.DOOZER_DATA_GITREF}"]
+            }
+            
+            cmd += [
+                "images:release-to-base-repo",
+                "--image", "${params.IMAGE}",
+                "--nvr", "${params.NVR}",
+                "--image-pullspec", "${params.IMAGE_PULLSPEC}"
+            ]
+            
+            if (params.DRY_RUN) {
+                cmd << "--dry-run"
+            }
+
+            echo "Will run: ${cmd.join(' ')}"
+            
+            dir(doozer_working) {
+                withCredentials([
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                    file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                    file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    usernamePassword(
+                        credentialsId: 'art-dash-db-login',
+                        passwordVariable: 'DOOZER_DB_PASSWORD',
+                        usernameVariable: 'DOOZER_DB_USER'
+                    ),
+                ]) {
+                    withEnv(['DOOZER_DB_NAME=art_dash', "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        sh(script: cmd.join(' '), returnStdout: true)
+                    }
+                }
+            }
+            
+        } catch (err) {
+            commonlib.email(
+                    to: "aos-art-automation+failed-base-image-release@redhat.com",
+                    from: "aos-art-automation@redhat.com",
+                    replyTo: "aos-team-art@redhat.com",
+                    subject: "Error during base image release for ${params.IMAGE}",
+                    body: """
+There was an issue releasing base image ${params.IMAGE}:
+
+    Image: ${params.IMAGE}
+    NVR: ${params.NVR}
+    Error: ${err}
+
+Build URL: ${BUILD_URL}
+""")
+            throw (err)
+        } finally {
+            commonlib.safeArchiveArtifacts([
+                "doozer_working/debug.log",
+                "doozer_working/**/*.log",
+                "doozer_working/**/*.json",
+            ])
+            buildlib.cleanWorkspace()
+        }
+    }
+
+    }
+}

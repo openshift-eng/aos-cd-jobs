@@ -7,13 +7,13 @@ node() {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("base-image-release", """
-        <h2>Release base image to base repository</h2>
+        <h2>Release base images to base repository</h2>
         <b>Timing</b>: This is only ever run by humans, as needed. No job should be calling it.
 
-        This job takes a built base image (like openshift-enterprise-base-rhel9) and releases it
-        to the base repository using the doozer images:release-to-base-repo command.
+        This job takes a list of built base images (like openshift-enterprise-base-rhel9, golang builders)
+        and releases them to the base repository using the doozer images:release-to-base-repo command.
         
-        The job requires the image name, NVR, and pullspec to perform the release operation.
+        The job requires a comma-separated list of NVRs to perform batch release operations.
     """)
 
     properties([
@@ -51,20 +51,8 @@ node() {
                     trim: true,
                 ),
                 string(
-                    name: 'IMAGE',
-                    description: 'Base image name to release (e.g. openshift-enterprise-base-rhel9)',
-                    defaultValue: "",
-                    trim: true,
-                ),
-                string(
-                    name: 'NVR',
-                    description: 'Full NVR of the image build to release (e.g. openshift-enterprise-base-rhel9-container-v4.22.0-202602202227.p2.gcf42b3d.assembly.stream.el9)',
-                    defaultValue: "",
-                    trim: true,
-                ),
-                string(
-                    name: 'IMAGE_PULLSPEC',
-                    description: 'Full image pullspec with digest (e.g. quay.io/redhat-user-workloads/ocp-art-tenant/art-images@sha256:...)',
+                    name: 'NVRS',
+                    description: 'Comma-separated list of NVRs to release (e.g. openshift-enterprise-base-rhel9-container-v4.22.0-..., golang-1.21-container-v4.22.0-...)',
                     defaultValue: "",
                     trim: true,
                 ),
@@ -80,25 +68,21 @@ node() {
     commonlib.checkMock()
 
     stage('Validate Parameters') {
-        if (!params.IMAGE) {
-            error("IMAGE parameter is required. Please specify the base image name (e.g. openshift-enterprise-base-rhel9)")
+        if (!params.NVRS) {
+            error("NVRS parameter is required. Please specify a comma-separated list of NVRs to release")
         }
-        if (!params.NVR) {
-            error("NVR parameter is required. Please specify the full NVR of the image build to release")
-        }
-        if (!params.IMAGE_PULLSPEC) {
-            error("IMAGE_PULLSPEC parameter is required. Please specify the full image pullspec with digest")
-        }
+        
+        def nvrList = params.NVRS.split(',').collect { it.trim() }.findAll { !it.isEmpty() }
+        def nvrCount = nvrList.size()
         
         echo("Base Image Release Parameters:")
         echo("  BUILD_VERSION: ${params.BUILD_VERSION}")
         echo("  ASSEMBLY: ${params.ASSEMBLY}")
-        echo("  IMAGE: ${params.IMAGE}")
-        echo("  NVR: ${params.NVR}")
-        echo("  IMAGE_PULLSPEC: ${params.IMAGE_PULLSPEC}")
+        echo("  NVRS: ${params.NVRS}")
+        echo("  NVR Count: ${nvrCount}")
         echo("  DRY_RUN: ${params.DRY_RUN}")
         
-        currentBuild.displayName = "${params.BUILD_VERSION} - ${params.IMAGE}"
+        currentBuild.displayName = "${params.BUILD_VERSION} - ${nvrCount} NVRs"
         if (params.DRY_RUN) {
             currentBuild.displayName += " [DRY_RUN]"
         }
@@ -113,6 +97,9 @@ node() {
     stage("Release base image") {
         doozer_working = "${env.WORKSPACE}/doozer_working"
         buildlib.cleanWorkdir(doozer_working)
+        
+        def nvrList = params.NVRS.split(',').collect { it.trim() }.findAll { !it.isEmpty() }
+        def nvrCount = nvrList.size()
         
         try {
             def cmd = [
@@ -131,9 +118,7 @@ node() {
             
             cmd += [
                 "images:release-to-base-repo",
-                "--image", "${params.IMAGE}",
-                "--nvr", "${params.NVR}",
-                "--image-pullspec", "${params.IMAGE_PULLSPEC}"
+                "--nvrs", "${params.NVRS}"
             ]
             
             if (params.DRY_RUN) {
@@ -149,7 +134,9 @@ node() {
                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                     string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                     usernamePassword(
                         credentialsId: 'art-dash-db-login',
                         passwordVariable: 'DOOZER_DB_PASSWORD',
@@ -167,12 +154,11 @@ node() {
                     to: "aos-art-automation+failed-base-image-release@redhat.com",
                     from: "aos-art-automation@redhat.com",
                     replyTo: "aos-team-art@redhat.com",
-                    subject: "Error during base image release for ${params.IMAGE}",
+                    subject: "Error during base image release for ${nvrCount} NVRs",
                     body: """
-There was an issue releasing base image ${params.IMAGE}:
+There was an issue releasing base images:
 
-    Image: ${params.IMAGE}
-    NVR: ${params.NVR}
+    NVRs: ${params.NVRS}
     Error: ${err}
 
 Build URL: ${BUILD_URL}

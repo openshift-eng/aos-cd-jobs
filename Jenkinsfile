@@ -1,70 +1,104 @@
-// Update-branches job
+#!/usr/bin/env groovy
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
-
-node('openshift-build-1') {
+node {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    commonlib.describeJob("sync-rhcos-specialized", """
+        <h2>Sync specialized RHCOS artifacts to mirror</h2>
+        <p>
+        Syncs specialized RHCOS artifacts from the internal RHCOS s3 bucket to mirror.openshift.com.
+        Supports multiple artifact types including NVIDIA BFB (aarch64) and confidential clusters (x86_64).
+        </p>
+        <p>
+        <strong>Supported types:</strong><br/>
+        • <code>bfb</code> - NVIDIA BFB artifacts for aarch64<br/>
+        • <code>confidential</code> - Confidential clusters images for x86_64
+        </p>
+    """)
+
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '30',
+                    daysToKeepStr: '30',
+                )
+            ),
+            [
+                $class : 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.dryrunParam(),
+                    commonlib.mockParam(),
+                    commonlib.artToolsParam(),
+                    choice(
+                        name: "TYPE",
+                        description: "Type of RHCOS artifacts to sync",
+                        choices: ["bfb", "confidential"]
+                    ),
+                    string(
+                        name: "STREAM",
+                        description: "RHCOS stream identifier (e.g., '4.20-9.6-nvidia-bfb', 'rhel-9.6-te-preview')",
+                        defaultValue: "",
+                        trim: true
+                    ),
+                    string(
+                        name: "BUILD",
+                        description: "RHCOS build identifier (e.g., '9.6.20250707-1.3')",
+                        defaultValue: "",
+                        trim: true
+                    ),
+                ],
+            ]
+        ]
+    )
+
+    commonlib.checkMock()
+
+    stage("Validate parameters") {
+        if (!params.STREAM) {
+            error("STREAM must be specified")
         }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
+
+        if (!params.BUILD) {
+            error("BUILD must be specified")
         }
-      }
+
+        echo("Initializing RHCOS specialized sync: type=${params.TYPE}, stream=${params.STREAM}, build=${params.BUILD}")
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    stage("Sync RHCOS Specialized") {
+        def cmd = [
+            "artcd",
+            "-vv",
+            "--config=./config/artcd.toml",
+            "--working-dir=./artcd_working",
+        ]
+
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        }
+
+        cmd += [
+            "sync-rhcos-specialized",
+            "--type=${params.TYPE}",
+            "--stream", params.STREAM,
+            "--build", params.BUILD,
+        ]
+
+        withCredentials([
+            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')
+        ]) {
+            buildlib.init_artcd_working_dir()
+            echo "Will run ${cmd}"
+            commonlib.shell(script: cmd.join(' '))
+        }
+    }
+
+    buildlib.cleanWorkspace()
     }
 }

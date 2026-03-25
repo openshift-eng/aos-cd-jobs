@@ -13,12 +13,7 @@ node {
         [
             $class: 'ParametersDefinitionProperty',
             parameterDefinitions: [
-                string(
-                    name: 'ART_TOOLS_COMMIT',
-                    description: 'Override the art-tools submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
-                    defaultValue: "",
-                    trim: true
-                ),
+                commonlib.artToolsParam(),
                 commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                 string(
                     name: 'DOOZER_DATA_PATH',

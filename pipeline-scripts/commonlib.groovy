@@ -35,6 +35,7 @@ okdVersions = [
 
 nonOCPGroups = [
     "logging-6.3",
+    "logging-6.4",
     "logging-6.5",
     "mta-8.0",
     "mta-8.1",

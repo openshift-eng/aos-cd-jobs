@@ -31,10 +31,15 @@ node() {
                         defaultValue: "",
                         trim: true,
                     ),
-                    string(
+                    booleanParam(
                         name: 'SEND_TO_RELEASE_CHANNEL',
-                        defaultValue: "#art-okd-release",
-                        description: "If set, send output to the Slack channel"
+                        defaultValue: true,
+                        description: "If true, send individual version reports to #art-release-4-<version>"
+                    ),
+                    booleanParam(
+                        name: 'SEND_TO_OKD_CHANNEL',
+                        defaultValue: true,
+                        description: "If true, send aggregated report to #art-okd-release"
                     ),
                     string(
                         name: 'ASSEMBLY',
@@ -75,7 +80,10 @@ node() {
         cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
     }
     if (params.SEND_TO_RELEASE_CHANNEL) {
-        cmd << "--send-to-release-channel=${params.SEND_TO_RELEASE_CHANNEL}"
+        cmd << "--send-to-release-channel"
+    }
+    if (params.SEND_TO_OKD_CHANNEL) {
+        cmd << "--send-to-okd-channel"
     }
     if (params.ASSEMBLY) {
         cmd << "--assembly=${params.ASSEMBLY}"

@@ -20,6 +20,8 @@ node() {
                 job: '../scanning/scanning%2Fokd-images-health',
                 parameters: [
                     string(name: 'VERSIONS', value: commonlib.okdVersions.join(',')),
+                    booleanParam(name: 'SEND_TO_RELEASE_CHANNEL', value: true),
+                    booleanParam(name: 'SEND_TO_OKD_CHANNEL', value: true),
                 ],
                 propagate: false,
             )

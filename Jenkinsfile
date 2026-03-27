@@ -45,6 +45,12 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    text(
+                        name: 'JIRA_BUGS',
+                        description: 'Comma-separated list of JIRA issue IDs to include in the advisory (e.g., OADP-7223,OADP-7222). Leave empty to skip.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -78,6 +84,12 @@ node {
                 "${commonlib.cleanCommaList(params.FBC_PULLSPECS)}",
                 "--create-mr"
             ]
+
+            def jiraBugs = commonlib.cleanCommaList(params.JIRA_BUGS)
+            if (jiraBugs) {
+                cmd << "--jira-bugs"
+                cmd << "${jiraBugs}"
+            }
 
             if (params.DRY_RUN) {
                 cmd << "--dry-run"

@@ -149,6 +149,7 @@ node {
                             file(credentialsId: 'openshift-bot-mta-konflux-service-account', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),
                             file(credentialsId: 'openshift-bot-mtc-konflux-service-account', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
                             file(credentialsId: 'openshift-bot-logging-konflux-service-account', variable: 'LOGGING_KONFLUX_SA_KUBECONFIG'),
+                            file(credentialsId: 'openshift-bot-acm-konflux-service-account', variable: 'ACM_KONFLUX_SA_KUBECONFIG'),
                             file(credentialsId: 'openshift-bot-assisted-installer-service-account', variable: 'ASSISTED_INSTALLER_SA_KUBECONFIG'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                             string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),

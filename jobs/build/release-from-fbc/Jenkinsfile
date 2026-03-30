@@ -51,6 +51,12 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'TARGET_RELEASE_DATE',
+                        description: 'Target ship date (e.g. 2026-Mar-31 or 2026-03-31). Included in shipment MR title. Leave empty to omit.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -89,6 +95,12 @@ node {
             if (jiraBugs) {
                 cmd << "--jira-bugs"
                 cmd << "${jiraBugs}"
+            }
+
+            def targetDate = params.TARGET_RELEASE_DATE?.trim()
+            if (targetDate) {
+                cmd << "--target-release-date"
+                cmd << "${targetDate}"
             }
 
             if (params.DRY_RUN) {

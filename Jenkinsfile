@@ -32,6 +32,12 @@ node() {
                         trim: true,
                     ),
                     string(
+                        name: 'IMAGE_LIST',
+                        description: '(Optional) Comma/space-separated list of image names to scan. If empty, scan all images.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'ASSEMBLY',
                         description: 'Assembly name',
                         defaultValue: "stream",
@@ -74,6 +80,9 @@ node() {
     if (params.VERSIONS) {
         cmd << "--versions=${commonlib.cleanCommaList(params.VERSIONS)}"
     }
+    if (params.IMAGE_LIST) {
+        cmd << "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
+    }
     if (params.DOOZER_DATA_PATH) {
         cmd << "--data-path=${params.DOOZER_DATA_PATH}"
     }
@@ -88,6 +97,7 @@ node() {
     }
 
     withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                      string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                      string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                      file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),

@@ -32,6 +32,12 @@ node() {
                         trim: true,
                     ),
                     string(
+                        name: 'IMAGE_LIST',
+                        description: '(Optional) Comma/space-separated list of image names to scan. If empty, scan all images.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'ASSEMBLY',
                         description: 'Assembly name',
                         defaultValue: "stream",
@@ -73,6 +79,9 @@ node() {
     ]
     if (params.VERSIONS) {
         cmd << "--versions=${commonlib.cleanCommaList(params.VERSIONS)}"
+    }
+    if (params.IMAGE_LIST) {
+        cmd << "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
     }
     if (params.DOOZER_DATA_PATH) {
         cmd << "--data-path=${params.DOOZER_DATA_PATH}"

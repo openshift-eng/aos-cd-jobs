@@ -57,6 +57,12 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    text(
+                        name: 'EXTRA_IMAGE_NVRS',
+                        description: 'Comma-separated list of extra image NVRs to include in the image shipment file (not part of the FBC). At least one of FBC_PULLSPECS or EXTRA_IMAGE_NVRS must be provided.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -75,7 +81,13 @@ node {
         }
 
         stage("release-from-fbc") {
-            // artcd command
+            def fbcPullspecs = commonlib.cleanCommaList(params.FBC_PULLSPECS)
+            def extraImageNvrs = commonlib.cleanCommaList(params.EXTRA_IMAGE_NVRS)
+
+            if (!fbcPullspecs && !extraImageNvrs) {
+                error("At least one of FBC_PULLSPECS or EXTRA_IMAGE_NVRS must be provided")
+            }
+
             def cmd = [
                 "artcd",
                 "-v",
@@ -86,10 +98,15 @@ node {
                 "${params.GROUP}",
                 "--assembly",
                 "${params.ASSEMBLY}",
-                "--fbc-pullspecs",
-                "${commonlib.cleanCommaList(params.FBC_PULLSPECS)}",
                 "--create-mr"
             ]
+
+            if (fbcPullspecs) {
+                cmd += ["--fbc-pullspecs", fbcPullspecs]
+            }
+            if (extraImageNvrs) {
+                cmd += ["--extra-image-nvrs", extraImageNvrs]
+            }
 
             def jiraBugs = commonlib.cleanCommaList(params.JIRA_BUGS)
             if (jiraBugs) {

@@ -63,6 +63,12 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'RELEASE_JIRA',
+                        description: 'Optional JIRA ticket URL for the release request (e.g. https://redhat.atlassian.net/browse/OADP-1234). Will be referenced in the shipment MR and updated with the MR link.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -118,6 +124,12 @@ node {
             if (targetDate) {
                 cmd << "--target-release-date"
                 cmd << "${targetDate}"
+            }
+
+            def releaseJira = params.RELEASE_JIRA?.trim()
+            if (releaseJira) {
+                cmd << "--release-jira"
+                cmd << "${releaseJira}"
             }
 
             if (params.DRY_RUN) {

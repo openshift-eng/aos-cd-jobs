@@ -46,7 +46,6 @@ node() {
         releaseChannel = slacklib.to(BUILD_VERSION)
         try {
                 withCredentials([
-                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                     string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                 ]) {

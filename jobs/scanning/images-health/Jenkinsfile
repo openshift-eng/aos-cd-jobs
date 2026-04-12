@@ -53,6 +53,11 @@ node() {
                         defaultValue: false,
                         description: "If true, send notification to #forum-ocp-art"
                     ),
+                    booleanParam(
+                        name: 'JIRA',
+                        defaultValue: true,
+                        description: "If true, create/close Jira tickets for build failures"
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -95,13 +100,19 @@ node() {
     if (params.SEND_TO_FORUM_OCP_ART) {
         cmd << "--send-to-forum-ocp-art"
     }
+    if (params.JIRA) {
+        cmd << "--sync-jira"
+    } else {
+        cmd << "--no-sync-jira"
+    }
 
     withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                      string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                      string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                      file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                      usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
-                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                     string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
 
         wrap([$class: 'BuildUser']) {
             builderEmail = env.BUILD_USER_EMAIL

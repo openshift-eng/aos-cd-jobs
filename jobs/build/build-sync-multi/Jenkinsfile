@@ -173,7 +173,6 @@ node() {
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
                 ]) {
-                    buildlib.registry_quay_dev_login(env.KONFLUX_ART_IMAGES_AUTH_FILE)
                     def envVars = ["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]
                     if (params.TELEMETRY_ENABLED) {
                         envVars << "TELEMETRY_ENABLED=1"

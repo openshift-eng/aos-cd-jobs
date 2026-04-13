@@ -82,6 +82,12 @@ node {
                         defaultValue: 'auto',
                         trim: true,
                     ),
+                    string(
+                        name: 'JIRA_KEY',
+                        description: '(Optional) Jira ticket key to include in build title (e.g. ART-14902)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                 ]
             ],
         ]
@@ -135,6 +141,9 @@ node {
             }
             if (params.BUILD_PRIORITY) {
                 cmd << "--build-priority=${params.BUILD_PRIORITY}"
+            }
+            if (params.JIRA_KEY) {
+                cmd << "--jira-key=${params.JIRA_KEY}"
             }
 
             wrap([$class: 'BuildUser']) {

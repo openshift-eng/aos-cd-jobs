@@ -161,7 +161,7 @@ node {
                     string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     // redis not needed -- this pipeline runs without locks
-                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
+                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'QUAY_AUTH_FILE'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                 ]) {
                     withEnv([

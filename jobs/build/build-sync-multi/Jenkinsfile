@@ -161,30 +161,34 @@ node() {
         // Run pipeline
         echo "Will run ${cmd.join(' ')}"
 
-        try {
-            buildlib.withAppCiAsArtPublish() {
-                withCredentials([
-                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                    string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
-                    file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
-                ]) {
-                    def envVars = ["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]
-                    if (params.TELEMETRY_ENABLED) {
-                        envVars << "TELEMETRY_ENABLED=1"
-                        if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
-                            envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"
-                        }
-                    }
-                    withEnv(envVars) {
-                        sh(script: cmd.join(' '), returnStdout: true)
-                    }
-                }
-            }
+        try {                                          
+              buildlib.withAppCiAsArtPublish() {
+                  withCredentials([                                                                                            
+                      string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                      string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),                       
+                      string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),                 
+                      string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),                      
+                      file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'), 
+                      string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),                   
+                      string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),       
+                      file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),           
+                      file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
+                  ]) {                                                                                                         
+                      // Log in to quay.io/openshift-release-dev to enable manifest-tool to push multi-arch images
+                      buildlib.registry_quay_dev_login(env.KONFLUX_ART_IMAGES_AUTH_FILE)                          
+                                                         
+                      def envVars = ["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]                                         
+                      if (params.TELEMETRY_ENABLED) {    
+                          envVars << "TELEMETRY_ENABLED=1"                                                                     
+                          if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
+                              envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"                   
+                          }                                                                                                    
+                      }                                                                                                        
+                      withEnv(envVars) {                                                                                       
+                          sh(script: cmd.join(' '), returnStdout: true)                                                        
+                      }
+                  }                                                                                                            
+              }
 
         } catch (err) {
             commonlib.email(

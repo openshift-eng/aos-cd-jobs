@@ -131,7 +131,7 @@ node() {
                     file(credentialsId: 'art-publish.app.ci.kubeconfig', variable: 'KUBECONFIG'),
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
+                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'QUAY_AUTH_FILE'),
                 ]) {
                     echo "Will run ${cmd.join(' ')}"
                     if (params.IGNORE_LOCKS) {

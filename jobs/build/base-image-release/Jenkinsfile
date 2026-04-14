@@ -135,7 +135,7 @@ node() {
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
-                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'KONFLUX_ART_IMAGES_AUTH_FILE'),
+                    file(credentialsId: 'konflux-art-images-auth-file', variable: 'QUAY_AUTH_FILE'),
                     usernamePassword(
                         credentialsId: 'art-dash-db-login',
                         passwordVariable: 'DOOZER_DB_PASSWORD',

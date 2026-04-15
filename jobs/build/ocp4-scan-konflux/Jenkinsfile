@@ -111,7 +111,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                             string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                             file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                            file(credentialsId: 'konflux-art-images-auth-file', variable: 'QUAY_AUTH_FILE'),
+                            file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                             file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
                         ]) {

@@ -77,7 +77,7 @@ The job requires the following Jenkins credentials:
 - `redis-server-password` - Redis password for lock management
 - `openshift-bot-token` - GitHub token for repository access
 - `art-bot-slack-token` - Slack bot token for notifications
-- `konflux-art-images-auth-file` - Konflux image registry auth
+- `quay-auth-file` - Konflux image registry auth
 - `konflux-gcp-app-creds-prod` - GCP credentials for Konflux
 - `creds_registry.redhat.io` - Red Hat registry credentials
 - `openshift-bot` (SSH key) - For git operations

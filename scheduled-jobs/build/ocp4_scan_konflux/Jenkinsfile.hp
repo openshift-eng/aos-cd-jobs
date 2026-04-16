@@ -29,8 +29,8 @@ node {
             "schedule-ocp4-scan-konflux"
         ]
         for ( version in commonlib.ocpMajorVersions["4plus"] ) {
-            // Only build OCP versions >= 4.18 (includes 4.18+ and 5.0)
-            if (buildlib.cmp_version(version, "4.18") >= 0) {
+            // High priority: versions >= 4.18, excluding 4.23 (low priority for now)
+            if (buildlib.cmp_version(version, "4.18") >= 0 && version != "4.23") {
                 cmd << "--version=${version}"
             }
         }

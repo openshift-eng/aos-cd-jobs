@@ -29,11 +29,12 @@ node {
             "schedule-ocp4-scan-konflux"
         ]
         for ( version in commonlib.ocpMajorVersions["4plus"] ) {
-            // Only build OCP versions < 4.18
-            if (buildlib.cmp_version(version, "4.18") == -1) {
+            // Low priority: versions < 4.18 plus 4.23
+            if (buildlib.cmp_version(version, "4.18") == -1 || version == "4.23") {
                 cmd << "--version=${version}"
             }
         }
+        cmd << "--serial"
 
         withCredentials([
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),

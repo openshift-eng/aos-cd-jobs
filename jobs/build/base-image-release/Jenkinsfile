@@ -30,7 +30,12 @@ node() {
             parameterDefinitions: [
                 commonlib.suppressEmailParam(),
                 commonlib.mockParam(),
-                commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                string(
+                    name: 'BUILD_VERSION',
+                    description: 'Build group name (e.g., openshift-5.0 for OCP or rhel-9-golang-1.24 for golang builders)',
+                    defaultValue: "openshift-5.0",
+                    trim: true,
+                ),
                 commonlib.artToolsParam(),
                 string(
                     name: 'ASSEMBLY',
@@ -104,7 +109,7 @@ node() {
         try {
             def cmd = [
                 "doozer",
-                "--group", "openshift-${params.BUILD_VERSION}",
+                "--group", "${params.BUILD_VERSION}",
                 "--assembly", "${params.ASSEMBLY}"
             ]
             
@@ -129,8 +134,8 @@ node() {
             
             dir(doozer_working) {
                 withCredentials([
-                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                     string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),

@@ -30,12 +30,7 @@ node() {
             parameterDefinitions: [
                 commonlib.suppressEmailParam(),
                 commonlib.mockParam(),
-                string(
-                    name: 'BUILD_VERSION',
-                    description: 'Build group name (e.g., openshift-5.0 for OCP or rhel-9-golang-1.24 for golang builders)',
-                    defaultValue: "openshift-5.0",
-                    trim: true,
-                ),
+                commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                 commonlib.artToolsParam(),
                 string(
                     name: 'ASSEMBLY',
@@ -109,7 +104,7 @@ node() {
         try {
             def cmd = [
                 "doozer",
-                "--group", "${params.BUILD_VERSION}",
+                "--group", "openshift-${params.BUILD_VERSION}",
                 "--assembly", "${params.ASSEMBLY}"
             ]
             

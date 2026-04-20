@@ -78,6 +78,16 @@ node {
                         description: 'Use golang RPMs from external repos (not tagged in rhaos build tags). Skips tagging and availability checks.',
                         defaultValue: false,
                     ),
+                    choice(
+                        name: 'NETWORK_MODE',
+                        description: 'Override network mode for Konflux builds',
+                        choices: [
+                            "",
+                            "hermetic",
+                            "internal-only",
+                            "open"
+                        ].join("\n")
+                    ),
                     commonlib.mockParam(),
                     commonlib.dryrunParam(),
                     commonlib.artToolsParam(),
@@ -165,6 +175,9 @@ node {
                     }
                     if (params.EXTERNAL_GOLANG_RPMS) {
                         cmd << "--external-golang-rpms"
+                    }
+                    if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
+                        cmd << "--network-mode=${params.NETWORK_MODE}"
                     }
 
                     // Run pipeline

@@ -76,6 +76,14 @@ function transferClientIfNeeded() {
         rclone sync -c "${S3_SRC}" "${S3_DEST}"  # Run sync to delete any files that should no longer be present.
         # CloudFront will cache files of the same name (e.g. sha256sum.txt), so we need to explicitly invalidate
         aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "/${S3_DEST_PATH}*"
+
+        # Mirror to Cloudflare R2: sync from source release dir to symlink dir on R2.
+        # Uses aws s3 sync (not rclone) since R2 credentials are configured via aws profile.
+        # --exact-timestamps ensures files are compared by mtime, --delete removes stale files
+        # to match the rclone sync behavior above, keeping R2 in parity with S3.
+        aws s3 sync "s3://art-srv-enterprise/${S3_SRC_PATH}" "s3://art-srv-enterprise/${S3_DEST_PATH}" \
+            --no-progress --exact-timestamps --delete \
+            --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
     fi
 
     # Remove the rendered rclone config file

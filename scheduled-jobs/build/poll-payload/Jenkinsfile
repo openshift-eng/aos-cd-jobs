@@ -59,6 +59,7 @@ def publishRPMsEl9(String releaseStream, Map latestRelease, Map previousRelease)
     def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
     build(
         job: '/aos-cd-builds/build%2Fpublish-rpms',
+        propagate: false,
         parameters: [
             string(name: 'BUILD_VERSION', value: buildVersion),
             string(name: 'ARCH', value: arch),
@@ -72,6 +73,7 @@ def publishRPMsEl8(String releaseStream, Map latestRelease, Map previousRelease)
     def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
     build(
         job: '/aos-cd-builds/build%2Fpublish-rpms',
+        propagate: false,
         parameters: [
             string(name: 'BUILD_VERSION', value: buildVersion),
             string(name: 'ARCH', value: arch),

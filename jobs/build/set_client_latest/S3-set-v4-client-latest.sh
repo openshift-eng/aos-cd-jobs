@@ -76,14 +76,20 @@ function transferClientIfNeeded() {
         rclone sync -c "${S3_SRC}" "${S3_DEST}"  # Run sync to delete any files that should no longer be present.
         # CloudFront will cache files of the same name (e.g. sha256sum.txt), so we need to explicitly invalidate
         aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "/${S3_DEST_PATH}*"
+    fi
 
-        # Mirror to Cloudflare R2: sync from source release dir to symlink dir on R2.
-        # Uses aws s3 sync (not rclone) since R2 credentials are configured via aws profile.
-        # --exact-timestamps ensures files are compared by mtime, --delete removes stale files
-        # to match the rclone sync behavior above, keeping R2 in parity with S3.
-        aws s3 sync "s3://art-srv-enterprise/${S3_SRC_PATH}" "s3://art-srv-enterprise/${S3_DEST_PATH}" \
-            --no-progress --exact-timestamps --delete \
-            --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}
+    # Mirror to Cloudflare R2: sync from source release dir to symlink dir on R2.
+    # Uses aws s3 sync (not rclone) since R2 credentials are configured via aws profile.
+    # --exact-timestamps ensures files are compared by mtime, --delete removes stale files
+    # to match the rclone sync behavior above, keeping R2 in parity with S3.
+    # Runs outside the S3 check since R2 may be behind even when S3 is in sync.
+    # First check if R2 needs syncing using --dryrun to avoid unnecessary API calls.
+    R2_SYNC_CMD="aws s3 sync s3://art-srv-enterprise/${S3_SRC_PATH} s3://art-srv-enterprise/${S3_DEST_PATH} --exact-timestamps --delete --profile cloudflare --endpoint-url ${CLOUDFLARE_ENDPOINT}"
+    if [[ -n "$(${R2_SYNC_CMD} --dryrun 2>&1)" ]] || [[ "${FORCE_UPDATE}" == "1" ]]; then
+        echo "R2 sync needed, syncing to Cloudflare R2..."
+        ${R2_SYNC_CMD} --no-progress
+    else
+        echo "R2 already in sync, skipping"
     fi
 
     # Remove the rendered rclone config file

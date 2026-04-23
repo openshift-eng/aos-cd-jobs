@@ -29,6 +29,7 @@ ocp5Versions = [
 
 okdVersions = [
     "5.0",
+    "4.23",
     "4.22",
     "4.21",
 ]

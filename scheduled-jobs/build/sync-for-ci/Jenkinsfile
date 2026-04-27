@@ -21,7 +21,7 @@ failed = false
 def runFor(group, dir, arch="x86_64") {
     echo "Triggering reposync for ${group}-${arch}"
     description += "${group}-${arch}"
-    timeout(activity: true, time: 30, unit: 'MINUTES') {
+    timeout(activity: true, time: 60, unit: 'MINUTES') {
         b = build(
             job: '/aos-cd-builds/build%2Fsync-for-ci', propagate: false,
             parameters: [

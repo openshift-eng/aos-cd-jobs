@@ -108,101 +108,99 @@ node {
         }
     }
 
-    stage('Build golang-builder images') {
-        def golang_nvrs = commonlib.cleanSpaceList(params.GOLANG_NVRS)
-        withCredentials([
-            string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
-            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-            string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-            file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
-            file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
-        ]) {
-            withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
-                script {
-                    // Prepare working dir
-                    buildlib.init_artcd_working_dir()
+    try {
+        stage('Build golang-builder images') {
+            def golang_nvrs = commonlib.cleanSpaceList(params.GOLANG_NVRS)
+            withCredentials([
+                string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+            ]) {
+                withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                    script {
+                        // Prepare working dir
+                        buildlib.init_artcd_working_dir()
 
-                    // Create artcd command
-                    def cmd = [
-                        "artcd",
-                        "-v",
-                        "--working-dir=./artcd_working",
-                        "--config=./config/artcd.toml",
-                    ]
-                    if (params.DRY_RUN) {
-                        cmd << "--dry-run"
-                    }
-                    cmd += [
-                        "update-golang",
-                        "--ocp-version=${params.BUILD_VERSION}",
-                        "--art-jira=${params.ART_JIRA}",
-                        "${golang_nvrs}"
-                    ]
-                    if (params.DOOZER_DATA_PATH) {
-                        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
-                    }
-                    if (params.DOOZER_DATA_GITREF) {
-                        cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
-                    }
-                    if (params.FIXED_CVES) {
-                        cmd << "--cves=${params.FIXED_CVES}"
-                    }
-                    if (params.SCRATCH) {
-                        cmd << "--scratch"
-                    }
-                    if (params.FORCE_UPDATE_TRACKERS) {
-                        cmd << "--force-update-tracker"
-                    }
-                    if (params.TAG_BUILD) {
-                        cmd << "--tag-builds"
-                    }
-                    if (!params.DRY_RUN) {
-                        cmd << "--confirm"
-                    }
-                    if (params.FORCE_IMAGE_BUILD) {
-                        cmd << "--force-image-build"
-                    }
-                    if (params.BUILD_SYSTEM) {
-                        cmd << "--build-system=${params.BUILD_SYSTEM}"
-                    }
-                    if (params.SKIP_PR) {
-                        cmd << "--skip-pr"
-                    }
-                    if (params.EXTERNAL_GOLANG_RPMS) {
-                        cmd << "--external-golang-rpms"
-                    }
-                    if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
-                        cmd << "--network-mode=${params.NETWORK_MODE}"
-                    }
-
-                    // Run pipeline
-                    timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
-                        echo "Will run ${cmd.join(' ')}"
-                        try {
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        } catch (err) {
-                            throw err
+                        // Create artcd command
+                        def cmd = [
+                            "artcd",
+                            "-v",
+                            "--working-dir=./artcd_working",
+                            "--config=./config/artcd.toml",
+                        ]
+                        if (params.DRY_RUN) {
+                            cmd << "--dry-run"
                         }
-                    } // timeout
+                        cmd += [
+                            "update-golang",
+                            "--ocp-version=${params.BUILD_VERSION}",
+                            "--art-jira=${params.ART_JIRA}",
+                            "${golang_nvrs}"
+                        ]
+                        if (params.DOOZER_DATA_PATH) {
+                            cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                        }
+                        if (params.DOOZER_DATA_GITREF) {
+                            cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                        }
+                        if (params.FIXED_CVES) {
+                            cmd << "--cves=${params.FIXED_CVES}"
+                        }
+                        if (params.SCRATCH) {
+                            cmd << "--scratch"
+                        }
+                        if (params.FORCE_UPDATE_TRACKERS) {
+                            cmd << "--force-update-tracker"
+                        }
+                        if (params.TAG_BUILD) {
+                            cmd << "--tag-builds"
+                        }
+                        if (!params.DRY_RUN) {
+                            cmd << "--confirm"
+                        }
+                        if (params.FORCE_IMAGE_BUILD) {
+                            cmd << "--force-image-build"
+                        }
+                        if (params.BUILD_SYSTEM) {
+                            cmd << "--build-system=${params.BUILD_SYSTEM}"
+                        }
+                        if (params.SKIP_PR) {
+                            cmd << "--skip-pr"
+                        }
+                        if (params.EXTERNAL_GOLANG_RPMS) {
+                            cmd << "--external-golang-rpms"
+                        }
+                        if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
+                            cmd << "--network-mode=${params.NETWORK_MODE}"
+                        }
 
-                    commonlib.safeArchiveArtifacts([
-                        "artcd_working/**/*.json",
-                        "artcd_working/**/*.log",
-                        "artcd_working/**/*.yaml",
-                        "artcd_working/**/*.yml",
-                    ])
+                        // Run pipeline
+                        timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
+                            echo "Will run ${cmd.join(' ')}"
+                            sh(script: cmd.join(' '), returnStdout: true)
+                        } // timeout
+
+                        commonlib.safeArchiveArtifacts([
+                            "artcd_working/**/*.json",
+                            "artcd_working/**/*.log",
+                            "artcd_working/**/*.yaml",
+                            "artcd_working/**/*.yml",
+                        ])
+                    }
                 }
             }
         }
-    }
-
-    stage('Clean up') {
-        buildlib.cleanWorkspace()
+    } finally {
+        stage('Clean up') {
+            buildlib.cleanWorkspace()
+        }
     }
     }
 }

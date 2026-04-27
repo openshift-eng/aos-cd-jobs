@@ -80,98 +80,100 @@ node {
             currentBuild.displayName = "#${currentBuild.number} ${params.GROUP} ${params.ASSEMBLY}"
         }
 
-        stage("release-from-fbc") {
-            def fbcPullspecs = commonlib.cleanCommaList(params.FBC_PULLSPECS)
-            def extraImageNvrs = commonlib.cleanCommaList(params.EXTRA_IMAGE_NVRS)
+        try {
+            stage("release-from-fbc") {
+                def fbcPullspecs = commonlib.cleanCommaList(params.FBC_PULLSPECS)
+                def extraImageNvrs = commonlib.cleanCommaList(params.EXTRA_IMAGE_NVRS)
 
-            if (!fbcPullspecs && !extraImageNvrs) {
-                error("At least one of FBC_PULLSPECS or EXTRA_IMAGE_NVRS must be provided")
-            }
+                if (!fbcPullspecs && !extraImageNvrs) {
+                    error("At least one of FBC_PULLSPECS or EXTRA_IMAGE_NVRS must be provided")
+                }
 
-            def cmd = [
-                "artcd",
-                "-v",
-                "--working-dir=./artcd_working",
-                "--config=./config/artcd.toml",
-                "release-from-fbc",
-                "--group",
-                "${params.GROUP}",
-                "--assembly",
-                "${params.ASSEMBLY}",
-                "--create-mr"
-            ]
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                    "release-from-fbc",
+                    "--group",
+                    "${params.GROUP}",
+                    "--assembly",
+                    "${params.ASSEMBLY}",
+                    "--create-mr"
+                ]
 
-            if (fbcPullspecs) {
-                cmd += ["--fbc-pullspecs", fbcPullspecs]
-            }
-            if (extraImageNvrs) {
-                cmd += ["--extra-image-nvrs", extraImageNvrs]
-            }
+                if (fbcPullspecs) {
+                    cmd += ["--fbc-pullspecs", fbcPullspecs]
+                }
+                if (extraImageNvrs) {
+                    cmd += ["--extra-image-nvrs", extraImageNvrs]
+                }
 
-            def jiraBugs = commonlib.cleanCommaList(params.JIRA_BUGS)
-            if (jiraBugs) {
-                cmd << "--jira-bugs"
-                cmd << "${jiraBugs}"
-            }
+                def jiraBugs = commonlib.cleanCommaList(params.JIRA_BUGS)
+                if (jiraBugs) {
+                    cmd << "--jira-bugs"
+                    cmd << "${jiraBugs}"
+                }
 
-            def targetDate = params.TARGET_RELEASE_DATE?.trim()
-            if (targetDate) {
-                cmd << "--target-release-date"
-                cmd << "${targetDate}"
-            }
+                def targetDate = params.TARGET_RELEASE_DATE?.trim()
+                if (targetDate) {
+                    cmd << "--target-release-date"
+                    cmd << "${targetDate}"
+                }
 
-            if (params.DRY_RUN) {
-                cmd << "--dry-run"
-            }
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
 
-            // Needed to detect manual builds
-            wrap([$class: 'BuildUser']) {
-                builderEmail = env.BUILD_USER_EMAIL
-            }
+                // Needed to detect manual builds
+                wrap([$class: 'BuildUser']) {
+                    builderEmail = env.BUILD_USER_EMAIL
+                }
 
-            buildlib.withAppCiAsArtPublish() {
-                withCredentials([
-                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                    file(credentialsId: 'openshift-bot-oadp-konflux-service-account', variable: 'OADP_KONFLUX_SA_KUBECONFIG'),
-                    file(credentialsId: 'openshift-bot-mta-konflux-service-account', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),
-                    file(credentialsId: 'openshift-bot-mtc-konflux-service-account', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
-                    file(credentialsId: 'openshift-bot-logging-konflux-service-account', variable: 'LOGGING_KONFLUX_SA_KUBECONFIG'),
-                    file(credentialsId: 'openshift-bot-oap-konflux-service-account', variable: 'OAP_KONFLUX_SA_KUBECONFIG'),
-                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                    file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
-                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
-                ]){
-                    def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
-                    if (params.TELEMETRY_ENABLED) {
-                        envVars << "TELEMETRY_ENABLED=1"
-                        if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
-                            envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([
+                        string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                        string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                        file(credentialsId: 'openshift-bot-oadp-konflux-service-account', variable: 'OADP_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'openshift-bot-mta-konflux-service-account', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'openshift-bot-mtc-konflux-service-account', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'openshift-bot-logging-konflux-service-account', variable: 'LOGGING_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'openshift-bot-oap-konflux-service-account', variable: 'OAP_KONFLUX_SA_KUBECONFIG'),
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                        file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                        file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                        string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                    ]){
+                        def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
+                        if (params.TELEMETRY_ENABLED) {
+                            envVars << "TELEMETRY_ENABLED=1"
+                            if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
+                                envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"
+                            }
                         }
-                    }
-                    withEnv(envVars) {
-                        buildlib.init_artcd_working_dir()
-                        try {
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        } catch (err) {
-                            // If any release creation failures occurred, mark the job run as unstable
-                            currentBuild.result = "UNSTABLE"
+                        withEnv(envVars) {
+                            buildlib.init_artcd_working_dir()
+                            try {
+                                sh(script: cmd.join(' '), returnStdout: true)
+                            } catch (err) {
+                                // If any release creation failures occurred, mark the job run as unstable
+                                currentBuild.result = "UNSTABLE"
+                            }
                         }
                     }
                 }
             }
-        }
-
-        stage("terminate") {
-            commonlib.safeArchiveArtifacts([
-                "artcd_working/**/*.log",
-                "artcd_working/**/*.yaml",
-                "artcd_working/**/*.yml",
-            ])
-            buildlib.cleanWorkspace()
+        } finally {
+            stage("terminate") {
+                commonlib.safeArchiveArtifacts([
+                    "artcd_working/**/*.log",
+                    "artcd_working/**/*.yaml",
+                    "artcd_working/**/*.yml",
+                ])
+                buildlib.cleanWorkspace()
+            }
         }
     }
     }

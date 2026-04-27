@@ -120,98 +120,100 @@ node {
     // e.g. {"group": "openshift-4.8", "assembly": "4.8.28", "type": "standard", "name": "4.8.28", "content": {"s390x": {"pullspec": "quay.io/openshift-release-dev/ocp-release:4.8.28-s390x", "digest": "sha256:b33d11a797022f9394aca5f05f1fcba8faa3fcc607f0cdd6e75666f8f93e7141", "from_release": "registry.ci.openshift.org/ocp-s390x/release-s390x:4.8.0-0.nightly-s390x-2022-01-19-035735", "rhcos_version": "48.84.202201111102-0"}, "x86_64": {"pullspec": "quay.io/openshift-release-dev/ocp-release:4.8.28-x86_64", "digest": "sha256:ba1299680b542e46744307afc7effc15957a20592d88de4651610b52ed8be9a8", "from_release": "registry.ci.openshift.org/ocp/release:4.8.0-0.nightly-2022-01-19-035759", "rhcos_version": "48.84.202201102304-0"}, "ppc64le": {"pullspec": "quay.io/openshift-release-dev/ocp-release:4.8.28-ppc64le", "digest": "sha256:791790c88018eb9848765797f4348d4d5161dc342c61ec67d41770873e574a43", "from_release": "registry.ci.openshift.org/ocp-ppc64le/release-ppc64le:4.8.0-0.nightly-ppc64le-2022-01-19-035729", "rhcos_version": "48.84.202201102304-0"}}, "justifications": [], "advisory": 87060, "live_url": "https://access.redhat.com/errata/RHBA-2022:0172"}
     def release_info = [:]
 
-    stage("promote release") {
-        buildlib.init_artcd_working_dir()
-        def cmd = [
-            "artcd",
-            "-v",
-            "--working-dir=./artcd_working",
-            "--config=./config/artcd.toml",
-        ]
-        if (params.DRY_RUN) {
-            cmd << "--dry-run"
-        }
-        cmd += [
-            "promote",
-            "--group=openshift-${params.VERSION}",
-            "--assembly=${params.ASSEMBLY}",
-        ]
-        if (params.SKIP_IMAGE_LIST) {
-            cmd << "--skip-image-list"
-        }
-        if (params.SKIP_BUILD_MICROSHIFT) {
-            cmd << "--skip-build-microshift"
-        }
-        if (params.SKIP_MIRROR_BINARIES) {
-            cmd << "--skip-mirror-binaries"
-        }
-        if (params.SKIP_SIGNING) {
-            cmd << "--skip-signing"
-        }
-        if (params.SKIP_SIGSTORE) {
-            cmd << "--skip-sigstore"
-        }
-        if (params.SKIP_CINCINNATI_PR_CREATION) {
-            cmd << "--skip-cincinnati-prs"
-        }
-        if (params.SKIP_OTA_SLACK_NOTIFICATION) {
-            cmd << "--skip-ota-notification"
-        }
-        if (params.NO_MULTI) {
-            cmd << "--no-multi"
-        }
-        if (params.MULTI_ONLY) {
-            cmd << "--multi-only"
-        }
-        if (major == 4 && minor <= 11) {
-            // Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue (#incident-cincinnati-sha-mismatch-for-multi-images).
-            // This is also required for 4.11 to prevent the heterogeneous payload from getting into Cincinnati channels
-            // because 4.11 heterogeneous is tech preview.
-            cmd << "--use-multi-hack"
-        }
-        def signing_env = params.DRY_RUN? "stage": "prod"
-        cmd << "--signing-env=${signing_env}"
-        echo "Will run ${cmd.join(' ')}"
-        def siging_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
-        def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
-        def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
-        buildlib.withAppCiAsArtPublish() {
-            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD'],
-                             file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-                             string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
-                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                             string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                             string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                             file(credentialsId: "${siging_cert_id}.crt", variable: 'SIGNING_CERT'),
-                             file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
-                             file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
-                             string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
-                             string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL'),
-                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                             file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
-                             file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
-                             string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
-                            ]) {
-                withEnv(["BUILD_URL=${BUILD_URL}"]) {
-                    try {
-                        def out = sh(script: cmd.join(' '), returnStdout: true).trim()
-                        echo "artcd returns:\n$out"
-                    } catch (err) {
-                        throw err
-                    } finally {
-                        commonlib.safeArchiveArtifacts([
-                            "artcd_working/**/*.log",
-                        ])
+    try {
+        stage("promote release") {
+            buildlib.init_artcd_working_dir()
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=./artcd_working",
+                "--config=./config/artcd.toml",
+            ]
+            if (params.DRY_RUN) {
+                cmd << "--dry-run"
+            }
+            cmd += [
+                "promote",
+                "--group=openshift-${params.VERSION}",
+                "--assembly=${params.ASSEMBLY}",
+            ]
+            if (params.SKIP_IMAGE_LIST) {
+                cmd << "--skip-image-list"
+            }
+            if (params.SKIP_BUILD_MICROSHIFT) {
+                cmd << "--skip-build-microshift"
+            }
+            if (params.SKIP_MIRROR_BINARIES) {
+                cmd << "--skip-mirror-binaries"
+            }
+            if (params.SKIP_SIGNING) {
+                cmd << "--skip-signing"
+            }
+            if (params.SKIP_SIGSTORE) {
+                cmd << "--skip-sigstore"
+            }
+            if (params.SKIP_CINCINNATI_PR_CREATION) {
+                cmd << "--skip-cincinnati-prs"
+            }
+            if (params.SKIP_OTA_SLACK_NOTIFICATION) {
+                cmd << "--skip-ota-notification"
+            }
+            if (params.NO_MULTI) {
+                cmd << "--no-multi"
+            }
+            if (params.MULTI_ONLY) {
+                cmd << "--multi-only"
+            }
+            if (major == 4 && minor <= 11) {
+                // Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue (#incident-cincinnati-sha-mismatch-for-multi-images).
+                // This is also required for 4.11 to prevent the heterogeneous payload from getting into Cincinnati channels
+                // because 4.11 heterogeneous is tech preview.
+                cmd << "--use-multi-hack"
+            }
+            def signing_env = params.DRY_RUN? "stage": "prod"
+            cmd << "--signing-env=${signing_env}"
+            echo "Will run ${cmd.join(' ')}"
+            def siging_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
+            def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
+            def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
+            buildlib.withAppCiAsArtPublish() {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD'],
+                                 file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                                 string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
+                                 string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                                 string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                                 string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                                 string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                                 string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                                 file(credentialsId: "${siging_cert_id}.crt", variable: 'SIGNING_CERT'),
+                                 file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
+                                 file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
+                                 string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
+                                 string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL'),
+                                 string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                                 file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
+                                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                                 string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                                ]) {
+                    withEnv(["BUILD_URL=${BUILD_URL}"]) {
+                        try {
+                            def out = sh(script: cmd.join(' '), returnStdout: true).trim()
+                            echo "artcd returns:\n$out"
+                        } catch (err) {
+                            throw err
+                        } finally {
+                            commonlib.safeArchiveArtifacts([
+                                "artcd_working/**/*.log",
+                            ])
+                        }
                     }
                 }
             }
         }
-    }
-
-    stage("clean") {
-        buildlib.cleanWorkspace()
+    } finally {
+        stage("clean") {
+            buildlib.cleanWorkspace()
+        }
     }
     }
 }

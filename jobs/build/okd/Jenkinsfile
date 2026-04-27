@@ -101,86 +101,88 @@ node {
             currentBuild.displayName = "#${currentBuild.number}"
         }
 
-        stage("okd") {
-            // artcd command
-            def cmd = [
-                "artcd",
-                "-v",
-                "--working-dir=./artcd_working",
-                "--config=./config/artcd.toml",
-            ]
-            if (params.DRY_RUN) {
-                cmd << "--dry-run"
-            }
-            cmd += [
-                "okd",
-                "--version=${params.BUILD_VERSION}",
-                "--assembly=${params.ASSEMBLY}",
-            ]
-            if (params.DOOZER_DATA_PATH) {
-                cmd << "--data-path=${params.DOOZER_DATA_PATH}"
-            }
-            if (params.DOOZER_DATA_GITREF) {
-                cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
-            }
-            if (params.PLR_TEMPLATE_COMMIT) {
-                cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
-            }
-            cmd += [
-                "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",
-                "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
-            ]
-            if (params.IGNORE_LOCKS) {
-                cmd << "--ignore-locks"
-            }
-            if (params.BUILD_PRIORITY) {
-               cmd << "--build-priority=${params.BUILD_PRIORITY}"
-            }
-            if (params.IMAGESTREAM_NAMESPACE) {
-                cmd << "--imagestream-namespace=${params.IMAGESTREAM_NAMESPACE}"
-            }
+        try {
+            stage("okd") {
+                // artcd command
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
+                    "okd",
+                    "--version=${params.BUILD_VERSION}",
+                    "--assembly=${params.ASSEMBLY}",
+                ]
+                if (params.DOOZER_DATA_PATH) {
+                    cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                }
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
+                if (params.PLR_TEMPLATE_COMMIT) {
+                    cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
+                }
+                cmd += [
+                    "--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}",
+                    "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
+                ]
+                if (params.IGNORE_LOCKS) {
+                    cmd << "--ignore-locks"
+                }
+                if (params.BUILD_PRIORITY) {
+                   cmd << "--build-priority=${params.BUILD_PRIORITY}"
+                }
+                if (params.IMAGESTREAM_NAMESPACE) {
+                    cmd << "--imagestream-namespace=${params.IMAGESTREAM_NAMESPACE}"
+                }
 
-            // Needed to detect manual builds
-            wrap([$class: 'BuildUser']) {
-                builderEmail = env.BUILD_USER_EMAIL
-            }
+                // Needed to detect manual builds
+                wrap([$class: 'BuildUser']) {
+                    builderEmail = env.BUILD_USER_EMAIL
+                }
 
-            buildlib.withAppCiAsArtPublish() {
-                withCredentials([
-                            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                            string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                            file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
-                            file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                            file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
-                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                            file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
-                ]){
-                    def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([
+                                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                                file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                                string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                                file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                                file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                                file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
+                    ]){
+                        def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
 
-                    withEnv(envVars) {
-                        buildlib.init_artcd_working_dir()
-                        try {
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        } catch (err) {
-                            // If any image build/push failures occurred, mark the job run as unstable
-                            currentBuild.result = "UNSTABLE"
+                        withEnv(envVars) {
+                            buildlib.init_artcd_working_dir()
+                            try {
+                                sh(script: cmd.join(' '), returnStdout: true)
+                            } catch (err) {
+                                // If any image build/push failures occurred, mark the job run as unstable
+                                currentBuild.result = "UNSTABLE"
+                            }
                         }
                     }
                 }
             }
-        }
-
-        stage("terminate") {
-            commonlib.safeArchiveArtifacts([
-                "artcd_working/**/*.log",
-                "artcd_working/doozer_working/*.yaml",
-                "artcd_working/doozer_working/*.yml",
-            ])
-            buildlib.cleanWorkspace()
+        } finally {
+            stage("terminate") {
+                commonlib.safeArchiveArtifacts([
+                    "artcd_working/**/*.log",
+                    "artcd_working/doozer_working/*.yaml",
+                    "artcd_working/doozer_working/*.yml",
+                ])
+                buildlib.cleanWorkspace()
+            }
         }
     }
     }

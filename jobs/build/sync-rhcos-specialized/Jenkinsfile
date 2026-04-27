@@ -70,35 +70,37 @@ node {
         echo("Initializing RHCOS specialized sync: type=${params.TYPE}, stream=${params.STREAM}, build=${params.BUILD}")
     }
 
-    stage("Sync RHCOS Specialized") {
-        def cmd = [
-            "artcd",
-            "-vv",
-            "--config=./config/artcd.toml",
-            "--working-dir=./artcd_working",
-        ]
+    try {
+        stage("Sync RHCOS Specialized") {
+            def cmd = [
+                "artcd",
+                "-vv",
+                "--config=./config/artcd.toml",
+                "--working-dir=./artcd_working",
+            ]
 
-        if (params.DRY_RUN) {
-            cmd << "--dry-run"
+            if (params.DRY_RUN) {
+                cmd << "--dry-run"
+            }
+
+            cmd += [
+                "sync-rhcos-specialized",
+                "--type=${params.TYPE}",
+                "--stream", params.STREAM,
+                "--build", params.BUILD,
+            ]
+
+            withCredentials([
+                file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')
+            ]) {
+                buildlib.init_artcd_working_dir()
+                echo "Will run ${cmd}"
+                commonlib.shell(script: cmd.join(' '))
+            }
         }
-
-        cmd += [
-            "sync-rhcos-specialized",
-            "--type=${params.TYPE}",
-            "--stream", params.STREAM,
-            "--build", params.BUILD,
-        ]
-
-        withCredentials([
-            file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-            string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')
-        ]) {
-            buildlib.init_artcd_working_dir()
-            echo "Will run ${cmd}"
-            commonlib.shell(script: cmd.join(' '))
-        }
+    } finally {
+        buildlib.cleanWorkspace()
     }
-
-    buildlib.cleanWorkspace()
     }
 }

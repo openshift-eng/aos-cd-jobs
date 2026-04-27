@@ -104,6 +104,7 @@ node {
 
     def umb_timeout = 6
 
+    try {
     stage('sign-artifacts') {
         def noop = params.DRY_RUN ? " --noop" : " "
 
@@ -511,7 +512,8 @@ node {
             buildlib.rclone("--dry-run ${logCopyOpts}")
         }
     }
-
-    buildlib.cleanWorkspace()
+    } finally {
+        buildlib.cleanWorkspace()
+    }
     }
 }

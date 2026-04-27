@@ -45,28 +45,30 @@ node {
         error("You must provide one or more advisories.")
     }
 
-    advisory_list = commonlib.parseList(params.ADVISORIES)
-    buildlib.init_artcd_working_dir()
+    try {
+        advisory_list = commonlib.parseList(params.ADVISORIES)
+        buildlib.init_artcd_working_dir()
 
-    for(adv in advisory_list) {
-        def cmd = [
-            "artcd",
-            "-v",
-            "--working-dir=./artcd_working",
-            "--config=./config/artcd.toml",
-            "advisory-drop",
-            "--group=openshift-${params.VERSION}",
-            "--advisory", adv,
-            "--comment='${params.COMMENT}'"
-        ]
-        withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-            commonlib.shell(script: cmd.join(' '))
+        for(adv in advisory_list) {
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=./artcd_working",
+                "--config=./config/artcd.toml",
+                "advisory-drop",
+                "--group=openshift-${params.VERSION}",
+                "--advisory", adv,
+                "--comment='${params.COMMENT}'"
+            ]
+            withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                commonlib.shell(script: cmd.join(' '))
+            }
         }
+    } finally {
+        commonlib.safeArchiveArtifacts([
+            "artcd_working/**/*.log",
+        ])
+        buildlib.cleanWorkspace()
     }
-
-    commonlib.safeArchiveArtifacts([
-        "artcd_working/**/*.log",
-    ])
-    buildlib.cleanWorkspace()
     }
 }

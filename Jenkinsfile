@@ -141,7 +141,7 @@ node {
                      * Instead, pay the relatively minor storage costs for reposync indefinitely. ART can
                      * clean up old directories when they are EOL.
                      */
-                    commonlib.syncRepoToS3Mirror("${LOCAL_SYNC_DIR}/", "${S3_SYNC_DIR}/", remove_old: false, dry_run: params.DRY_RUN)
+                    commonlib.syncRepoToS3Mirror("${LOCAL_SYNC_DIR}/", "${S3_SYNC_DIR}/", false, 60, true, params.DRY_RUN)
                 }
             }
         }

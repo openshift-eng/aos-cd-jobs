@@ -60,6 +60,11 @@ node {
                         description: 'Type of repos to sync',
                         choices: "unsigned\nsigned",
                     ),
+                    booleanParam(
+                        name: 'DRY_RUN',
+                        description: 'Run the sync without pushing to S3; show what would happen',
+                        defaultValue: false,
+                    ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_FAILURE',
@@ -75,7 +80,7 @@ node {
         ]
     )
 
-    currentBuild.displayName = "${GROUP} - ${ARCH}"
+    currentBuild.displayName = "${GROUP} - ${ARCH}${params.DRY_RUN ? ' [DRY_RUN]' : ''}"
     REPOSYNC_BASE_DIR="/mnt/jenkins-workspace/reposync"
     LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${REPOSYNC_DIR}"
     MIRROR_RELATIVE_REPOSYNC = "reposync/${REPOSYNC_DIR}"
@@ -134,7 +139,7 @@ node {
                      * Instead, pay the relatively minor storage costs for reposync indefinitely. ART can
                      * clean up old directories when they are EOL.
                      */
-                    commonlib.syncRepoToS3Mirror("${LOCAL_SYNC_DIR}/", "${S3_SYNC_DIR}/", remove_old=false)
+                    commonlib.syncRepoToS3Mirror("${LOCAL_SYNC_DIR}/", "${S3_SYNC_DIR}/", remove_old=false, dry_run=params.DRY_RUN)
                 }
             }
         }

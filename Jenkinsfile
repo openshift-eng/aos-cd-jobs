@@ -80,6 +80,8 @@ node {
         ]
     )
 
+    commonlib.checkMock()
+
     currentBuild.displayName = "${GROUP} - ${ARCH}${params.DRY_RUN ? ' [DRY_RUN]' : ''}"
     REPOSYNC_BASE_DIR="/mnt/jenkins-workspace/reposync"
     LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${REPOSYNC_DIR}"

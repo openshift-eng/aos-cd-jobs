@@ -109,7 +109,7 @@ node {
                         base_args = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
                         // Specify -a ${ARCH} to allow repos to be constructed for the arch even if
                         // if it is not enabled in group.yml.
-                        command = "${base_args} -a ${ARCH} beta:reposync --output ${LOCAL_SYNC_DIR}/ --cachedir ${LOCAL_CACHE_DIR}/ --repo-type ${REPO_TYPE} --arch ${ARCH}${params.DRY_RUN ? ' --dry-run' : ''}"
+                        command = "${base_args} -a ${ARCH} beta:reposync --output ${LOCAL_SYNC_DIR}/ --cachedir ${LOCAL_CACHE_DIR}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
                         buildlib.doozer command
                     }
 
@@ -119,15 +119,13 @@ node {
                      * pushing the updated content to the mirrors.
                      */
 
-                    if (!params.DRY_RUN) {
-                        sanityCheckRes = commonlib.shell(
-                                returnAll: true,
-                                script: "find ${LOCAL_SYNC_DIR} -name '*.${ARCH}.rpm' | wc -l"
-                        )
+                    sanityCheckRes = commonlib.shell(
+                            returnAll: true,
+                            script: "find ${LOCAL_SYNC_DIR} -name '*.${ARCH}.rpm' | wc -l"
+                    )
 
-                        if(sanityCheckRes.stdout.trim().toInteger() < 50){
-                            error("Did not find a sufficient number of arch specific RPMs; human checks required!")
-                        }
+                    if(sanityCheckRes.stdout.trim().toInteger() < 50){
+                        error("Did not find a sufficient number of arch specific RPMs; human checks required!")
                     }
 
                 }

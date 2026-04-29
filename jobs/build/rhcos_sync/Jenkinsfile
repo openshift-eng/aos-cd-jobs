@@ -93,30 +93,40 @@ node {
 
     needsHappening = true
     noLatest = params.NO_LATEST
-    // for nightlies, sync them to dev dir
-    // This is a special case. see: ART-10946
-    if (tag.contains("nightly")) {
-        name = "dev-${ocpVersion}"
-        noLatest = true
-    } else {
-        name = commonlib.shell(
-            returnStdout: true,
-            script: "oc adm release info -o template --template '{{ .metadata.version }}' ${pullspec}"
-        )
-    }
 
-    rhcos_file = "${env.WORKSPACE}/rhcos-${arch}.json"
-    cmd = """
-        tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
-        oc image extract --path /manifests/:\$tmp \$(oc adm release info --image-for installer ${pullspec})
-        cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream > ${rhcos_file}
-        cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream | jq -r .architectures.${arch}.artifacts.qemu.release
-        rm -rf \$tmp
-    """
-    rhcosBuild =  commonlib.shell(
-        returnStdout: true,
-        script: cmd
-    ).trim()
+    // Bind registry credentials for oc commands to authenticate to Quay and CI registries
+    withCredentials([
+        file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')
+    ]) {
+        // Unset XDG_RUNTIME_DIR to prevent fallback to default buildvm auth
+        def registryConfigFlag = "--registry-config=\$QUAY_AUTH_FILE"
+
+        // for nightlies, sync them to dev dir
+        // This is a special case. see: ART-10946
+        if (tag.contains("nightly")) {
+            name = "dev-${ocpVersion}"
+            noLatest = true
+        } else {
+            name = commonlib.shell(
+                returnStdout: true,
+                script: "unset XDG_RUNTIME_DIR; oc ${registryConfigFlag} adm release info -o template --template '{{ .metadata.version }}' ${pullspec}"
+            )
+        }
+
+        rhcos_file = "${env.WORKSPACE}/rhcos-${arch}.json"
+        cmd = """
+            unset XDG_RUNTIME_DIR
+            tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
+            oc ${registryConfigFlag} image extract --path /manifests/:\$tmp \$(oc ${registryConfigFlag} adm release info --image-for installer ${pullspec})
+            cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream > ${rhcos_file}
+            cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream | jq -r .architectures.${arch}.artifacts.qemu.release
+            rm -rf \$tmp
+        """
+        rhcosBuild =  commonlib.shell(
+            returnStdout: true,
+            script: cmd
+        ).trim()
+    }
 
     pattern = /$major\.$minor\.(\d+)-$arch/
     is_stable = tag ==~ pattern

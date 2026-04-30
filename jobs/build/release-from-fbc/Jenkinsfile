@@ -63,26 +63,6 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
-                    text(
-                        name: 'RELEASE_NOTES_SYNOPSIS',
-                        description: '(Optional) Synopsis text for release notes (short advisory summary).',
-                        defaultValue: "",
-                    ),
-                    text(
-                        name: 'RELEASE_NOTES_TOPIC',
-                        description: '(Optional) Topic text for release notes (expanded description).',
-                        defaultValue: "",
-                    ),
-                    text(
-                        name: 'RELEASE_NOTES_DESCRIPTION',
-                        description: '(Optional) Description text for release notes (full detailed description).',
-                        defaultValue: "",
-                    ),
-                    text(
-                        name: 'RELEASE_NOTES_SOLUTION',
-                        description: '(Optional) Solution text for release notes (how to apply the fix/update).',
-                        defaultValue: "",
-                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -139,23 +119,6 @@ node {
                 if (targetDate) {
                     cmd << "--target-release-date"
                     cmd << "${targetDate}"
-                }
-
-                def rnSynopsis = params.RELEASE_NOTES_SYNOPSIS?.trim()
-                if (rnSynopsis) {
-                    cmd += ["--release-notes-synopsis", rnSynopsis]
-                }
-                def rnTopic = params.RELEASE_NOTES_TOPIC?.trim()
-                if (rnTopic) {
-                    cmd += ["--release-notes-topic", rnTopic]
-                }
-                def rnDescription = params.RELEASE_NOTES_DESCRIPTION?.trim()
-                if (rnDescription) {
-                    cmd += ["--release-notes-description", rnDescription]
-                }
-                def rnSolution = params.RELEASE_NOTES_SOLUTION?.trim()
-                if (rnSolution) {
-                    cmd += ["--release-notes-solution", rnSolution]
                 }
 
                 if (params.DRY_RUN) {

@@ -63,6 +63,16 @@ node() {
                             defaultValue: "",
                             trim: true,
                         ),
+                        choice(
+                            name: 'NETWORK_MODE',
+                            description: 'Override network mode for Konflux builds',
+                            choices: ["", "hermetic", "open"].join("\n"),
+                        ),
+                        booleanParam(
+                            name: "SUPPRESS_EXTERNAL_EFFECTS",
+                            description: "Skip Quay sync, mirror sync, PR creation, shipment MR, and Slack notifications. Required for open builds.",
+                            defaultValue: false
+                        ),
                         booleanParam(
                             name: 'IGNORE_LOCKS',
                             description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
@@ -117,6 +127,12 @@ node() {
                 }
                 if (params.FORCE_PLASHET_SYNC) {
                     cmd << "--force-plashet-sync"
+                }
+                if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
+                    cmd << "--network-mode=${params.NETWORK_MODE}"
+                }
+                if (params.SUPPRESS_EXTERNAL_EFFECTS) {
+                    cmd << "--suppress-external-effects"
                 }
                 withCredentials([
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

@@ -58,6 +58,12 @@ node() {
                             defaultValue: "https://github.com/openshift-eng/ocp-build-data",
                             trim: true,
                         ),
+                        string(
+                            name: 'DOOZER_DATA_GITREF',
+                            description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                            defaultValue: "",
+                            trim: true,
+                        ),
                         booleanParam(
                             name: 'IGNORE_LOCKS',
                             description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
@@ -106,6 +112,9 @@ node() {
                     "-g", "openshift-$params.BUILD_VERSION",
                     "--assembly", params.ASSEMBLY,
                 ]
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
                 if (params.RELEASE_PAYLOADS) {
                     for (nightly in commonlib.parseList(params.RELEASE_PAYLOADS)) {
                         cmd << "--payload" << nightly.trim()

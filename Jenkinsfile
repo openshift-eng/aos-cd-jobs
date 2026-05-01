@@ -114,6 +114,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                             file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                             file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
+                            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                         ]) {
                         // There is a vanishingly small race condition here, but it is not dangerous;
                         // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).

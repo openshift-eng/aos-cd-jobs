@@ -1,3 +1,4 @@
+timeout(time: 4, unit: 'HOURS') {
 node {
     checkout scm
     buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -59,4 +60,5 @@ node {
         }
 
     }
+}
 }

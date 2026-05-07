@@ -129,6 +129,7 @@ node() {
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                 ]) {
                     echo "Will run ${cmd.join(' ')}"
                     buildlib.withAppCiAsArtPublish() {

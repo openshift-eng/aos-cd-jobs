@@ -140,6 +140,12 @@ node() {
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'openshift-bot-oadp-konflux-service-account', variable: 'OADP_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'openshift-bot-mtc-konflux-service-account', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'openshift-bot-mta-konflux-service-account', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'openshift-bot-logging-konflux-service-account', variable: 'LOGGING_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'openshift-bot-acm-konflux-service-account', variable: 'ACM_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'openshift-bot-oap-konflux-service-account', variable: 'OAP_KONFLUX_SA_KUBECONFIG'),
                     file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                     usernamePassword(
                         credentialsId: 'art-dash-db-login',

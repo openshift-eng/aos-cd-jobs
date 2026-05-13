@@ -121,6 +121,11 @@ node {
                         description: '(For testing) Skip the OLM bundle build step',
                         defaultValue: false,  // Default to true until we believe bundle build is stable.
                     ),
+                    booleanParam(
+                        name: 'SKIP_EC_VERIFY',
+                        description: 'Skip Enterprise Contract verification for built images',
+                        defaultValue: false,
+                    ),
                     choice(
                         name: 'NETWORK_MODE',
                         description: 'Override network mode for Konflux builds',
@@ -195,6 +200,9 @@ node {
             }
             if (params.SKIP_BUNDLE_BUILD) {
                 cmd << "--skip-bundle-build"
+            }
+            if (params.SKIP_EC_VERIFY) {
+                cmd << "--skip-ec-verify"
             }
             if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                 cmd << "--skip-build-sync-konflux"

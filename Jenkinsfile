@@ -78,6 +78,11 @@ node {
                         description: 'Use golang RPMs from external repos (not tagged in rhaos build tags). Skips tagging and availability checks.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'MAJOR_BUMP',
+                        description: 'Indicates a major.minor golang version bump (e.g. 1.22 -> 1.23). Permits validation of go_latest even when the new version does not match current group.yml vars.',
+                        defaultValue: false,
+                    ),
                     choice(
                         name: 'NETWORK_MODE',
                         description: 'Override network mode for Konflux builds',
@@ -176,6 +181,9 @@ node {
                         }
                         if (params.EXTERNAL_GOLANG_RPMS) {
                             cmd << "--external-golang-rpms"
+                        }
+                        if (params.MAJOR_BUMP) {
+                            cmd << "--major-bump"
                         }
                         if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                             cmd << "--network-mode=${params.NETWORK_MODE}"

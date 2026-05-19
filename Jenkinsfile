@@ -33,6 +33,12 @@ node {
                         description: 'Instead of Accepting, Reject a release',
                         defaultValue: false
                     ),
+                    string(
+                        name: 'JIRA_TICKET',
+                        description: 'Jira ticket associated with this action (e.g. ART-1234)',
+                        trim: true,
+                        defaultValue: ""
+                    ),
                     booleanParam(
                         name: 'CONFIRM',
                         description: 'Running without this would be a [dry-run]. Must be specified to apply changes to server',
@@ -50,12 +56,15 @@ node {
         if (!params.RELEASE_NAME) {
             error("You must provide a release name")
         }
+        if (!params.JIRA_TICKET) {
+            error("You must provide a Jira ticket")
+        }
 
         def dry_run = params.CONFIRM ? '' : '[DRY_RUN]'
         currentBuild.displayName = "${params.RELEASE_NAME} ${dry_run}"
 
         def action = params.REJECT ? "reject" : 'accept'
-        def message = "Manually ${action}ed by ART"
+        def message = "Manually ${action}ed by ART - ${params.JIRA_TICKET}"
         def confirm_param = params.CONFIRM ? "--execute" : ''
 
         script {

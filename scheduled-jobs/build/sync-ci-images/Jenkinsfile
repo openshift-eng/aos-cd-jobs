@@ -1,4 +1,4 @@
-// Monitor all branches of ocp-build-data
+// Sync CI images to registry.ci.openshift.org for all supported OCP versions
 
 @NonCPS
 def sortedVersions() {
@@ -61,12 +61,6 @@ node {
                     defaultValue: false
                 ],
                 [
-                    name: 'FORCE_RUN',
-                    description: 'Run even if ocp-build-data appears unchanged',
-                    $class: 'BooleanParameterDefinition',
-                    defaultValue: false
-                ],
-                [
                     name: 'UPDATE_IMAGES_ONLY_WHEN_MISSING',
                     description: 'By default, if an image exists, this job does not update it (i.e. doozer runs with --only-if-missing). It would normally be updated by the ocp4 job when the API server successfully builds.',
                     $class: 'BooleanParameterDefinition',
@@ -83,10 +77,6 @@ node {
         for_versions = [ONLY_RELEASE]
     } else {
         for_versions = sortedVersions()
-    }
-
-    if (params.FORCE_RUN) {
-        currentBuild.displayName += " (forced)"
     }
 
     def streamParam = ""
@@ -125,31 +115,11 @@ node {
             echo "Checking group: ${group}"
             (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
 
-            sh "rm -rf ${group}"
-            sh "git clone https://github.com/openshift-eng/ocp-build-data --branch ${group} --single-branch --depth 1 ${group}"
-            dir(group) {
-                now_hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-            }
-
-            prev_dir_name = "${group}-prev"
-            dir(prev_dir_name) {  // if there was a previous, it should be here
-                prev_hash = sh(returnStdout: true, script: "git rev-parse HEAD || echo 0").trim()
-            }
-
             // Ensure that the base image in ocp-private (base image for private release controller / private images)
             // is kept in sync with public. ART automation updates the public periodically, but it needs to
             // also keep priv in sync.
             sh "oc image mirror --registry-config=$QUAY_AUTH_FILE registry.ci.openshift.org/ocp/${version}:base registry.ci.openshift.org/ocp-private/${version}-priv:base"
 
-            echo "Current hash: ${now_hash} "
-            echo "Previous hash: ${prev_hash}"
-
-            if (now_hash == prev_hash && !params.FORCE_RUN) {
-                echo "NO changes detected in ocp-build-data group: ${group}"
-                continue
-            }
-
-            echo "Changes detected in ocp-build-data group: ${group}"
             currentBuild.displayName += " ${version}"
             if (params.ONLY_STREAM) {
                 currentBuild.displayName += " ${params.ONLY_STREAM}"
@@ -224,7 +194,6 @@ node {
                 }
                 currentBuild.description += "  ${major}.${minor}-Partial\n"
                 echo "Some PRs were skipped because parent PRs have not merged yet: ${version}."
-                // Do not "mv ${group} ${prev_dir_name}" because we are not done
             } else if ( rc == 50 ) {
                 currentBuild.result = "FAILURE"
                 currentBuild.description += "  ${major}.${minor}-Completed with errors\n"
@@ -233,15 +202,11 @@ node {
                 currentBuild.result = "FAILURE"
                 currentBuild.description += "  ${major}.${minor}-Unknown errors\n"
                 echo "Some errors were raised during reconciliation; please check the logs for details"
-            } else {
-                sh "rm -rf ${prev_dir_name}"
-                sh "mv ${group} ${prev_dir_name}"
             }
         }
         }
     }
 
-    // Do not clean blindly. We need information to persist across runs in order to detect change in ocp-build-data.
-    // buildlib.cleanWorkspace()
+    buildlib.cleanWorkspace()
     }
 }

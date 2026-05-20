@@ -21,7 +21,7 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.artToolsParam(),
-                    commonlib.ocpVersionParam('VERSION', '4'),
+                    commonlib.ocpVersionParam('VERSION', '4plus'),
                     string(
                         name: 'ADVISORIES',
                         description: 'One or more advisories to drop, comma separated',

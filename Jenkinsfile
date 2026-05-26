@@ -6,14 +6,14 @@ node() {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+
     commonlib.describeJob("base-image-release", """
         <h2>Release base images to base repository</h2>
         <b>Timing</b>: This is only ever run by humans, as needed. No job should be calling it.
 
-        This job takes a list of built base images (like openshift-enterprise-base-rhel9, golang builders)
-        and releases them to the base repository using the doozer images:release-to-base-repo command.
-        
-        The job requires a comma-separated list of NVRs to perform batch release operations.
+        Supply exactly one Konflux IMAGE build <code>NVR</code> (SUCCESS row required for this group —
+        ART-18934 / art-tools). The job invokes <code>doozer images:release-to-base-repo</code>
+        once with singular <code>--nvr</code>.
     """)
 
     properties([
@@ -56,14 +56,14 @@ node() {
                     trim: true,
                 ),
                 string(
-                    name: 'NVRS',
-                    description: 'Comma-separated list of NVRs to release (e.g. openshift-enterprise-base-rhel9-container-v4.22.0-..., golang-1.21-container-v4.22.0-...)',
+                    name: 'NVR',
+                    description: 'Exactly one Konflux IMAGE build NVR for this group (SUCCESS row required). Passed once to images:release-to-base-repo --nvr.',
                     defaultValue: "",
                     trim: true,
                 ),
                 booleanParam(
                     name: 'DRY_RUN',
-                    description: 'Run in dry-run mode without making actual changes',
+                    description: 'When true, invoke doozer with global --dry-run. Snapshot/release semantics for images:release-to-base-repo depend on art-tools honoring that flag; confirm behavior before trusting it for risky runs.',
                     defaultValue: false,
                 ),
             ],
@@ -73,21 +73,23 @@ node() {
     commonlib.checkMock()
 
     stage('Validate Parameters') {
-        if (!params.NVRS) {
-            error("NVRS parameter is required. Please specify a comma-separated list of NVRs to release")
+        if (!params.NVR?.trim()) {
+            error('NVR is required — exactly one Konflux IMAGE build NVR (no comma-separated lists; run this job separately per release).')
         }
-        
-        def nvrList = params.NVRS.split(',').collect { it.trim() }.findAll { !it.isEmpty() }
-        def nvrCount = nvrList.size()
-        
+        def trimmed = params.NVR.trim()
+        if (trimmed.contains(',')) {
+            error('Use a single NVR only; commas are not supported (spawn another job build for additional NVRs).')
+        }
+        env.BASE_IMAGE_RELEASE_NVR = trimmed
+
+        echo("Single-NVR images:release-to-base-repo (--nvr) run.")
         echo("Base Image Release Parameters:")
         echo("  BUILD_VERSION: ${params.BUILD_VERSION}")
         echo("  ASSEMBLY: ${params.ASSEMBLY}")
-        echo("  NVRS: ${params.NVRS}")
-        echo("  NVR Count: ${nvrCount}")
+        echo("  NVR: ${env.BASE_IMAGE_RELEASE_NVR}")
         echo("  DRY_RUN: ${params.DRY_RUN}")
-        
-        currentBuild.displayName = "${params.BUILD_VERSION} - ${nvrCount} NVRs"
+
+        currentBuild.displayName = "${params.BUILD_VERSION} - ${env.BASE_IMAGE_RELEASE_NVR}"
         if (params.DRY_RUN) {
             currentBuild.displayName += " [DRY_RUN]"
         }
@@ -102,36 +104,30 @@ node() {
     stage("Release base image") {
         doozer_working = "${env.WORKSPACE}/doozer_working"
         buildlib.cleanWorkdir(doozer_working)
-        
-        def nvrList = params.NVRS.split(',').collect { it.trim() }.findAll { !it.isEmpty() }
-        def nvrCount = nvrList.size()
-        
+
         try {
             def cmd = [
                 "doozer",
                 "--group", "${params.BUILD_VERSION}",
                 "--assembly", "${params.ASSEMBLY}"
             ]
-            
+
             if (params.DOOZER_DATA_PATH) {
                 cmd += ["--data-path", "${params.DOOZER_DATA_PATH}"]
             }
-            
+
             if (params.DOOZER_DATA_GITREF) {
                 cmd += ["--data-gitref", "${params.DOOZER_DATA_GITREF}"]
             }
-            
-            cmd += [
-                "images:release-to-base-repo",
-                "--nvrs", "${params.NVRS}"
-            ]
-            
+
             if (params.DRY_RUN) {
                 cmd << "--dry-run"
             }
 
+            cmd << "images:release-to-base-repo" << "--nvr" << env.BASE_IMAGE_RELEASE_NVR
+
             echo "Will run: ${cmd.join(' ')}"
-            
+
             dir(doozer_working) {
                 withCredentials([
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
@@ -158,17 +154,17 @@ node() {
                     }
                 }
             }
-            
+
         } catch (err) {
             commonlib.email(
                     to: "aos-art-automation+failed-base-image-release@redhat.com",
                     from: "aos-art-automation@redhat.com",
                     replyTo: "aos-team-art@redhat.com",
-                    subject: "Error during base image release for ${nvrCount} NVRs",
+                    subject: "Error during base-image-release (NVR: ${env.BASE_IMAGE_RELEASE_NVR})",
                     body: """
-There was an issue releasing base images:
+There was an issue releasing a base image:
 
-    NVRs: ${params.NVRS}
+    NVR: ${env.BASE_IMAGE_RELEASE_NVR}
     Error: ${err}
 
 Build URL: ${BUILD_URL}

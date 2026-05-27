@@ -50,20 +50,6 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
-                    choice(
-                        name: 'ENV',
-                        description: 'Environment whose EC policy to verify against',
-                        choices: [
-                            "prod",
-                            "stage",
-                        ].join("\n")
-                    ),
-                    string(
-                        name: 'BATCH_SIZE',
-                        description: 'Number of NVRs to process in each verification batch',
-                        defaultValue: "10",
-                        trim: true,
-                    ),
                     booleanParam(
                         name: 'FAIL_FAST',
                         description: 'Stop processing immediately if any NVR fails verification',
@@ -98,8 +84,6 @@ node {
                 "build-conforma-verify",
                 "--version=${params.BUILD_VERSION}",
                 "--assembly=${params.ASSEMBLY}",
-                "--env=${params.ENV}",
-                "--batch-size=${params.BATCH_SIZE}",
             ]
             if (params.DOOZER_DATA_PATH) {
                 cmd << "--data-path=${params.DOOZER_DATA_PATH}"

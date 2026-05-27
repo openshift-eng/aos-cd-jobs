@@ -50,11 +50,6 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
-                    booleanParam(
-                        name: 'FAIL_FAST',
-                        description: 'Stop processing immediately if any NVR fails verification',
-                        defaultValue: false,
-                    ),
                 ]
             ],
         ]
@@ -93,9 +88,6 @@ node {
             }
             if (params.BUILD_LIST) {
                 cmd << "--builds=${commonlib.cleanCommaList(params.BUILD_LIST)}"
-            }
-            if (params.FAIL_FAST) {
-                cmd << "--fail-fast"
             }
 
             buildlib.withAppCiAsArtPublish() {

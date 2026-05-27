@@ -1,70 +1,127 @@
-// Update-branches job
+#!/usr/bin/env groovy
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
-
-node('openshift-build-1') {
+node {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    commonlib.describeJob("build-conforma-verify", """
+        Run Conforma (Enterprise Contract) verification against OCP image builds.
+        Accepts an OCP version and optional list of NVRs. If no NVRs are provided,
+        the latest builds for the assembly are fetched automatically.
+    """)
+
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '30',
+                    daysToKeepStr: '30')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.dryrunParam(),
+                    commonlib.mockParam(),
+                    commonlib.artToolsParam(),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'The name of an assembly to verify builds for',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'BUILD_LIST',
+                        description: '(Optional) Comma-separated list of NVRs to verify. If empty, latest builds for the assembly are fetched via elliott find-builds',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    booleanParam(
+                        name: 'FAIL_FAST',
+                        description: 'Stop processing immediately if any NVR fails verification',
+                        defaultValue: false,
+                    ),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    if (currentBuild.description == null) {
+        currentBuild.description = ""
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+    sshagent(["openshift-bot"]) {
+        stage("initialize") {
+            currentBuild.displayName = "#${currentBuild.number}"
+        }
+
+        stage("conforma-verify") {
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=./artcd_working",
+                "--config=./config/artcd.toml",
+            ]
+            if (params.DRY_RUN) {
+                cmd << "--dry-run"
+            }
+            cmd += [
+                "build-conforma-verify",
+                "--version=${params.BUILD_VERSION}",
+                "--assembly=${params.ASSEMBLY}",
+            ]
+            if (params.DOOZER_DATA_PATH) {
+                cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+            }
+            if (params.DOOZER_DATA_GITREF) {
+                cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+            }
+            if (params.BUILD_LIST) {
+                cmd << "--builds=${commonlib.cleanCommaList(params.BUILD_LIST)}"
+            }
+            if (params.FAIL_FAST) {
+                cmd << "--fail-fast"
+            }
+
+            buildlib.withAppCiAsArtPublish() {
+                withCredentials([
+                    file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                ]) {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                        buildlib.init_artcd_working_dir()
+                        sh(script: cmd.join(' '), returnStdout: true)
+                    }
+                }
+            }
+        }
+
+        stage("terminate") {
+            commonlib.safeArchiveArtifacts([
+                "artcd_working/**/*.log",
+                "artcd_working/**/*.yaml",
+                "artcd_working/**/*.yml",
+                "artcd_working/**/results.yaml",
+            ])
+            buildlib.cleanWorkspace()
+        }
+    }
     }
 }

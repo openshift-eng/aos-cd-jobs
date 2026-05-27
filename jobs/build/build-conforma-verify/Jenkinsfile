@@ -62,7 +62,7 @@ node {
     }
     sshagent(["openshift-bot"]) {
         stage("initialize") {
-            currentBuild.displayName = "#${currentBuild.number}"
+            currentBuild.displayName = "${params.BUILD_VERSION} - #${currentBuild.number}"
         }
 
         stage("conforma-verify") {

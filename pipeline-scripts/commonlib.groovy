@@ -660,6 +660,24 @@ def invalidateAwsCache(s3_path, dry_run=false) {
 
 }
 
+def verifySyncedToMirror(local_dir, s3_path) {
+    def s3_out = sh(
+        script: "aws s3 sync --no-progress --size-only --dryrun ${local_dir} s3://art-srv-enterprise${s3_path}",
+        returnStdout: true
+    ).trim()
+    if (s3_out) {
+        error("S3 post-sync verification failed -- files missing or size mismatch:\n${s3_out}")
+    }
+    def r2_out = sh(
+        script: "aws s3 sync --no-progress --size-only --dryrun ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}",
+        returnStdout: true
+    ).trim()
+    if (r2_out) {
+        error("R2 post-sync verification failed -- files missing or size mismatch:\n${r2_out}")
+    }
+    echo "Verified: all local files present in S3 and R2 for ${s3_path}"
+}
+
 def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, issue_cloudfront_invalidation=true, dry_run=false) {
     try {
         checkS3Path(s3_path)
@@ -686,6 +704,9 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, 
                         // 3. Everything should be sync'd in a consistent way -- delete anything old with --delete.
                         shell(script: "aws s3 sync ${opts} --delete ${local_dir} s3://art-srv-enterprise${s3_path}")
                         shell(script: "aws s3 sync ${opts} --delete ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}")
+                    }
+                    if (!dry_run) {
+                        verifySyncedToMirror(local_dir, s3_path)
                     }
                 }
             }
@@ -717,6 +738,7 @@ def syncDirToS3Mirror(local_dir, s3_path, delete_old=true, include_only='', time
                 timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
                     shell(script: "aws s3 sync --no-progress --exact-timestamps ${extra_args} ${local_dir} s3://art-srv-enterprise${s3_path}")
                     shell(script: "aws s3 sync --no-progress --exact-timestamps ${extra_args} ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}")
+                    verifySyncedToMirror(local_dir, s3_path)
                 }
             }
             if (issue_cloudfront_invalidation) {

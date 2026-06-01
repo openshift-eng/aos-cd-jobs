@@ -20,7 +20,7 @@ node() {
                 job: '../scanning/scanning%2Fimages-health',
                 parameters: [
                     booleanParam(name: 'SEND_TO_RELEASE_CHANNEL', value: true),
-                    booleanParam(name: 'SEND_TO_FORUM_OCP_ART', value: true),
+                    string(name: 'PUBLIC_CHANNEL', value: '#forum-ocp-art'),
                 ],
                 propagate: false,
             )

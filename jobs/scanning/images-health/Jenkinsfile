@@ -48,10 +48,11 @@ node() {
                         defaultValue: true,
                         description: "If true, send output to #art-release-4-<version>"
                     ),
-                    booleanParam(
-                        name: 'SEND_TO_FORUM_OCP_ART',
-                        defaultValue: false,
-                        description: "If true, send notification to #forum-ocp-art"
+                    string(
+                        name: 'PUBLIC_CHANNEL',
+                        defaultValue: '#forum-ocp-art',
+                        description: "Slack channel to send public notification to (e.g. #forum-ocp-art). Leave blank to skip.",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'JIRA',
@@ -97,8 +98,8 @@ node() {
     if (params.SEND_TO_RELEASE_CHANNEL) {
         cmd << "--send-to-release-channel"
     }
-    if (params.SEND_TO_FORUM_OCP_ART) {
-        cmd << "--send-to-forum-ocp-art"
+    if (params.PUBLIC_CHANNEL) {
+        cmd << "--send-to-public-channel=${params.PUBLIC_CHANNEL}"
     }
     if (params.JIRA) {
         cmd << "--sync-jira"

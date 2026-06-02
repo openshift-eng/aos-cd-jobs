@@ -147,6 +147,7 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                             file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                             usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD'),
                         ]) {
                         wrap([$class: 'BuildUser']) {

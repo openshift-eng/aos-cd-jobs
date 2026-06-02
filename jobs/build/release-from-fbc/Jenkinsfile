@@ -100,6 +100,11 @@ node {
                     error("At least one of FBC_PULLSPECS or EXTRA_IMAGE_NVRS must be provided")
                 }
 
+                if (params.OCP_OPTIONAL && !params.GROUP.startsWith('openshift-')) {
+                    error("OCP_OPTIONAL requires GROUP to start with 'openshift-' (e.g., openshift-4.22). " +
+                          "Layered products (OADP, MTA, MTC, Logging) should use the default mode.")
+                }
+
                 def cmd = [
                     "artcd",
                     "-v",

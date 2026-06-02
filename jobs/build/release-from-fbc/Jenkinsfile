@@ -105,6 +105,11 @@ node {
                           "Layered products (OADP, MTA, MTC, Logging) should use the default mode.")
                 }
 
+                if (!params.OCP_OPTIONAL && params.GROUP.startsWith('openshift-')) {
+                    error("GROUP '${params.GROUP}' is an openshift-* group and requires OCP_OPTIONAL to be enabled. " +
+                          "Without it, the default mode may filter out images and produce only FBC yaml.")
+                }
+
                 def cmd = [
                     "artcd",
                     "-v",

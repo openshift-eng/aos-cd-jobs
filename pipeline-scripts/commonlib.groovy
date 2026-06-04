@@ -1,13 +1,12 @@
-import groovy.transform.Field
 
-@Field slacklib = load("pipeline-scripts/slacklib.groovy")
+slacklib = load("pipeline-scripts/slacklib.groovy")
 
-@Field ocp3Versions = [
+ocp3Versions = [
     "3.11",
 ]
 
 // All buildable versions of ocp4
-@Field ocp4Versions = [
+ocp4Versions = [
     "4.23",
     "4.22",
     "4.21",
@@ -23,19 +22,19 @@ import groovy.transform.Field
 ]
 
 // All buildable versions of ocp5
-@Field ocp5Versions = [
+ocp5Versions = [
     "5.0",
 ]
 
 
-@Field okdVersions = [
+okdVersions = [
     "5.0",
     "4.23",
     "4.22",
     "4.21",
 ]
 
-@Field nonOCPGroups = [
+nonOCPGroups = [
     "logging-6.0",
     "logging-6.2",
     "logging-6.3",
@@ -51,14 +50,14 @@ import groovy.transform.Field
     "oadp-1.6",
 ]
 
-@Field ocpVersions = ocp5Versions + ocp4Versions + ocp3Versions
+ocpVersions = ocp5Versions + ocp4Versions + ocp3Versions
 
 // some of our systems refer to golang's chosen architecture nomenclature;
 // most use brew's nomenclature or similar. translate.
-@Field brewArches = ["x86_64", "s390x", "ppc64le", "aarch64", "multi"]
-@Field brewArchSuffixes = ["", "-s390x", "-ppc64le", "-aarch64", "-multi"]
-@Field goArches = ["amd64", "s390x", "ppc64le", "arm64", "multi"]
-@Field goArchSuffixes = ["", "-s390x", "-ppc64le", "-arm64", "-multi"]
+brewArches = ["x86_64", "s390x", "ppc64le", "aarch64", "multi"]
+brewArchSuffixes = ["", "-s390x", "-ppc64le", "-aarch64", "-multi"]
+goArches = ["amd64", "s390x", "ppc64le", "arm64", "multi"]
+goArchSuffixes = ["", "-s390x", "-ppc64le", "-arm64", "-multi"]
 def goArchForBrewArch(String brewArch) {
     if (brewArch in goArches) return brewArch  // allow to already be a go arch, just keep same
     if (brewArch in brewArches)
@@ -83,7 +82,7 @@ def goSuffixForArch(String arch) {
     return goArchSuffixes[goArches.findIndexOf {it == arch}]
 }
 
-@Field ocpMajorVersions = [
+ocpMajorVersions = [
     "5": ocp5Versions,
     "4": ocp4Versions,
     "4plus": ocp5Versions + ocp4Versions,
@@ -247,7 +246,7 @@ def buildURL(String append='') {
     env.BUILD_URL.replace('https://buildvm.openshift.eng.bos.redhat.com:8443', 'https://localhost:8888') + append
 }
 
-@Field emailIndex = 0
+emailIndex = 0
 /**
  * Wrapper to persist email as an artifact and enable suppressing actual email
  */
@@ -315,7 +314,7 @@ def safeArchiveArtifacts(List patterns) {
 }
 
 import java.util.concurrent.atomic.AtomicInteger
-@Field shellCounter = new AtomicInteger()
+shellCounter = new AtomicInteger()
 
 @NonCPS
 def getNextShellCounter() {

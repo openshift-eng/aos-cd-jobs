@@ -12,6 +12,12 @@ node {
         in <code>releases.yml</code>. Supports assembly inheritance via
         <code>BASIS_ASSEMBLY</code> for lightweight z-stream releases.
         <br><br>
+        <b>Multi-OCP support:</b> For products that target multiple OCP versions
+        (defined by <code>OCP_TARGET_VERSIONS</code> in <code>group.yml</code>),
+        provide one FBC pullspec per OCP target version. The pipeline validates
+        that FBC builds for the same operator contain identical related images
+        across all OCP versions.
+        <br><br>
         A pull request will be created to add the generated assembly definition
         to ocp-build-data. It is the ARTist's responsibility to review and merge the PR.
     """)
@@ -43,7 +49,7 @@ node {
                     ),
                     text(
                         name: 'FBC_PULLSPECS',
-                        description: 'Comma-separated FBC image pullspecs to extract operand NVRs from. Required unless BASIS_ASSEMBLY is provided.',
+                        description: 'Comma-separated FBC image pullspecs to extract operand NVRs from. For products targeting multiple OCP versions, provide one pullspec per OCP target version (e.g. one for 4.18, one for 4.19, etc.). Related images will be validated for consistency across versions. Required unless BASIS_ASSEMBLY is provided.',
                         defaultValue: "",
                     ),
                     string(

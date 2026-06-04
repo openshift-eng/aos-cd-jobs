@@ -1,13 +1,14 @@
 #!/usr/bin/groovy
 import java.net.URLEncoder
+import groovy.transform.Field
 
-commonlib = load("pipeline-scripts/commonlib.groovy")
+@Field commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
-slacklib = commonlib.slacklib
+@Field slacklib = commonlib.slacklib
 
-GITHUB_URLS = [:]
-GITHUB_BASE_PATHS = [:]
-GITHUB_BASE = "git@github.com:openshift"
+@Field GITHUB_URLS = [:]
+@Field GITHUB_BASE_PATHS = [:]
+@Field GITHUB_BASE = "git@github.com:openshift"
 
 // dump important tool versions to console
 def dump_versions() {
@@ -671,7 +672,7 @@ def cleanWorkspace() {
     }
 }
 
-WORKDIR_COUNTER=0 // ensure workdir cleanup can be invoked multiple times per job
+@Field WORKDIR_COUNTER=0 // ensure workdir cleanup can be invoked multiple times per job
 def cleanWorkdir(workdir, synchronous=false) {
     // get a fresh workdir; removing the old one can be synchronous or background.
 

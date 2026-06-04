@@ -85,6 +85,11 @@ node {
                     "-v",
                     "--working-dir=./artcd_working",
                     "--config=./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
                     "prepare-release-lp",
                     "--group", "${params.GROUP}",
                     "--assembly", "${params.ASSEMBLY}",
@@ -109,10 +114,6 @@ node {
                 def targetDate = params.TARGET_RELEASE_DATE?.trim()
                 if (targetDate) {
                     cmd += ["--target-release-date", targetDate]
-                }
-
-                if (params.DRY_RUN) {
-                    cmd << "--dry-run"
                 }
 
                 wrap([$class: 'BuildUser']) {

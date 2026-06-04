@@ -96,6 +96,11 @@ node {
                     "-v",
                     "--working-dir=./artcd_working",
                     "--config=./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
                     "gen-assembly-lp",
                     "--group", "${params.GROUP}",
                     "--assembly", "${params.ASSEMBLY}",
@@ -126,10 +131,6 @@ node {
                 def extraNvrs = commonlib.cleanCommaList(params.EXTRA_IMAGE_NVRS)
                 if (extraNvrs) {
                     cmd += ["--extra-image-nvrs", extraNvrs]
-                }
-
-                if (params.DRY_RUN) {
-                    cmd << "--dry-run"
                 }
 
                 wrap([$class: 'BuildUser']) {

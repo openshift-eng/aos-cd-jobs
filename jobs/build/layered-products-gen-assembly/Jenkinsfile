@@ -6,7 +6,7 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
-    commonlib.describeJob("gen-assembly-lp", """
+    commonlib.describeJob("layered-products-gen-assembly", """
         <h2>Generate an assembly definition for Layered Products from FBC images</h2>
         Extracts operand NVRs from FBC images and creates an assembly definition
         in <code>releases.yml</code>. Supports assembly inheritance via
@@ -90,7 +90,7 @@ node {
         }
 
         try {
-            stage("gen-assembly-lp") {
+            stage("layered-products-gen-assembly") {
                 def cmd = [
                     "artcd",
                     "-v",

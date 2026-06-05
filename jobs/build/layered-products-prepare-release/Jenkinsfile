@@ -6,13 +6,13 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
-    commonlib.describeJob("prepare-release-lp", """
+    commonlib.describeJob("layered-products-prepare-release", """
         <h2>Prepare a Layered Product release from a named assembly</h2>
         Reads the assembly definition from <code>releases.yml</code>, triggers
         OLM bundle and FBC builds using the pinned operand NVRs, then creates
         a shipment MR in the GitLab shipment data repository.
         <br><br>
-        The assembly must already exist in ocp-build-data (created by gen-assembly-lp).
+        The assembly must already exist in ocp-build-data (created by layered-products-gen-assembly).
     """)
 
     properties(
@@ -79,7 +79,7 @@ node {
         }
 
         try {
-            stage("prepare-release-lp") {
+            stage("layered-products-prepare-release") {
                 def cmd = [
                     "artcd",
                     "-v",

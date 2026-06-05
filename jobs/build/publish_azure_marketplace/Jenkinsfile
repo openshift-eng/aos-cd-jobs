@@ -38,11 +38,14 @@ node {
     def workDir = "${env.WORKSPACE}/working"
     buildlib.cleanWorkdir(workDir)
 
+    // Starting with 4.22, rhcos.json was split into per-RHEL-version files:
+    // coreos-rhel-10.json and coreos-rhel-9.json (dual-stream RHCOS).
     def azureArtifactCoordinate = [
-        '4.9': ['path': 'data/data/rhcos-stream.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.10': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.11': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        'default': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.9': ['paths': ['data/data/rhcos-stream.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.10': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.11': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        'default': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.22': ['paths': ['data/data/coreos/coreos-rhel-10.json', 'data/data/coreos/coreos-rhel-9.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
     ]
 
     stage('upload vhd.gz') {
@@ -56,38 +59,40 @@ node {
             if (params.OPENSHIFT_INSTALLER_GIT_REF) {
                 gitRef = params.OPENSHIFT_INSTALLER_GIT_REF
             }
-            def filePath = azureArtifactCoordinate[coordinateKey]['path']
+            def filePaths = azureArtifactCoordinate[coordinateKey]['paths']
             def jqExpressions = azureArtifactCoordinate[coordinateKey]['jq']
-            def rhcosJsonURL = "https://raw.githubusercontent.com/openshift/installer/${gitRef}/${filePath}"
 
             withCredentials([string(credentialsId: 'azure_marketplace_staging_upload_key', variable: 'ACCESS_KEY')]) {
-                for ( jqExpression in jqExpressions ) {
-                    commonlib.shell(script:  """
-                    pushd ${workDir}
-                    echo 'Using file: ${rhcosJsonURL}'
-                    echo 'Using jq expression base: ${jqExpression}'
-                    VHD_GZ_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.location' -r`
-                    VHD_SHA=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.sha256' -r`
-                    """ +
-                    '''
-                    VHD_GZ_FILE=`basename $VHD_GZ_URL`
-                    VHD_SHA_FILE="$VHD_GZ_FILE".sha256
-                    echo $VHD_SHA > $VHD_SHA_FILE
+                for ( filePath in filePaths ) {
+                    def rhcosJsonURL = "https://raw.githubusercontent.com/openshift/installer/${gitRef}/${filePath}"
+                    for ( jqExpression in jqExpressions ) {
+                        commonlib.shell(script:  """
+                        pushd ${workDir}
+                        echo 'Using file: ${rhcosJsonURL}'
+                        echo 'Using jq expression base: ${jqExpression}'
+                        VHD_GZ_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.location' -r`
+                        VHD_SHA=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.sha256' -r`
+                        """ +
+                        '''
+                        VHD_GZ_FILE=`basename $VHD_GZ_URL`
+                        VHD_SHA_FILE="$VHD_GZ_FILE".sha256
+                        echo $VHD_SHA > $VHD_SHA_FILE
 
-                    curl --fail $VHD_GZ_URL > $VHD_GZ_FILE
-                    echo Target VHD: $VHD_GZ_FILE
-                    ''' + (params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
-                        exists=$(az storage blob exists --name $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY | jq .exists)
-                        if [[ $exists = ="false" ]]; then
-                            az storage blob upload -f $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
-                        fi
+                        curl --fail $VHD_GZ_URL > $VHD_GZ_FILE
+                        echo Target VHD: $VHD_GZ_FILE
+                        ''' + (params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
+                            exists=$(az storage blob exists --name $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY | jq .exists)
+                            if [[ $exists = ="false" ]]; then
+                                az storage blob upload -f $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                            fi
 
-                        exists=$(az storage blob exists --name $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY | jq .exists)
-                        if [[ $exists = ="false" ]]; then
-                            az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
-                        fi
-                    ''')
-                    )
+                            exists=$(az storage blob exists --name $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY | jq .exists)
+                            if [[ $exists = ="false" ]]; then
+                                az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                            fi
+                        ''')
+                        )
+                    }
                 }
             }
         }

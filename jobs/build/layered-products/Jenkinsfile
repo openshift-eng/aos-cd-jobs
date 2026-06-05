@@ -62,9 +62,17 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    choice(
+                        name: 'IMAGE_BUILD_STRATEGY',
+                        description: 'Which images to build. "only" uses IMAGE_LIST below; "all" builds every image in the group',
+                        choices: [
+                            "only",
+                            "all",
+                        ].join("\n")
+                    ),
                     string(
                         name: 'IMAGE_LIST',
-                        description: 'Comma/space-separated list of image names to build',
+                        description: 'Comma/space-separated list of images (only used when IMAGE_BUILD_STRATEGY is "only"; must be empty for "all")',
                         defaultValue: "oadp-operator",
                         trim: true,
                     ),
@@ -101,6 +109,10 @@ node {
         }
 
         stage("build") {
+            if (params.IMAGE_BUILD_STRATEGY == 'all' && params.IMAGE_LIST?.trim()) {
+                error("IMAGE_LIST must be empty when IMAGE_BUILD_STRATEGY is 'all'")
+            }
+
             // artcd command
             def cmd = [
                 "artcd",
@@ -131,10 +143,11 @@ node {
             if (params.PLR_TEMPLATE_COMMIT) {
                 cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
             }
-            
-            cmd += [
-                "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}",
-            ]
+
+            cmd += ["--image-build-strategy=${params.IMAGE_BUILD_STRATEGY}"]
+            if (params.IMAGE_BUILD_STRATEGY == 'only') {
+                cmd += ["--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"]
+            }
 
             // Needed to detect manual builds
                 wrap([$class: 'BuildUser']) {

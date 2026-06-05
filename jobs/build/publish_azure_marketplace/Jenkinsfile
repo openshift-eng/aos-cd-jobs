@@ -44,8 +44,8 @@ node {
         '4.9': ['paths': ['data/data/rhcos-stream.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         '4.10': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         '4.11': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        'default': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.22': ['paths': ['data/data/coreos/coreos-rhel-10.json', 'data/data/coreos/coreos-rhel-9.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
+        // 4.12–4.21 used data/data/coreos/rhcos.json; add an explicit entry here if you ever need to republish one of those.
+        'default': ['paths': ['data/data/coreos/coreos-rhel-10.json', 'data/data/coreos/coreos-rhel-9.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
     ]
 
     stage('upload vhd.gz') {

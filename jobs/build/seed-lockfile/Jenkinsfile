@@ -153,6 +153,7 @@ node {
 
                 buildlib.withAppCiAsArtPublish() {
                     withCredentials([
+                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                         string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                         string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                         file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),

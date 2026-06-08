@@ -29,7 +29,7 @@ node {
                     commonlib.artToolsParam(),
                     string(
                         name: 'GROUP',
-                        description: 'The group to use with artcd release-from-fbc command',
+                        description: 'The group to use (e.g. mta-8.1, logging-6.5, or openshift-4.22 with OCP_OPTIONAL)',
                         defaultValue: "oadp-1.3",
                         trim: true,
                     ),
@@ -63,6 +63,17 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'OCP_OPTIONAL',
+                        description: 'Enable OCP optional-operator mode. Creates extras/fbc shipments with all FBC related images included. Use with GROUP=openshift-4.x.',
+                        defaultValue: false,
+                    ),
+                    string(
+                        name: 'EXCLUDE_NVR_COMPONENTS',
+                        description: '(Optional) Comma-separated NVR component names to explicitly exclude from shipment. Not needed in the default workflow.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -87,6 +98,16 @@ node {
 
                 if (!fbcPullspecs && !extraImageNvrs) {
                     error("At least one of FBC_PULLSPECS or EXTRA_IMAGE_NVRS must be provided")
+                }
+
+                if (params.OCP_OPTIONAL && !params.GROUP.startsWith('openshift-')) {
+                    error("OCP_OPTIONAL requires GROUP to start with 'openshift-' (e.g., openshift-4.22). " +
+                          "Layered products (OADP, MTA, MTC, Logging) should use the default mode.")
+                }
+
+                if (!params.OCP_OPTIONAL && params.GROUP.startsWith('openshift-')) {
+                    error("GROUP '${params.GROUP}' is an openshift-* group and requires OCP_OPTIONAL to be enabled. " +
+                          "Without it, the default mode may filter out images and produce only FBC yaml.")
                 }
 
                 def cmd = [
@@ -119,6 +140,16 @@ node {
                 if (targetDate) {
                     cmd << "--target-release-date"
                     cmd << "${targetDate}"
+                }
+
+                if (params.OCP_OPTIONAL) {
+                    cmd << "--ocp-optional"
+                }
+
+                def excludeNvrComponents = commonlib.cleanCommaList(params.EXCLUDE_NVR_COMPONENTS)
+                if (excludeNvrComponents) {
+                    cmd << "--exclude-nvr-components"
+                    cmd << "${excludeNvrComponents}"
                 }
 
                 if (params.DRY_RUN) {

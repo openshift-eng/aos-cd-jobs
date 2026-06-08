@@ -159,7 +159,13 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                                 echo "Will run ${cmd.join(' ')}"
 
                                 timeout(activity: true, time: 120, unit: 'MINUTES') {
-                                    sh(script: cmd.join(' '))
+                                    def rc = sh(script: cmd.join(' '), returnStatus: true)
+                                    if (rc == 25) {
+                                        currentBuild.result = 'UNSTABLE'
+                                        echo "sync-ci-images completed with partial errors (rc=25)"
+                                    } else if (rc != 0) {
+                                        error("sync-ci-images failed with exit code ${rc}")
+                                    }
                                 }
 
                             } catch (err) {

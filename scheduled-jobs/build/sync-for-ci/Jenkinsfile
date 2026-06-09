@@ -38,7 +38,8 @@ def runFor(group, dir, arch="x86_64") {
 @NonCPS
 def sortedVersions() {
   // Return versions honoring semver, but exclude disabled
-  def disabled = []
+  // update the disabled list according to https://access.redhat.com/support/policy/updates/openshift
+  def disabled = ["4.12", "4.13", "4.15", "4.17"]
   def s = commonlib.ocpMajorVersions["4plus"].sort(false) {
     def major_minor = it.tokenize('.')
 

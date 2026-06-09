@@ -36,6 +36,7 @@ okdVersions = [
 
 nonOCPGroups = [
     "acm-2.16",
+    "mce-2.11",
     "logging-6.0",
     "logging-6.2",
     "logging-6.3",

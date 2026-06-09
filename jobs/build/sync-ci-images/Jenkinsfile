@@ -87,7 +87,7 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
         }
 
         stage("Initialize") {
-            currentBuild.displayName = "#${currentBuild.number} [${params.VERSION}]"
+            currentBuild.displayName = "#${currentBuild.number}"
 
             if (params.DRY_RUN) {
                 currentBuild.displayName += " [DRY_RUN]"

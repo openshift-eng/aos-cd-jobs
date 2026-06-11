@@ -50,6 +50,12 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'EC_POLICY',
+                        description: '(Optional) EnterpriseContractPolicy CR to use (namespace/name). Defaults to ocp-art-tenant/conforma-build-stage. Example: ocp-art-tenant/conforma-build-stage-test',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                 ]
             ],
         ]
@@ -88,6 +94,9 @@ node {
             }
             if (params.BUILD_LIST) {
                 cmd << "--builds=${commonlib.cleanCommaList(params.BUILD_LIST)}"
+            }
+            if (params.EC_POLICY) {
+                cmd << "--ec-policy=${params.EC_POLICY}"
             }
 
             buildlib.withAppCiAsArtPublish() {

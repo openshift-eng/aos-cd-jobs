@@ -56,6 +56,16 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'INCLUDE_BUNDLES',
+                        description: 'Also verify latest OLM bundle builds',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'INCLUDE_FBCS',
+                        description: 'Also verify latest FBC (File-Based Catalog) builds',
+                        defaultValue: false,
+                    ),
                 ]
             ],
         ]
@@ -97,6 +107,12 @@ node {
             }
             if (params.EC_POLICY) {
                 cmd << "--ec-policy=${params.EC_POLICY}"
+            }
+            if (params.INCLUDE_BUNDLES) {
+                cmd << "--include-bundles"
+            }
+            if (params.INCLUDE_FBCS) {
+                cmd << "--include-fbcs"
             }
 
             buildlib.withAppCiAsArtPublish() {

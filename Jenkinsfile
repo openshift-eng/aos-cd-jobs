@@ -115,6 +115,13 @@ node {
                     "-v",
                     "--working-dir=./artcd_working",
                     "--config=./config/artcd.toml",
+                ]
+
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+
+                cmd += [
                     "release-from-fbc",
                     "--group",
                     "${params.GROUP}",
@@ -150,10 +157,6 @@ node {
                 if (excludeNvrComponents) {
                     cmd << "--exclude-nvr-components"
                     cmd << "${excludeNvrComponents}"
-                }
-
-                if (params.DRY_RUN) {
-                    cmd << "--dry-run"
                 }
 
                 // Needed to detect manual builds

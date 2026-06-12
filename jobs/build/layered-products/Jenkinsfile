@@ -119,6 +119,13 @@ node {
                 "-v",
                 "--working-dir=./artcd_working",
                 "--config=./config/artcd.toml",
+            ]
+
+            if (params.DRY_RUN) {
+                cmd << "--dry-run"
+            }
+
+            cmd += [
                 "build-layered-products",
                 "-g",
                 "${params.GROUP}",
@@ -133,9 +140,6 @@ node {
             }
             if (params.SKIP_REBASE) {
                 cmd << "--skip-rebase"
-            }
-            if (params.DRY_RUN) {
-                cmd << "--dry-run"
             }
             if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                 cmd << "--network-mode=${params.NETWORK_MODE}"

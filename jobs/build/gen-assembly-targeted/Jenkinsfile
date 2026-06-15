@@ -109,6 +109,9 @@ node {
             if (!params.BASIS_ASSEMBLY) {
                 error("BASIS_ASSEMBLY is required.")
             }
+            if (!params.KERNEL_NVRS && !params.IMAGE_NVRS) {
+                error("At least one of KERNEL_NVRS or IMAGE_NVRS must be provided.")
+            }
         }
 
         stage("gen-assembly-targeted") {

@@ -53,6 +53,11 @@ node {
                         description: 'Do not update the <b>latest</b> directory',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'SIGN_ONLY',
+                        description: 'Only sign RHCOS container images via Sigstore/cosign (skip boot image mirror sync, GPG signing, ROSA, Azure). Use for z-stream releases.',
+                        defaultValue: false,
+                    ),
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                 ],
@@ -124,43 +129,47 @@ node {
 
     print("RHCOS build: $rhcosBuild, arch: $arch, mirror prefix: $mirrorPrefix")
 
-    echo("Initializing RHCOS-${mirrorPrefix} sync: #${currentBuild.number}")
-    rhcoslib.initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix)
+    if (!params.SIGN_ONLY) {
+        echo("Initializing RHCOS-${mirrorPrefix} sync: #${currentBuild.number}")
+        rhcoslib.initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix)
+    }
 
     try {
-        stage("Get/Generate sync list") {
-            rhcoslib.rhcosSyncPrintArtifacts()
-	    needsHappening = rhcoslib.rhcosSyncNeedsHappening(mirrorPrefix, rhcosBuild, name)
-        }
-        stage("Mirror artifacts and sign sha256sum") {
-	    if (!needsHappening) { return }
-            def signing_env = params.DRY_RUN ? "stage" : "prod"
-            def signing_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
+        if (!params.SIGN_ONLY) {
+            stage("Get/Generate sync list") {
+                rhcoslib.rhcosSyncPrintArtifacts()
+	        needsHappening = rhcoslib.rhcosSyncNeedsHappening(mirrorPrefix, rhcosBuild, name)
+            }
+            stage("Mirror artifacts and sign sha256sum") {
+	        if (!needsHappening) { return }
+                def signing_env = params.DRY_RUN ? "stage" : "prod"
+                def signing_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
 
-            withCredentials([
-                file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
-                file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
-                file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
-            ]) {
-                buildlib.init_artcd_working_dir()
-                def dryrun = params.DRY_RUN ? "--dry-run" : ""
-                def noLatestFlag = noLatest ? "--no-latest" : ""
-                def cmd = """
-                    artcd -vv ${dryrun} \\
-                        --config=${env.WORKSPACE}/config/artcd.toml \\
-                        --working-dir=${env.WORKSPACE}/artcd_working \\
-                        sync-rhcos \\
-                        --arch ${arch} \\
-                        --build-id ${rhcosBuild} \\
-                        --version ${name} \\
-                        --mirror-prefix ${mirrorPrefix} \\
-                        --base-dir ${s3MirrorBaseDir} \\
-                        --synclist ${env.WORKSPACE}/${syncList} \\
-                        --signing-env ${signing_env} \\
-                        ${noLatestFlag}
-                """
-                commonlib.shell(script: cmd)
+                withCredentials([
+                    file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                    string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
+                    file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
+                    file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
+                ]) {
+                    buildlib.init_artcd_working_dir()
+                    def dryrun = params.DRY_RUN ? "--dry-run" : ""
+                    def noLatestFlag = noLatest ? "--no-latest" : ""
+                    def cmd = """
+                        artcd -vv ${dryrun} \\
+                            --config=${env.WORKSPACE}/config/artcd.toml \\
+                            --working-dir=${env.WORKSPACE}/artcd_working \\
+                            sync-rhcos \\
+                            --arch ${arch} \\
+                            --build-id ${rhcosBuild} \\
+                            --version ${name} \\
+                            --mirror-prefix ${mirrorPrefix} \\
+                            --base-dir ${s3MirrorBaseDir} \\
+                            --synclist ${env.WORKSPACE}/${syncList} \\
+                            --signing-env ${signing_env} \\
+                            ${noLatestFlag}
+                    """
+                    commonlib.shell(script: cmd)
+                }
             }
         }
         stage("Sign RHCOS container images") {
@@ -193,58 +202,60 @@ node {
                 }
             }
         }
-        stage("Slack notification to release channel") {
-	    if (!needsHappening) { return }
-            if ( !params.DRY_RUN ) {
-                slacklib.to(ocpVersion).say("""
-                *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
-                https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
-
-                buildvm job: ${commonlib.buildURL('console')}
-                """)
-            }
-        }
-
-        // only run for x86_64 since no AMIs for other arches
-        // only sync AMI to ROSA Marketplace account when no custom sync list is defined
-        if ( arch == "x86_64") {
-            stage("Mirror ROSA AMIs") {
-	        if (!needsHappening) { return }
-                if ( arch != 'x86_64' ) {
-                    echo "Skipping ROSA sync for non-x86 arch"
-                    return
-                }
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    rhcoslib.rhcosSyncROSA()
-                }
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    rhcoslib.rhcosSyncROSA()
-                }
-            }
+        if (!params.SIGN_ONLY) {
             stage("Slack notification to release channel") {
 	        if (!needsHappening) { return }
                 if ( !params.DRY_RUN ) {
                     slacklib.to(ocpVersion).say("""
-                    *:white_check_mark: rosa_sync (${name}) successful*
+                    *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
+                    https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
+
+                    buildvm job: ${commonlib.buildURL('console')}
                     """)
                 }
             }
-        }
 
-        // run publish_azure_marketplace when publishing RHCOS bootimages for 4.10+
-        stage("Publish azure marketplace") {
-	    if (!needsHappening) { return }
-            if ( buildlib.cmp_version(ocpVersion, "4.9") == 1 ) {
-                build(
-                    job: 'build%252Fpublish_azure_marketplace',
-                    wait: false,
-                    parameters: [
-                        string(name: 'VERSION', value: ocpVersion),
-                        booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
-                    ]
-                )
-            } else {
-                echo "Skipping publish azure marketplace due to ocpversion lower than 4.10."
+            // only run for x86_64 since no AMIs for other arches
+            // only sync AMI to ROSA Marketplace account when no custom sync list is defined
+            if ( arch == "x86_64") {
+                stage("Mirror ROSA AMIs") {
+	            if (!needsHappening) { return }
+                    if ( arch != 'x86_64' ) {
+                        echo "Skipping ROSA sync for non-x86 arch"
+                        return
+                    }
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                        rhcoslib.rhcosSyncROSA()
+                    }
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                        rhcoslib.rhcosSyncROSA()
+                    }
+                }
+                stage("Slack notification to release channel") {
+	            if (!needsHappening) { return }
+                    if ( !params.DRY_RUN ) {
+                        slacklib.to(ocpVersion).say("""
+                        *:white_check_mark: rosa_sync (${name}) successful*
+                        """)
+                    }
+                }
+            }
+
+            // run publish_azure_marketplace when publishing RHCOS bootimages for 4.10+
+            stage("Publish azure marketplace") {
+	        if (!needsHappening) { return }
+                if ( buildlib.cmp_version(ocpVersion, "4.9") == 1 ) {
+                    build(
+                        job: 'build%252Fpublish_azure_marketplace',
+                        wait: false,
+                        parameters: [
+                            string(name: 'VERSION', value: ocpVersion),
+                            booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
+                        ]
+                    )
+                } else {
+                    echo "Skipping publish azure marketplace due to ocpversion lower than 4.10."
+                }
             }
         }
     } catch ( err ) {

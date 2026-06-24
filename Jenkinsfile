@@ -44,7 +44,13 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                         ),
                         string(
                             name: 'ONLY_STREAM',
-                            description: '(Optional) Only sync images for the specified stream name',
+                            description: '(Optional) Only sync images for the specified stream name from streams.yml',
+                            defaultValue: "",
+                            trim: true,
+                        ),
+                        string(
+                            name: 'IMAGES',
+                            description: '(Optional) Comma-separated distgit keys to sync (e.g. ci-openshift-base.rhel10). Must have ci_alignment.upstream_image set.',
                             defaultValue: "",
                             trim: true,
                         ),
@@ -121,6 +127,9 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 }
                 if (params.ONLY_STREAM) {
                     cmd << "--only-stream=${params.ONLY_STREAM}"
+                }
+                if (params.IMAGES) {
+                    cmd << "--images=${params.IMAGES}"
                 }
                 if (params.SKIP_PRS) {
                     cmd << "--skip-prs"

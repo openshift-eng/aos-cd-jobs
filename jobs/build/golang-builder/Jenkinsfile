@@ -98,6 +98,11 @@ node {
                             "open"
                         ].join("\n")
                     ),
+                    booleanParam(
+                        name: 'CREATE_SHIPMENT',
+                        description: 'After building, create a shipment MR in ocp-shipment-data for ERT-gated release. Resolves Konflux image NVRs and golang group from GOLANG_NVRS automatically.',
+                        defaultValue: false,
+                    ),
                     commonlib.mockParam(),
                     commonlib.dryrunParam(),
                     commonlib.artToolsParam(),
@@ -209,6 +214,46 @@ node {
                             "artcd_working/**/*.yaml",
                             "artcd_working/**/*.yml",
                         ])
+                    }
+                }
+            }
+        }
+        if (params.CREATE_SHIPMENT) {
+            stage('Create shipment MR') {
+                withCredentials([
+                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                    file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                ]) {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        script {
+                            def shipment_cmd = [
+                                "artcd",
+                                "-v",
+                                "--working-dir=./artcd_working",
+                                "--config=./config/artcd.toml",
+                            ]
+                            if (params.DRY_RUN) {
+                                shipment_cmd << "--dry-run"
+                            }
+                            shipment_cmd += [
+                                "golang-builder-shipment",
+                                "--ocp-version=${params.BUILD_VERSION}",
+                                "--golang-nvrs=${golang_nvrs}",
+                            ]
+                            if (params.DOOZER_DATA_PATH) {
+                                shipment_cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                            }
+                            if (params.ART_JIRA) {
+                                shipment_cmd << "--art-jira=${params.ART_JIRA}"
+                            }
+
+                            timeout(activity: true, time: 15, unit: 'MINUTES') {
+                                echo "Will run ${shipment_cmd.join(' ')}"
+                                sh(script: shipment_cmd.join(' '), returnStdout: true)
+                            }
+                        }
                     }
                 }
             }

@@ -28,9 +28,6 @@ node {
             "--config=./config/artcd.toml",
             "schedule-okd-scan"
         ]
-        for ( version in commonlib.okdVersions ) {
-            cmd << "--version=${version}"
-        }
 
         withCredentials([
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),

@@ -51,7 +51,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                     booleanParam(
                         name: 'SKIP_RPMS',
                         description: 'Skip loading RPMs (useful when repo cloning is not possible)',
-                        defaultValue: true,
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'DRY_RUN',

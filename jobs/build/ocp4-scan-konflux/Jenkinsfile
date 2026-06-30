@@ -49,6 +49,11 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                         trim: true,
                     ),
                     booleanParam(
+                        name: 'SKIP_RPMS',
+                        description: 'Skip loading RPMs (useful when repo cloning is not possible)',
+                        defaultValue: true,
+                    ),
+                    booleanParam(
                         name: 'DRY_RUN',
                         description: 'Run scan without triggering subsequent jobs',
                         defaultValue: false,
@@ -99,6 +104,9 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                 }
                 if (params.IMAGE_LIST) {
                     cmd << "--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"
+                }
+                if (params.SKIP_RPMS) {
+                    cmd << "--skip-rpms"
                 }
 
                 // Run pipeline

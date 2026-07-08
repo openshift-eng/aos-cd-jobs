@@ -26,7 +26,7 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                     choice(
                         name: 'ARCH',
                         description: 'architecture being synced',

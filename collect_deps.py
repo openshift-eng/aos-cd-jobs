@@ -147,7 +147,7 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
             "-c", f"{yum_conf_filename}",
             "--disableplugin=subscription-manager",
             "--downloadonly",
-            "--skip-unavailable",
+            "--skip-broken",
             #f"--installroot={Path(install_root_dir).absolute()}",
             f"--destdir={output_dir}",
             f"--forcearch={arch}",

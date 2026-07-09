@@ -93,6 +93,11 @@ node {
                 currentBuild.description = ""
             }
 
+            // Validate that VERSION is provided for golang group
+            if (group == "golang" && !params.VERSION) {
+                error("VERSION parameter is required when building plashets for golang group")
+            }
+
         }
 
         stage("Build plashets") {

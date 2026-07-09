@@ -81,6 +81,7 @@ node {
         commonlib.checkMock()
         def group = params.GROUP ?: "openshift-${params.VERSION}"
 
+
         stage("Initialize") {
             currentBuild.displayName = "${group} - ${params.RELEASE} - ${params.ASSEMBLY}"
 
@@ -122,6 +123,9 @@ node {
             }
             if (params.COPY_LINKS) {
                 cmd << "--copy-links"
+            }
+            if (params.VERSION) {
+                cmd << "--version=${params.VERSION}"
             }
 
             try {

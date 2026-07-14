@@ -107,7 +107,7 @@ node() {
             withCredentials([
                 string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                 string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                file(credentialsId: 'ocp-art-tenant', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                 file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),

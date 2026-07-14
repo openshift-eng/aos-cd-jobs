@@ -226,7 +226,7 @@ node {
                 withCredentials([
                             string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                            file(credentialsId: 'ocp-art-tenant', variable: 'KONFLUX_SA_KUBECONFIG'),
+                            file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                             string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),

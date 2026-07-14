@@ -125,7 +125,7 @@ node() {
             withCredentials([
                 string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                 string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                file(credentialsId: 'ocp-art-tenant', variable: 'KONFLUX_SA_KUBECONFIG'),
+                file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'openshift-bot-oadp-konflux-service-account', variable: 'OADP_KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'openshift-bot-mtc-konflux-service-account', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'openshift-bot-mta-konflux-service-account', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),

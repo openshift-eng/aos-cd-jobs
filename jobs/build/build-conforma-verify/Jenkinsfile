@@ -117,7 +117,7 @@ node {
 
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([
-                    file(credentialsId: 'ocp-art-tenant', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                     string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),

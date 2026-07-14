@@ -130,7 +130,7 @@ node {
                 string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                 string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                file(credentialsId: 'openshift-bot-ocp-konflux-service-account', variable: 'KONFLUX_SA_KUBECONFIG'),
+                file(credentialsId: 'ocp-art-tenant', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {

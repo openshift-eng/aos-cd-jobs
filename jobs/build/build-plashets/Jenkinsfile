@@ -73,11 +73,6 @@ node {
                             description: 'Transform symlink into referent file/dir',
                             defaultValue: false,
                         ),
-                        booleanParam(
-                            name: 'OVERRIDE_OCP_VERSION',
-                            description: 'Substitute the ${MAJOR} and ${MINOR} in group.yaml based on the parameter VERSION',
-                            defaultValue: false,
-                        ),
                     ]
                 ],
             ]
@@ -97,12 +92,9 @@ node {
             if (currentBuild.description == null) {
                 currentBuild.description = ""
             }
-            if ( !params.OVERRIDE_OCP_VERSION || params.VERSION) {
-                error("If OVERRIDE_OCP_VERSION is set then VERSION has to be set as well")
-            }
             // Validate that VERSION is provided for golang group
-            if (group == "golang" && !params.OVERRIDE_OCP_VERSION) {
-                error("The OCP Version has to be overriden in case of golang group: param VERSION, OVERRIDE_OCP_VERSION has te be set true")
+            if (group == "golang" && !params.VERSION) {
+                error("The OCP Version has to be set in case of golang group")
             }
 
         }
@@ -135,9 +127,6 @@ node {
             }
             if (params.COPY_LINKS) {
                 cmd << "--copy-links"
-            }
-            if (params.OVERRIDE_OCP_VERSION) {
-                cmd << "--override_ocp_version"
             }
             if (params.VERSION) {
                 cmd << "--version=${params.VERSION}"

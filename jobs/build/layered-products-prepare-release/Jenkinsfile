@@ -133,12 +133,12 @@ node {
                         string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                         string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                         file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                        file(credentialsId: 'openshift-bot-logging-konflux-service-account', variable: 'LOGGING_KONFLUX_SA_KUBECONFIG'),
-                        file(credentialsId: 'openshift-bot-oadp-konflux-service-account', variable: 'OADP_KONFLUX_SA_KUBECONFIG'),
-                        file(credentialsId: 'openshift-bot-mta-konflux-service-account', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),
-                        file(credentialsId: 'openshift-bot-mtc-konflux-service-account', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
-                        file(credentialsId: 'openshift-bot-acm-konflux-service-account', variable: 'ACM_KONFLUX_SA_KUBECONFIG'),
-                        file(credentialsId: 'openshift-bot-oap-konflux-service-account', variable: 'OAP_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'konflux-bot-0-art-logging-tenant-sa', variable: 'LOGGING_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'konflux-bot-0-art-oadp-tenant-sa', variable: 'OADP_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'konflux-bot-0-art-mta-tenant-sa', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'konflux-bot-0-art-mtc-tenant-sa', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'konflux-bot-0-art-acm-tenant-sa', variable: 'ACM_KONFLUX_SA_KUBECONFIG'),
+                        file(credentialsId: 'konflux-bot-0-art-oap-tenant-sa', variable: 'OAP_KONFLUX_SA_KUBECONFIG'),
                     ]){
                         def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
                         withEnv(envVars) {

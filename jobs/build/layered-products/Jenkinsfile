@@ -10,7 +10,7 @@ node {
     def slacklib = commonlib.slacklib
 
     commonlib.describeJob("layered-products", """
-        Build images for layered products (OADP / MTC / Logging)
+        Build images for layered products (MTA / MTC / Logging)
     """)
 
     // Expose properties for a parameterized build
@@ -34,8 +34,8 @@ node {
                     ),
                     string(
                         name: 'GROUP',
-                        description: 'The OADP version group to use with -g flag',
-                        defaultValue: "oadp-1.5",
+                        description: 'For example, the Logging version group to use with -g flag',
+                        defaultValue: "logging-6.6",
                         trim: true,
                     ),
                     string(
@@ -73,7 +73,7 @@ node {
                     string(
                         name: 'IMAGE_LIST',
                         description: 'Comma/space-separated list of images (only used when IMAGE_BUILD_STRATEGY is "only"; must be empty for "all")',
-                        defaultValue: "oadp-operator",
+                        defaultValue: "cluster-logging-operator",
                         trim: true,
                     ),
                     booleanParam(

@@ -89,6 +89,9 @@ node {
     sshagent(["openshift-bot"]) {
         stage("initialize") {
             currentBuild.displayName = "#${currentBuild.number} ${params.GROUP} ${params.ASSEMBLY}"
+            if (params.DRY_RUN) {
+                currentBuild.displayName += " [DRY_RUN]"
+            }
         }
 
         try {

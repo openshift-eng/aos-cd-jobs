@@ -679,7 +679,21 @@ def verifySyncedToMirror(local_dir, s3_path, include_only='') {
         returnStdout: true
     ).trim()
     if (r2_out) {
-        error("R2 post-sync verification failed -- files missing or size mismatch:\n${r2_out}")
+        // aws s3 sync's dryrun check determines mismatches via ListObjectsV2, whose consistency
+        // on Cloudflare R2 can lag behind the object store itself -- HeadObject/GetObject reflect
+        // the true current state much sooner. Re-check flagged files directly via HeadObject
+        // before failing the build on what may be a stale listing.
+        echo "R2 dryrun flagged inconsistencies, double-checking with HeadObject before failing:\n${r2_out}"
+        writeFile file: '.r2_dryrun_out.txt', text: r2_out
+        def real_mismatches = sh(
+            script: 'bash pipeline-scripts/verify-r2-head-objects.sh .r2_dryrun_out.txt',
+            returnStdout: true
+        ).trim()
+        sh 'rm -f .r2_dryrun_out.txt'
+        if (real_mismatches) {
+            error("R2 post-sync verification failed -- files missing or size mismatch:\n${real_mismatches}")
+        }
+        echo "R2 dryrun mismatch was a stale ListObjectsV2 listing; HeadObject confirms objects are correct."
     }
     echo "Verified: all local files present in S3 and R2 for ${s3_path}"
 }

@@ -673,15 +673,25 @@ def verifySyncedToMirror(local_dir, s3_path, include_only='') {
     if (s3_out) {
         error("S3 post-sync verification failed -- files missing or size mismatch:\n${s3_out}")
     }
-    sleep(15)
-    def r2_out = sh(
-        script: "aws s3 sync --no-progress --size-only --dryrun ${filter_args} ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}",
-        returnStdout: true
-    ).trim()
-    if (r2_out) {
-        error("R2 post-sync verification failed -- files missing or size mismatch:\n${r2_out}")
+
+    // R2 has eventual consistency; retry verification with increasing waits
+    def r2_waits = [15, 30, 60]
+    for (int i = 0; i < r2_waits.size(); i++) {
+        sleep(r2_waits[i])
+        def r2_out = sh(
+            script: "aws s3 sync --no-progress --size-only --dryrun ${filter_args} ${local_dir} s3://art-srv-enterprise${s3_path} --profile cloudflare --endpoint-url ${env.CLOUDFLARE_ENDPOINT}",
+            returnStdout: true
+        ).trim()
+        if (!r2_out) {
+            echo "Verified: all local files present in S3 and R2 for ${s3_path}"
+            return
+        }
+        if (i < r2_waits.size() - 1) {
+            echo "R2 verification attempt ${i + 1} found inconsistencies, retrying after longer wait:\n${r2_out}"
+        } else {
+            error("R2 post-sync verification failed -- files missing or size mismatch:\n${r2_out}")
+        }
     }
-    echo "Verified: all local files present in S3 and R2 for ${s3_path}"
 }
 
 def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, issue_cloudfront_invalidation=true, dry_run=false) {

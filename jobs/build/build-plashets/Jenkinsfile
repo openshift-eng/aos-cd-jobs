@@ -81,6 +81,7 @@ node {
         commonlib.checkMock()
         def group = params.GROUP ?: "openshift-${params.VERSION}"
 
+
         stage("Initialize") {
             currentBuild.displayName = "${group} - ${params.RELEASE} - ${params.ASSEMBLY}"
 
@@ -90,6 +91,10 @@ node {
 
             if (currentBuild.description == null) {
                 currentBuild.description = ""
+            }
+            // Validate that VERSION is provided for golang group
+            if (group == "golang" && !params.VERSION) {
+                error("The OCP Version has to be set in case of golang group")
             }
 
         }
@@ -122,6 +127,9 @@ node {
             }
             if (params.COPY_LINKS) {
                 cmd << "--copy-links"
+            }
+            if (params.VERSION) {
+                cmd << "--version=${params.VERSION}"
             }
 
             try {

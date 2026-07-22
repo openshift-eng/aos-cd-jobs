@@ -56,6 +56,18 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'EC_POLICY_FBC',
+                        description: '(Optional) EnterpriseContractPolicy CR for FBC builds (namespace/name). Falls back to EC_POLICY if unset',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'EFFECTIVE_TIME',
+                        description: '(Optional) RFC 3339 timestamp for EC policy effective_on evaluation (e.g. 2026-08-05T00:00:00Z). Defaults to now',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     booleanParam(
                         name: 'INCLUDE_BUNDLES',
                         description: 'Also verify latest OLM bundle builds',
@@ -64,6 +76,21 @@ node {
                     booleanParam(
                         name: 'INCLUDE_FBCS',
                         description: 'Also verify latest FBC (File-Based Catalog) builds',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'INCLUDE_CORRESPONDING_BUNDLES',
+                        description: 'For each operator image in the builds to scan, find and verify its corresponding bundle build',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'INCLUDE_CORRESPONDING_FBCS',
+                        description: 'For each operator image in the builds to scan, find and verify its corresponding FBC build',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'REPORT_TO_SLACK',
+                        description: 'Post results to #art-release Slack channel',
                         defaultValue: false,
                     ),
                 ]
@@ -108,11 +135,26 @@ node {
             if (params.EC_POLICY) {
                 cmd << "--ec-policy=${params.EC_POLICY}"
             }
+            if (params.EC_POLICY_FBC) {
+                cmd << "--fbc-ec-policy=${params.EC_POLICY_FBC}"
+            }
+            if (params.EFFECTIVE_TIME) {
+                cmd << "--effective-time=${params.EFFECTIVE_TIME}"
+            }
             if (params.INCLUDE_BUNDLES) {
                 cmd << "--include-bundles"
             }
             if (params.INCLUDE_FBCS) {
                 cmd << "--include-fbcs"
+            }
+            if (params.INCLUDE_CORRESPONDING_BUNDLES) {
+                cmd << "--include-corresponding-bundles"
+            }
+            if (params.INCLUDE_CORRESPONDING_FBCS) {
+                cmd << "--include-corresponding-fbcs"
+            }
+            if (params.REPORT_TO_SLACK) {
+                cmd << "--report-to-slack"
             }
 
             buildlib.withAppCiAsArtPublish() {
@@ -122,6 +164,8 @@ node {
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                     file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                 ]) {
                     withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                         buildlib.init_artcd_working_dir()

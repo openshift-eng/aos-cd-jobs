@@ -19,7 +19,7 @@ node() {
             b = build(
                 job: '../scanning/scanning%2Fokd-images-health',
                 parameters: [
-                    string(name: 'VERSIONS', value: commonlib.okdVersions.join(',')),
+                    string(name: 'VERSIONS', value: ''),
                     booleanParam(name: 'SEND_TO_RELEASE_CHANNEL', value: true),
                     booleanParam(name: 'SEND_TO_OKD_CHANNEL', value: true),
                 ],

@@ -26,14 +26,6 @@ ocp5Versions = [
     "5.0",
 ]
 
-
-okdVersions = [
-    "5.0",
-    "4.23",
-    "4.22",
-    "4.21",
-]
-
 nonOCPGroups = [
     "acm-2.16",
     "mce-2.11",
@@ -157,9 +149,9 @@ def ocpVersionParam(name='MINOR_VERSION', majorVersion='all', extraOpts=[]) {
 def okdVersionParam(name='VERSION', extraOpts=[]) {
     return [
         name: name,
-        description: 'OKD Version',
+        description: 'OKD Version (okd-scan skips versions without okd.enabled in build-data)',
         $class: 'hudson.model.ChoiceParameterDefinition',
-        choices: (extraOpts + okdVersions).join('\n'),
+        choices: (extraOpts + ocp5Versions + ocp4Versions).join('\n'),
     ]
 }
 

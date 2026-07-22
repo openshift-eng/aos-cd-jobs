@@ -1,0 +1,74 @@
+node() {
+    timestamps {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    properties(
+        [
+            disableConcurrentBuilds(),
+            buildDiscarder(logRotator(daysToKeepStr: '30')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.artToolsParam(),
+                    commonlib.mockParam(),
+                    string(
+                        name: 'VERSIONS',
+                        description: '(Optional) Comma/space-separated list of OCP versions to check (e.g. "4.18,4.19"). ' +
+                                     'If empty, checks all active 4.x and 5.x versions.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                ]
+            ]
+        ]
+    )
+
+    commonlib.checkMock()
+
+    stage('release-readiness') {
+        buildlib.init_artcd_working_dir()
+
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+            "release-readiness",
+            "--output-file=report.json",
+        ]
+        def versions = params.VERSIONS ? commonlib.parseList(params.VERSIONS) : commonlib.ocpMajorVersions['4plus']
+        for (String version : versions) {
+            cmd << "--group" << "openshift-${version}"
+        }
+
+        currentBuild.displayName = "#${currentBuild.number}"
+
+        buildlib.withAppCiAsArtPublish() {
+            withCredentials([
+                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+            ]) {
+                try {
+                    echo "Will run ${cmd.join(' ')}"
+                    sh(script: cmd.join(' '), returnStdout: true)
+                } catch (err) {
+                    throw err
+                } finally {
+                    sh "cat report.json || true"
+                    commonlib.safeArchiveArtifacts([
+                        "report.json",
+                        "artcd_working/**/*.log",
+                    ])
+                    buildlib.cleanWorkspace()
+                }
+            }
+        }
+    }
+    }
+}

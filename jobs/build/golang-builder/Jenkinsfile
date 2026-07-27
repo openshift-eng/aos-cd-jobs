@@ -81,7 +81,7 @@ node {
                     booleanParam(
                         name: 'USE_NEW_GOLANG_BRANCH',
                         description: 'Use the unified "golang" branch layout in ocp-build-data instead of per-variant branches (e.g. rhel-9-golang-1.26).',
-                        defaultValue: false,
+                        defaultValue: true,
                     ),
                     booleanParam(
                         name: 'MAJOR_BUMP',

@@ -42,6 +42,7 @@ nonOCPGroups = [
     "logging-6.4",
     "logging-6.5",
     "logging-6.6",
+    "logging-6.7",
     "mta-8.1",
     "mta-8.2",
     "mtc-1.8",

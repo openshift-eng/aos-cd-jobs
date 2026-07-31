@@ -6,6 +6,21 @@ properties([
     buildDiscarder(logRotator(daysToKeepStr: '30')),
     disableConcurrentBuilds(),
     disableResume(),
+    [
+        $class: 'ParametersDefinitionProperty',
+        parameterDefinitions: [
+            booleanParam(
+                name: 'DRY_RUN',
+                defaultValue: false,
+                description: 'Run the sync and show the proposed release state without committing or creating an MR',
+            ),
+            booleanParam(
+                name: 'MOCK',
+                defaultValue: false,
+                description: 'Pick up changed job parameters and then exit',
+            ),
+        ],
+    ],
 ])
 
 def gitlabUrl = 'https://gitlab.cee.redhat.com'
@@ -15,6 +30,17 @@ def targetBranch = 'main'
 node() {
     timestamps {
         timeout(time: 30, unit: 'MINUTES') {
+            if (env.MOCK == null || env.MOCK.toBoolean()) {
+                currentBuild.displayName = "#${currentBuild.number} - update parameters"
+                currentBuild.description = 'Ran in mock mode'
+                error('Ran in mock mode to pick up the new parameters')
+            }
+
+            if (params.DRY_RUN) {
+                currentBuild.displayName += ' [dry-run]'
+                currentBuild.description = 'Dry run'
+            }
+
             stage('Initialize Kerberos') {
                 withCredentials([
                     file(
@@ -34,7 +60,8 @@ node() {
 
             def sourceBranch = "automation/update-shipyard-${env.BUILD_NUMBER}"
             withEnv([
-                "SHIPYARD_BRANCH=${sourceBranch}",
+                "SHIPYARD_BRANCH=${params.DRY_RUN ? '' : sourceBranch}",
+                "SHIPYARD_SYNC_ARGS=${params.DRY_RUN ? '--dry-run' : ''}",
                 'REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt',
                 'SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt',
             ]) {
@@ -51,16 +78,23 @@ node() {
                                     "https://oauth2:${GITLAB_TOKEN}@gitlab.cee.redhat.com/hybrid-platforms/art/shipyard.git" .
                                 git remote set-url origin \
                                     https://gitlab.cee.redhat.com/hybrid-platforms/art/shipyard.git
-                                git checkout -b "$SHIPYARD_BRANCH"
+                                if [ -n "$SHIPYARD_BRANCH" ]; then
+                                    git checkout -b "$SHIPYARD_BRANCH"
+                                fi
                             '''
                         }
 
                         stage('Sync release state') {
                             sh '''
-                                python3 -m venv .venv
-                                .venv/bin/python -m pip install --disable-pip-version-check .
-                                .venv/bin/sync-release-state
+                                uv venv --python 3.11 .venv
+                                uv pip install --python .venv/bin/python .
+                                .venv/bin/sync-release-state $SHIPYARD_SYNC_ARGS
                             '''
+                        }
+
+                        if (params.DRY_RUN) {
+                            echo 'Dry run complete; no branch, commit, or merge request will be created.'
+                            return
                         }
 
                         def changes = sh(

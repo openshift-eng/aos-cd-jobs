@@ -1,0 +1,143 @@
+#!/usr/bin/groovy
+
+import groovy.json.JsonOutput
+
+properties([
+    buildDiscarder(logRotator(daysToKeepStr: '30')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+def gitlabUrl = 'https://gitlab.cee.redhat.com'
+def encodedProjectPath = 'hybrid-platforms%2Fart%2Fshipyard'
+def targetBranch = 'main'
+
+node() {
+    timestamps {
+        timeout(time: 30, unit: 'MINUTES') {
+            checkout scm
+            def buildlib = load('pipeline-scripts/buildlib.groovy')
+            buildlib.kinit()
+
+            def sourceBranch = "automation/update-shipyard-${env.BUILD_NUMBER}"
+            withEnv(["SHIPYARD_BRANCH=${sourceBranch}"]) {
+                withCredentials([
+                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                ]) {
+                    dir('shipyard') {
+                        deleteDir()
+
+                        stage('Clone Shipyard') {
+                            sh '''
+                                git clone --branch main --single-branch \
+                                    "https://oauth2:${GITLAB_TOKEN}@gitlab.cee.redhat.com/hybrid-platforms/art/shipyard.git" .
+                                git remote set-url origin \
+                                    https://gitlab.cee.redhat.com/hybrid-platforms/art/shipyard.git
+                                git checkout -b "$SHIPYARD_BRANCH"
+                            '''
+                        }
+
+                        stage('Sync release state') {
+                            sh '''
+                                python3 -m venv .venv
+                                .venv/bin/python -m pip install --disable-pip-version-check .
+                                .venv/bin/sync-release-state
+                            '''
+                        }
+
+                        def changes = sh(
+                            script: 'git status --porcelain -- release-state.yml',
+                            returnStdout: true,
+                        ).trim()
+                        if (!changes) {
+                            echo 'Shipyard release state is already current; no merge request is needed.'
+                            currentBuild.description = 'No changes'
+                            return
+                        }
+
+                        stage('Commit and push') {
+                            sh '''
+                                git config user.name art-bot-jenkins
+                                git config user.email \
+                                    project_116177_bot_08dac1e35d9f318a6e077d2134633876@noreply.gitlab.cee.redhat.com
+                                git add release-state.yml
+                                git diff --cached --check
+                                git commit -m 'Update Shipyard release state'
+                                git push \
+                                    "https://oauth2:${GITLAB_TOKEN}@gitlab.cee.redhat.com/hybrid-platforms/art/shipyard.git" \
+                                    "HEAD:${SHIPYARD_BRANCH}"
+                            '''
+                        }
+
+                        def mergeRequest
+                        stage('Create merge request') {
+                            def createResponse = httpRequest(
+                                acceptType: 'APPLICATION_JSON',
+                                consoleLogResponseBody: false,
+                                contentType: 'APPLICATION_JSON',
+                                customHeaders: [[
+                                    name: 'PRIVATE-TOKEN',
+                                    value: env.GITLAB_TOKEN,
+                                    maskValue: true,
+                                ]],
+                                httpMode: 'POST',
+                                requestBody: JsonOutput.toJson([
+                                    source_branch: sourceBranch,
+                                    target_branch: targetBranch,
+                                    title: 'Update Shipyard release state',
+                                    description: "Automated release-state sync from ${env.BUILD_URL}",
+                                    remove_source_branch: true,
+                                ]),
+                                url: "${gitlabUrl}/api/v4/projects/${encodedProjectPath}/merge_requests",
+                                validResponseCodes: '201',
+                            )
+                            mergeRequest = readJSON(text: createResponse.content)
+                            echo "Created merge request ${mergeRequest.web_url}"
+                            currentBuild.description = "MR !${mergeRequest.iid}"
+                        }
+
+                        stage('Try to merge') {
+                            def mergeResponse
+                            for (int attempt = 1; attempt <= 3; attempt++) {
+                                mergeResponse = httpRequest(
+                                    acceptType: 'APPLICATION_JSON',
+                                    consoleLogResponseBody: false,
+                                    contentType: 'APPLICATION_JSON',
+                                    customHeaders: [[
+                                        name: 'PRIVATE-TOKEN',
+                                        value: env.GITLAB_TOKEN,
+                                        maskValue: true,
+                                    ]],
+                                    httpMode: 'PUT',
+                                    requestBody: JsonOutput.toJson([
+                                        sha: mergeRequest.sha,
+                                        should_remove_source_branch: true,
+                                    ]),
+                                    url: "${gitlabUrl}/api/v4/projects/${encodedProjectPath}/merge_requests/${mergeRequest.iid}/merge",
+                                    validResponseCodes: '200,405,406,409,422',
+                                )
+                                if (mergeResponse.status == 200) {
+                                    break
+                                }
+                                if (attempt < 3) {
+                                    echo "GitLab returned HTTP ${mergeResponse.status}; retrying the merge."
+                                    sleep(time: 5, unit: 'SECONDS')
+                                }
+                            }
+
+                            if (mergeResponse.status == 200) {
+                                def merged = readJSON(text: mergeResponse.content)
+                                echo "Merged ${merged.web_url}"
+                                currentBuild.description = "Merged MR !${mergeRequest.iid}"
+                            } else {
+                                echo "GitLab did not merge ${mergeRequest.web_url} (HTTP ${mergeResponse.status}); leaving it open."
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -12,7 +12,7 @@ properties([
             booleanParam(
                 name: 'DRY_RUN',
                 defaultValue: false,
-                description: 'Run the sync and show the proposed release state without committing or creating an MR',
+                description: 'Run the sync and show the proposed diff without committing or creating an MR',
             ),
             booleanParam(
                 name: 'MOCK',
@@ -61,7 +61,6 @@ node() {
             def sourceBranch = "automation/update-shipyard-${env.BUILD_NUMBER}"
             withEnv([
                 "SHIPYARD_BRANCH=${params.DRY_RUN ? '' : sourceBranch}",
-                "SHIPYARD_SYNC_ARGS=${params.DRY_RUN ? '--dry-run' : ''}",
                 'REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt',
                 'SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt',
                 'UV_LINK_MODE=symlink',
@@ -89,13 +88,8 @@ node() {
                             sh '''
                                 ~/.cargo/bin/uv venv --python 3.11 .venv
                                 ~/.cargo/bin/uv pip install --python .venv/bin/python .
-                                .venv/bin/sync-release-state $SHIPYARD_SYNC_ARGS
+                                .venv/bin/sync-release-state
                             '''
-                        }
-
-                        if (params.DRY_RUN) {
-                            echo 'Dry run complete; no branch, commit, or merge request will be created.'
-                            return
                         }
 
                         def changes = sh(
@@ -104,7 +98,16 @@ node() {
                         ).trim()
                         if (!changes) {
                             echo 'Shipyard release state is already current; no merge request is needed.'
-                            currentBuild.description = 'No changes'
+                            currentBuild.description = params.DRY_RUN ? 'Dry run: no changes' : 'No changes'
+                            return
+                        }
+
+                        stage('Show release state diff') {
+                            sh 'git --no-pager diff -- release-state.yml'
+                        }
+
+                        if (params.DRY_RUN) {
+                            echo 'Dry run complete; no branch, commit, or merge request will be created.'
                             return
                         }
 

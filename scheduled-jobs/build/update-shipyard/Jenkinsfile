@@ -15,12 +15,29 @@ def targetBranch = 'main'
 node() {
     timestamps {
         timeout(time: 30, unit: 'MINUTES') {
-            checkout scm
-            def buildlib = load('pipeline-scripts/buildlib.groovy')
-            buildlib.kinit()
+            stage('Initialize Kerberos') {
+                withCredentials([
+                    file(
+                        credentialsId: 'exd-ocp-buildvm-bot-prod.keytab',
+                        variable: 'DISTGIT_KEYTAB_FILE',
+                    ),
+                    string(
+                        credentialsId: 'exd-ocp-buildvm-bot-prod.user',
+                        variable: 'DISTGIT_KEYTAB_USER',
+                    ),
+                ]) {
+                    retry(3) {
+                        sh 'if ! kinit -f -k -t $DISTGIT_KEYTAB_FILE $DISTGIT_KEYTAB_USER; then sleep 3; false; fi'
+                    }
+                }
+            }
 
             def sourceBranch = "automation/update-shipyard-${env.BUILD_NUMBER}"
-            withEnv(["SHIPYARD_BRANCH=${sourceBranch}"]) {
+            withEnv([
+                "SHIPYARD_BRANCH=${sourceBranch}",
+                'REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt',
+                'SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt',
+            ]) {
                 withCredentials([
                     string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                     string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),

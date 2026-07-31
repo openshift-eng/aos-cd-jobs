@@ -64,6 +64,7 @@ node() {
                 "SHIPYARD_SYNC_ARGS=${params.DRY_RUN ? '--dry-run' : ''}",
                 'REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt',
                 'SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt',
+                'UV_LINK_MODE=symlink',
             ]) {
                 withCredentials([
                     string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
@@ -86,8 +87,8 @@ node() {
 
                         stage('Sync release state') {
                             sh '''
-                                uv venv --python 3.11 .venv
-                                uv pip install --python .venv/bin/python .
+                                ~/.cargo/bin/uv venv --python 3.11 .venv
+                                ~/.cargo/bin/uv pip install --python .venv/bin/python .
                                 .venv/bin/sync-release-state $SHIPYARD_SYNC_ARGS
                             '''
                         }

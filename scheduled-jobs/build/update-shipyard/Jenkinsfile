@@ -66,7 +66,7 @@ node() {
                 'UV_LINK_MODE=symlink',
             ]) {
                 withCredentials([
-                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                    string(credentialsId: 'shipyard-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                     string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                 ]) {
                     dir('shipyard') {
@@ -113,9 +113,8 @@ node() {
 
                         stage('Commit and push') {
                             sh '''
-                                git config user.name art-bot-jenkins
-                                git config user.email \
-                                    project_116177_bot_08dac1e35d9f318a6e077d2134633876@noreply.gitlab.cee.redhat.com
+                                git config user.name shipyard-bot-jenkins
+                                git config user.email shipyard-bot-jenkins@noreply.gitlab.cee.redhat.com
                                 git add release-state.yml
                                 git diff --cached --check
                                 git commit -m 'Update Shipyard release state'

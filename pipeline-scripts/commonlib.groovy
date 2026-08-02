@@ -50,6 +50,7 @@ nonOCPGroups = [
     "oadp-1.4",
     "oadp-1.5",
     "oadp-1.6",
+    "oc-mirror-2.0",
 ]
 
 ocpVersions = ocp5Versions + ocp4Versions + ocp3Versions

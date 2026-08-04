@@ -22,7 +22,7 @@ This Jenkins job scans OKD image sources for changes and triggers OKD builds whe
 
 ## What It Does
 
-1. **Checks if version is enabled** - Exits early if version not in `OKD_ENABLED_VERSIONS`
+1. **Checks if version is enabled** - Exits early when `group.yml` `okd.enabled` is not true for the selected OCP version
 2. **Initializes environment** with proper credentials and workspace
 3. **Scans OKD images** using `artcd okd-scan` with `--variant=okd`
    - The `--variant=okd` flag tells doozer to skip checks not relevant for OKD:
@@ -95,3 +95,11 @@ If either lock is held, the job will skip execution.
 Pipeline implementation:
 - `pyartcd/pyartcd/pipelines/okd_scan.py`
 - `pyartcd/pyartcd/pipelines/scheduled/schedule_okd_scan.py`
+
+## Enabling OKD for a new OCP version
+
+1. Set `okd.enabled: true` under the `okd:` key in `group.yml` on the target `openshift-X.Y` branch in ocp-build-data.
+2. Merge the build-data change. Scheduled `schedule-okd-scan` and `okd-images-health` discover enabled versions from build-data automatically (no Jenkins list to update).
+3. Confirm Konflux OKD tenant/application config exists for the version before expecting scans or builds to succeed.
+
+Manual okd-scan/build jobs accept any OCP version in the parameter dropdown; pyartcd skips versions without `okd.enabled: true`.

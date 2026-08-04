@@ -1,0 +1,197 @@
+#!/usr/bin/groovy
+
+import groovy.json.JsonOutput
+
+properties([
+    buildDiscarder(logRotator(daysToKeepStr: '30')),
+    disableConcurrentBuilds(),
+    disableResume(),
+    [
+        $class: 'ParametersDefinitionProperty',
+        parameterDefinitions: [
+            booleanParam(
+                name: 'DRY_RUN',
+                defaultValue: false,
+                description: 'Run the sync and show the proposed diff without committing or creating an MR',
+            ),
+            booleanParam(
+                name: 'MOCK',
+                defaultValue: false,
+                description: 'Pick up changed job parameters and then exit',
+            ),
+        ],
+    ],
+])
+
+def gitlabUrl = 'https://gitlab.cee.redhat.com'
+def encodedProjectPath = 'hybrid-platforms%2Fart%2Fshipyard'
+def targetBranch = 'main'
+
+node() {
+    timestamps {
+        timeout(time: 30, unit: 'MINUTES') {
+            if (env.MOCK == null || env.MOCK.toBoolean()) {
+                currentBuild.displayName = "#${currentBuild.number} - update parameters"
+                currentBuild.description = 'Ran in mock mode'
+                error('Ran in mock mode to pick up the new parameters')
+            }
+
+            if (params.DRY_RUN) {
+                currentBuild.displayName += ' [dry-run]'
+                currentBuild.description = 'Dry run'
+            }
+
+            stage('Initialize Kerberos') {
+                withCredentials([
+                    file(
+                        credentialsId: 'exd-ocp-buildvm-bot-prod.keytab',
+                        variable: 'DISTGIT_KEYTAB_FILE',
+                    ),
+                    string(
+                        credentialsId: 'exd-ocp-buildvm-bot-prod.user',
+                        variable: 'DISTGIT_KEYTAB_USER',
+                    ),
+                ]) {
+                    retry(3) {
+                        sh 'if ! kinit -f -k -t $DISTGIT_KEYTAB_FILE $DISTGIT_KEYTAB_USER; then sleep 3; false; fi'
+                    }
+                }
+            }
+
+            def sourceBranch = "automation/update-shipyard-${env.BUILD_NUMBER}"
+            withEnv([
+                "SHIPYARD_BRANCH=${params.DRY_RUN ? '' : sourceBranch}",
+                'REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt',
+                'SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt',
+                'UV_LINK_MODE=symlink',
+            ]) {
+                withCredentials([
+                    string(credentialsId: 'shipyard-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                ]) {
+                    dir('shipyard') {
+                        deleteDir()
+
+                        stage('Clone Shipyard') {
+                            sh '''
+                                git clone --branch main --single-branch \
+                                    "https://oauth2:${GITLAB_TOKEN}@gitlab.cee.redhat.com/hybrid-platforms/art/shipyard.git" .
+                                git remote set-url origin \
+                                    https://gitlab.cee.redhat.com/hybrid-platforms/art/shipyard.git
+                                if [ -n "$SHIPYARD_BRANCH" ]; then
+                                    git checkout -b "$SHIPYARD_BRANCH"
+                                fi
+                            '''
+                        }
+
+                        stage('Sync release state') {
+                            sh '''
+                                ~/.cargo/bin/uv venv --python 3.11 .venv
+                                ~/.cargo/bin/uv pip install --python .venv/bin/python .
+                                .venv/bin/sync-release-state
+                            '''
+                        }
+
+                        def changes = sh(
+                            script: 'git status --porcelain -- release-state.yml',
+                            returnStdout: true,
+                        ).trim()
+                        if (!changes) {
+                            echo 'Shipyard release state is already current; no merge request is needed.'
+                            currentBuild.description = params.DRY_RUN ? 'Dry run: no changes' : 'No changes'
+                            return
+                        }
+
+                        stage('Show release state diff') {
+                            sh 'git --no-pager diff -- release-state.yml'
+                        }
+
+                        if (params.DRY_RUN) {
+                            echo 'Dry run complete; no branch, commit, or merge request will be created.'
+                            return
+                        }
+
+                        stage('Commit and push') {
+                            sh '''
+                                git config user.name shipyard-bot-jenkins
+                                git config user.email shipyard-bot-jenkins@noreply.gitlab.cee.redhat.com
+                                git add release-state.yml
+                                git diff --cached --check
+                                git commit -m 'Update Shipyard release state'
+                                git push \
+                                    "https://oauth2:${GITLAB_TOKEN}@gitlab.cee.redhat.com/hybrid-platforms/art/shipyard.git" \
+                                    "HEAD:${SHIPYARD_BRANCH}"
+                            '''
+                        }
+
+                        def mergeRequest
+                        stage('Create merge request') {
+                            def createResponse = httpRequest(
+                                acceptType: 'APPLICATION_JSON',
+                                consoleLogResponseBody: false,
+                                contentType: 'APPLICATION_JSON',
+                                customHeaders: [[
+                                    name: 'PRIVATE-TOKEN',
+                                    value: env.GITLAB_TOKEN,
+                                    maskValue: true,
+                                ]],
+                                httpMode: 'POST',
+                                requestBody: JsonOutput.toJson([
+                                    source_branch: sourceBranch,
+                                    target_branch: targetBranch,
+                                    title: 'Update Shipyard release state',
+                                    description: "Automated release-state sync from ${env.BUILD_URL}",
+                                    remove_source_branch: true,
+                                ]),
+                                url: "${gitlabUrl}/api/v4/projects/${encodedProjectPath}/merge_requests",
+                                validResponseCodes: '201',
+                            )
+                            mergeRequest = readJSON(text: createResponse.content)
+                            echo "Created merge request ${mergeRequest.web_url}"
+                            currentBuild.description = "MR !${mergeRequest.iid}"
+                        }
+
+                        stage('Try to merge') {
+                            def mergeResponse
+                            for (int attempt = 1; attempt <= 3; attempt++) {
+                                mergeResponse = httpRequest(
+                                    acceptType: 'APPLICATION_JSON',
+                                    consoleLogResponseBody: false,
+                                    contentType: 'APPLICATION_JSON',
+                                    customHeaders: [[
+                                        name: 'PRIVATE-TOKEN',
+                                        value: env.GITLAB_TOKEN,
+                                        maskValue: true,
+                                    ]],
+                                    httpMode: 'PUT',
+                                    requestBody: JsonOutput.toJson([
+                                        sha: mergeRequest.sha,
+                                        should_remove_source_branch: true,
+                                    ]),
+                                    url: "${gitlabUrl}/api/v4/projects/${encodedProjectPath}/merge_requests/${mergeRequest.iid}/merge",
+                                    validResponseCodes: '200,405,406,409,422',
+                                )
+                                if (mergeResponse.status == 200) {
+                                    break
+                                }
+                                if (attempt < 3) {
+                                    echo "GitLab returned HTTP ${mergeResponse.status}; retrying the merge."
+                                    sleep(time: 5, unit: 'SECONDS')
+                                }
+                            }
+
+                            if (mergeResponse.status == 200) {
+                                def merged = readJSON(text: mergeResponse.content)
+                                echo "Merged ${merged.web_url}"
+                                currentBuild.description = "Merged MR !${mergeRequest.iid}"
+                            } else {
+                                echo "GitLab did not merge ${mergeRequest.web_url} (HTTP ${mergeResponse.status}); leaving it open."
+                                currentBuild.result = 'UNSTABLE'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

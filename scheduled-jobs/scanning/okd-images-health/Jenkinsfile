@@ -14,12 +14,42 @@ node() {
 
     commonlib.shell('sudo systemctl restart stunnel')
 
+    // Determine which versions have OKD enabled in ocp-build-data
+    def okdVersions = []
+    for (version in commonlib.ocp5Versions + commonlib.ocp4Versions) {
+        try {
+            def result = commonlib.shell(
+                script: "doozer -q -g openshift-${version} config:read-group --yaml | yq -r '.okd.enabled // \"false\"'",
+                returnStdout: true,
+            ).trim()
+            if (result == "true") {
+                okdVersions.add(version)
+            } else {
+                echo "OKD not enabled for ${version} (okd.enabled=${result}), skipping"
+            }
+        } catch (ex) {
+            echo "WARNING: Failed to check OKD enablement for ${version}, skipping: ${ex.getMessage()}"
+        }
+    }
+
+    echo "OKD-enabled versions: ${okdVersions}"
+
+    if (okdVersions.isEmpty()) {
+        echo "No OKD-enabled versions found, nothing to scan"
+        currentBuild.result = "SUCCESS"
+        buildlib.cleanWorkspace()
+        return
+    }
+
+    def versionsParam = okdVersions.join(',')
+    echo "Will scan OKD-enabled versions: ${versionsParam}"
+
     try {
         timeout(activity: true, time: 60, unit: 'MINUTES') {
             b = build(
                 job: '../scanning/scanning%2Fokd-images-health',
                 parameters: [
-                    string(name: 'VERSIONS', value: ''),
+                    string(name: 'VERSIONS', value: versionsParam),
                     booleanParam(name: 'SEND_TO_RELEASE_CHANNEL', value: true),
                     booleanParam(name: 'SEND_TO_OKD_CHANNEL', value: true),
                 ],

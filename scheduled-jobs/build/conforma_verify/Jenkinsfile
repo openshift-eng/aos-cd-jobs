@@ -32,8 +32,6 @@ node {
         for ( version in commonlib.ocpMajorVersions["4plus"] ) {
             cmd << "--version=${version}"
         }
-        cmd << "--serial"
-
         withCredentials([
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),

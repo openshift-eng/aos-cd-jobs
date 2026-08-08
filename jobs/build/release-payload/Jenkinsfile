@@ -37,18 +37,6 @@ node() {
                     defaultValue: 'stream',
                     trim: true,
                 ),
-                string(
-                    name: 'PAYLOAD_VERSION',
-                    description: '(Optional) Semver version string for the release payload NVR (e.g. 4.21.1). Defaults to the ASSEMBLY value when left blank.',
-                    defaultValue: '',
-                    trim: true,
-                ),
-                string(
-                    name: 'PAYLOAD_RELEASE',
-                    description: '(Optional) Release string for the release payload NVR (e.g. 202608011200.p0). Auto-generated from current UTC time when left blank.',
-                    defaultValue: '',
-                    trim: true,
-                ),
                 commonlib.dryrunParam('Do not push to git or trigger a Konflux build. Manifests are generated locally only.'),
                 commonlib.mockParam(),
             ],
@@ -57,8 +45,8 @@ node() {
 
     commonlib.checkMock()
 
-    def payloadVersion = params.PAYLOAD_VERSION?.trim() ?: params.ASSEMBLY
-    def payloadRelease = params.PAYLOAD_RELEASE?.trim() ?: new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone('UTC')) + ".p0"
+    def payloadVersion = params.ASSEMBLY
+    def payloadRelease = new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone('UTC')) + ".p0"
 
     currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"
     if (params.DRY_RUN) {
@@ -96,17 +84,15 @@ node() {
             "--assembly", params.ASSEMBLY,
         ]
 
-        if (params.DRY_RUN) {
-            cmd << "--dry-run"
-        }
-
         cmd += [
             "beta:release-payload:rebase-and-build",
             "--version", payloadVersion,
             "--release", payloadRelease,
         ]
 
-        if (!params.DRY_RUN) {
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        } else {
             cmd << "--push"
         }
 

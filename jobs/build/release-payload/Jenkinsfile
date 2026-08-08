@@ -94,6 +94,7 @@ node() {
             "beta:release-payload:rebase-and-build",
             "--version", payloadVersion,
             "--release", payloadRelease,
+            "--registry-config", '${QUAY_AUTH_FILE}',
         ]
 
         if (params.DRY_RUN) {

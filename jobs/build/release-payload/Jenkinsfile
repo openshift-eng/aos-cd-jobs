@@ -94,6 +94,7 @@ node() {
             "beta:release-payload:rebase-and-build",
             "--version", payloadVersion,
             "--release", payloadRelease,
+            "--registry-config", '${QUAY_AUTH_FILE}',
         ]
 
         if (params.DRY_RUN) {
@@ -116,6 +117,7 @@ node() {
                             passwordVariable: 'DOOZER_DB_PASSWORD',
                             usernameVariable: 'DOOZER_DB_USER'
                         ),
+                        file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                     ]) {
                         withEnv(['DOOZER_DB_NAME=art_dash', "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                             sh(script: cmd.join(' '))

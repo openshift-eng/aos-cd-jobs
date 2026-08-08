@@ -131,24 +131,6 @@ node() {
                     }
                 }
             }
-        } catch (err) {
-            commonlib.email(
-                to: "aos-art-automation+failed-release-payload@redhat.com",
-                from: "aos-art-automation@redhat.com",
-                replyTo: "aos-team-art@redhat.com",
-                subject: "Error during release-payload (${params.VERSION} - ${params.ASSEMBLY})",
-                body: """
-There was an error building the release payload:
-
-  Group:           openshift-${params.VERSION}
-  Assembly:        ${params.ASSEMBLY}
-  Payload version: ${payloadVersion}
-  Payload release: ${payloadRelease}
-  Error:           ${err}
-
-Build URL: ${BUILD_URL}
-""")
-            throw err
         } finally {
             commonlib.safeArchiveArtifacts([
                 "doozer_working/debug.log",

@@ -96,17 +96,15 @@ node() {
             "--assembly", params.ASSEMBLY,
         ]
 
-        if (params.DRY_RUN) {
-            cmd << "--dry-run"
-        }
-
         cmd += [
             "beta:release-payload:rebase-and-build",
             "--version", payloadVersion,
             "--release", payloadRelease,
         ]
 
-        if (!params.DRY_RUN) {
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        } else {
             cmd << "--push"
         }
 

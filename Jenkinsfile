@@ -1,70 +1,145 @@
-// Update-branches job
+#!/usr/bin/env groovy
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
-
-node('openshift-build-1') {
+node() {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    commonlib.describeJob("release-payload", """
+        <h2>Build OpenShift release payload images in Konflux</h2>
+        <b>Timing</b>: Triggered automatically by promote-assembly after a successful promote.
+        Can also be triggered manually.
+
+        Invokes <code>doozer beta:release-payload:rebase-and-build</code> to rebase
+        the release payload source repo and trigger a Konflux build that produces a
+        multi-arch manifest-list image.
+    """)
+
+    properties([
+        disableResume(),
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '30',
+                daysToKeepStr: '30',
+                numToKeepStr: '300',
+            )
+        ),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                commonlib.ocpVersionParam('VERSION', '4plus'),
+                commonlib.artToolsParam(),
+                string(
+                    name: 'ASSEMBLY',
+                    description: 'Assembly name to build the release payload for (e.g. 4.21.1 or stream).',
+                    defaultValue: 'stream',
+                    trim: true,
+                ),
+                string(
+                    name: 'PAYLOAD_VERSION',
+                    description: '(Optional) Semver version string for the release payload NVR (e.g. 4.21.1). Defaults to the ASSEMBLY value when left blank.',
+                    defaultValue: '',
+                    trim: true,
+                ),
+                string(
+                    name: 'PAYLOAD_RELEASE',
+                    description: '(Optional) Release string for the release payload NVR (e.g. 202608011200.p0). Auto-generated from current UTC time when left blank.',
+                    defaultValue: '',
+                    trim: true,
+                ),
+                commonlib.dryrunParam('Do not push to git or trigger a Konflux build. Manifests are generated locally only.'),
+                commonlib.mockParam(),
+            ],
+        ]
+    ])
+
+    commonlib.checkMock()
+
+    def payloadVersion = params.PAYLOAD_VERSION?.trim() ?: params.ASSEMBLY
+    def payloadRelease = params.PAYLOAD_RELEASE?.trim() ?: new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone('UTC')) + ".p0"
+
+    currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"
+    if (params.DRY_RUN) {
+        currentBuild.displayName += " [DRY RUN]"
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    stage("Validate parameters") {
+        if (!params.VERSION?.trim()) {
+            error("VERSION is required")
+        }
+        if (!params.ASSEMBLY?.trim()) {
+            error("ASSEMBLY is required")
+        }
+        echo "Will build release payload:"
+        echo "  group:           openshift-${params.VERSION}"
+        echo "  assembly:        ${params.ASSEMBLY}"
+        echo "  payload version: ${payloadVersion}"
+        echo "  payload release: ${payloadRelease}"
+        echo "  dry run:         ${params.DRY_RUN}"
+    }
+
+    stage("Version dumps") {
+        buildlib.doozer "--version"
+        buildlib.oc("version --client=true -o yaml")
+    }
+
+    def doozer_working = "${env.WORKSPACE}/doozer_working"
+
+    stage("Build release payload") {
+        buildlib.cleanWorkdir(doozer_working)
+
+        def cmd = [
+            "doozer",
+            "--group", "openshift-${params.VERSION}",
+            "--assembly", params.ASSEMBLY,
+        ]
+
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        }
+
+        cmd += [
+            "beta:release-payload:rebase-and-build",
+            "--version", payloadVersion,
+            "--release", payloadRelease,
+        ]
+
+        if (!params.DRY_RUN) {
+            cmd << "--push"
+        }
+
+        echo "Will run: ${cmd.join(' ')}"
+
+        try {
+            dir(doozer_working) {
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([
+                        file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
+                        string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                        file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                        usernamePassword(
+                            credentialsId: 'art-dash-db-login',
+                            passwordVariable: 'DOOZER_DB_PASSWORD',
+                            usernameVariable: 'DOOZER_DB_USER'
+                        ),
+                    ]) {
+                        withEnv(['DOOZER_DB_NAME=art_dash', "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                            sh(script: cmd.join(' '))
+                        }
+                    }
+                }
+            }
+        } finally {
+            commonlib.safeArchiveArtifacts([
+                "doozer_working/debug.log",
+                "doozer_working/**/*.log",
+                "doozer_working/**/*.json",
+            ])
+            buildlib.cleanWorkspace()
+        }
+    }
+
     }
 }

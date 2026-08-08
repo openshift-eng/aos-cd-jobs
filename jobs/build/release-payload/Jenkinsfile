@@ -118,7 +118,8 @@ node() {
                     withCredentials([
                         file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
-                        string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                        string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                        file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                         usernamePassword(
                             credentialsId: 'art-dash-db-login',
                             passwordVariable: 'DOOZER_DB_PASSWORD',

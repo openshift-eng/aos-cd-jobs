@@ -37,6 +37,12 @@ node() {
                     defaultValue: 'stream',
                     trim: true,
                 ),
+                string(
+                    name: 'PAYLOAD_VERSION',
+                    description: '(Optional) Semver version string for the release payload NVR (e.g. 4.21.1). Defaults to the ASSEMBLY value when left blank.',
+                    defaultValue: '',
+                    trim: true,
+                ),
                 commonlib.dryrunParam('Do not push to git or trigger a Konflux build. Manifests are generated locally only.'),
                 commonlib.mockParam(),
             ],
@@ -45,7 +51,7 @@ node() {
 
     commonlib.checkMock()
 
-    def payloadVersion = params.ASSEMBLY
+    def payloadVersion = params.PAYLOAD_VERSION?.trim() ?: params.ASSEMBLY
     def payloadRelease = new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone('UTC')) + ".p0"
 
     currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"

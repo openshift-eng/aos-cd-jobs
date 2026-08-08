@@ -118,6 +118,7 @@ node() {
                             usernameVariable: 'DOOZER_DB_USER'
                         ),
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                        file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                     ]) {
                         withEnv(['DOOZER_DB_NAME=art_dash', "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                             sh(script: cmd.join(' '))

@@ -79,11 +79,6 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
-                        name: 'USE_NEW_GOLANG_BRANCH',
-                        description: 'Use the unified "golang" branch layout in ocp-build-data instead of per-variant branches (e.g. rhel-9-golang-1.26).',
-                        defaultValue: true,
-                    ),
-                    booleanParam(
                         name: 'MAJOR_BUMP',
                         description: 'Indicates a major.minor golang version bump (e.g. 1.22 -> 1.23). Permits validation of go_latest even when the new version does not match current group.yml vars.',
                         defaultValue: false,
@@ -186,9 +181,6 @@ node {
                         }
                         if (params.EXTERNAL_GOLANG_RPMS) {
                             cmd << "--external-golang-rpms"
-                        }
-                        if (params.USE_NEW_GOLANG_BRANCH) {
-                            cmd << "--use-new-golang-branch"
                         }
                         if (params.MAJOR_BUMP) {
                             cmd << "--major-bump"

@@ -68,6 +68,11 @@ node {
                         choices: ['both', 'brew', 'konflux'],
                         description: 'Build system to use for golang-builder images (brew, konflux, or both). Defaults to both.',
                     ),
+                    choice(
+                        name: 'ASSEMBLY',
+                        choices: ['stream', 'test'],
+                        description: 'Stream-type assembly to use for golang-builder operations. Defaults to stream.',
+                    ),
                     booleanParam(
                         name: 'SKIP_PR',
                         description: 'Skip PR generation for ocp-build-data updates.',
@@ -176,6 +181,7 @@ node {
                         if (params.BUILD_SYSTEM) {
                             cmd << "--build-system=${params.BUILD_SYSTEM}"
                         }
+                        cmd << "--assembly=${params.ASSEMBLY}"
                         if (params.SKIP_PR) {
                             cmd << "--skip-pr"
                         }

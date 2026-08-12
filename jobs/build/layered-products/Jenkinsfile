@@ -170,7 +170,7 @@ node {
                             file(credentialsId: 'konflux-bot-0-art-oap-tenant-sa', variable: 'OAP_KONFLUX_SA_KUBECONFIG'),
                             file(credentialsId: 'konflux-bot-0-art-quay-tenant-sa', variable: 'QUAY_KONFLUX_SA_KUBECONFIG'),
                             file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
-                            file(credentialsId: 'openshift-bot-assisted-installer-service-account', variable: 'ASSISTED_INSTALLER_SA_KUBECONFIG'),
+                            file(credentialsId: 'konflux-bot-0-art-installer-agent-tenant-sa', variable: 'ASSISTED_INSTALLER_SA_KUBECONFIG'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                             string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                             string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),

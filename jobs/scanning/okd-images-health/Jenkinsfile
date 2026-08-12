@@ -41,6 +41,11 @@ node() {
                         defaultValue: true,
                         description: "If true, send aggregated report to #art-okd-release"
                     ),
+                    booleanParam(
+                        name: 'PING_CHAI_BOT',
+                        defaultValue: true,
+                        description: "If true, notify chai-bot in #team-art-chai-bot for multi-failure images"
+                    ),
                     string(
                         name: 'ASSEMBLY',
                         description: 'Assembly name',
@@ -84,6 +89,9 @@ node() {
     }
     if (params.SEND_TO_OKD_CHANNEL) {
         cmd << "--send-to-okd-channel"
+    }
+    if (params.PING_CHAI_BOT) {
+        cmd << "--ping-chai-bot"
     }
     if (params.ASSEMBLY) {
         cmd << "--assembly=${params.ASSEMBLY}"

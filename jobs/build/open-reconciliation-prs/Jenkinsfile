@@ -150,6 +150,6 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 } // withEnv
             } // withCredentials
         } // stage
-    }
         }
+    }
 }

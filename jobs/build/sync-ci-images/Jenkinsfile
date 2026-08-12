@@ -56,8 +56,8 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                         ),
                         booleanParam(
                             name: 'SKIP_PRS',
-                            description: 'Do not create or update PRs for buildconfigs',
-                            defaultValue: false,
+                            description: 'Do not create or update PRs for buildconfigs (default: true, PRs now handled by open-reconciliation-prs pipeline)',
+                            defaultValue: true,
                         ),
                         booleanParam(
                             name: 'SKIP_WAITS',

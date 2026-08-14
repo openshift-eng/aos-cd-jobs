@@ -37,12 +37,6 @@ node() {
                     defaultValue: 'stream',
                     trim: true,
                 ),
-                string(
-                    name: 'PAYLOAD_VERSION',
-                    description: '(Optional) Semver version string for the release payload NVR (e.g. 4.21.1). Defaults to the ASSEMBLY value when left blank.',
-                    defaultValue: '',
-                    trim: true,
-                ),
                 commonlib.dryrunParam('Do not push to git or trigger a Konflux build. Manifests are generated locally only.'),
                 booleanParam(
                     name: 'SYNC',
@@ -56,15 +50,11 @@ node() {
 
     commonlib.checkMock()
 
-    def payloadVersion = params.PAYLOAD_VERSION?.trim() ?: params.ASSEMBLY
     def payloadRelease = new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone('UTC')) + ".p0"
 
     currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"
     if (params.DRY_RUN) {
         currentBuild.displayName += " [DRY RUN]"
-    }
-    if (params.SYNC) {
-        currentBuild.displayName += " [SYNC]"
     }
 
     stage("Validate parameters") {
@@ -77,7 +67,6 @@ node() {
         echo "Will build release payload:"
         echo "  group:           openshift-${params.VERSION}"
         echo "  assembly:        ${params.ASSEMBLY}"
-        echo "  payload version: ${payloadVersion}"
         echo "  payload release: ${payloadRelease}"
         echo "  dry run:         ${params.DRY_RUN}"
         echo "  sync:            ${params.SYNC}"
@@ -101,7 +90,6 @@ node() {
 
         cmd += [
             "beta:release-payload:rebase-and-build",
-            "--version", payloadVersion,
             "--release", payloadRelease,
             "--registry-config", '${QUAY_AUTH_FILE}',
         ]

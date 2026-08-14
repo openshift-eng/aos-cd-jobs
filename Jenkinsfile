@@ -132,6 +132,7 @@ node() {
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                     string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                     file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                    file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
                 ]) {
                     echo "Will run ${cmd.join(' ')}"
                     if (params.IGNORE_LOCKS) {

@@ -195,18 +195,8 @@ Build URL: ${BUILD_URL}
         stage("Golang builder shipment") {
             if (env.BASE_IMAGE_RELEASE_NVR ==~ /openshift-golang-builder-container-.*/) {
                 echo "Detected golang builder NVR: ${env.BASE_IMAGE_RELEASE_NVR}"
-                // Derive group from NVR: openshift-golang-builder-container-v1.25.x-....el9 -> rhel-9-golang-1.25
-                def goMinorMatch = (env.BASE_IMAGE_RELEASE_NVR =~ /container-v(\d+\.\d+)\./)
-                def rhelMatch = (env.BASE_IMAGE_RELEASE_NVR =~ /\.el(\d+)/)
-                if (!goMinorMatch || !rhelMatch) {
-                    error("Cannot derive golang group from NVR: ${env.BASE_IMAGE_RELEASE_NVR}")
-                }
-                def goMinor = goMinorMatch[0][1]
-                def rhelNum = rhelMatch[0][1]
-                def golangGroup = "rhel-${rhelNum}-golang-${goMinor}"
-                echo "Derived golang group: ${golangGroup}"
 
-                def shipmentCmd = ["doozer", "--group", golangGroup, "--working-dir", doozer_working]
+                def shipmentCmd = ["doozer", "--group", "golang", "--working-dir", doozer_working]
                 if (params.DOOZER_DATA_PATH) {
                     def dataPath = params.DOOZER_DATA_GITREF ?
                         "${params.DOOZER_DATA_PATH}@${params.DOOZER_DATA_GITREF}" :

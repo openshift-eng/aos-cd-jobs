@@ -55,11 +55,6 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                             trim: true,
                         ),
                         booleanParam(
-                            name: 'SKIP_PRS',
-                            description: 'Do not create or update PRs for buildconfigs (default: true, PRs now handled by open-reconciliation-prs pipeline)',
-                            defaultValue: true,
-                        ),
-                        booleanParam(
                             name: 'SKIP_WAITS',
                             description: 'Do not wait for builds to complete',
                             defaultValue: false,
@@ -130,9 +125,6 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 }
                 if (params.IMAGES) {
                     cmd << "--images=${params.IMAGES}"
-                }
-                if (params.SKIP_PRS) {
-                    cmd << "--skip-prs"
                 }
                 if (params.SKIP_WAITS) {
                     cmd << "--skip-waits"

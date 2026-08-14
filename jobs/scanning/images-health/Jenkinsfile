@@ -55,6 +55,11 @@ node() {
                         trim: true,
                     ),
                     booleanParam(
+                        name: 'PING_CHAI_BOT',
+                        defaultValue: true,
+                        description: "If true, notify chai-bot in #team-art-chai-bot for multi-failure images"
+                    ),
+                    booleanParam(
                         name: 'JIRA',
                         defaultValue: true,
                         description: "If true, create/close Jira tickets for build failures"
@@ -100,6 +105,9 @@ node() {
     }
     if (params.PUBLIC_CHANNEL) {
         cmd << "--send-to-public-channel=${params.PUBLIC_CHANNEL}"
+    }
+    if (params.PING_CHAI_BOT) {
+        cmd << "--ping-chai-bot"
     }
     if (params.JIRA) {
         cmd << "--sync-jira"

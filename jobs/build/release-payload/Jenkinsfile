@@ -44,6 +44,11 @@ node() {
                     trim: true,
                 ),
                 commonlib.dryrunParam('Do not push to git or trigger a Konflux build. Manifests are generated locally only.'),
+                booleanParam(
+                    name: 'SYNC',
+                    description: 'After a successful build, mirror the release payload manifest list and every per-arch image to quay.io/openshift-release-dev/ocp-release (each pinned by its own sha256-<digest> tag). Requires a non-dry-run build (uses --push).',
+                    defaultValue: false,
+                ),
                 commonlib.mockParam(),
             ],
         ]
@@ -57,6 +62,9 @@ node() {
     currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"
     if (params.DRY_RUN) {
         currentBuild.displayName += " [DRY RUN]"
+    }
+    if (params.SYNC) {
+        currentBuild.displayName += " [SYNC]"
     }
 
     stage("Validate parameters") {
@@ -72,6 +80,7 @@ node() {
         echo "  payload version: ${payloadVersion}"
         echo "  payload release: ${payloadRelease}"
         echo "  dry run:         ${params.DRY_RUN}"
+        echo "  sync:            ${params.SYNC}"
     }
 
     stage("Version dumps") {
@@ -101,6 +110,9 @@ node() {
             cmd << "--dry-run"
         } else {
             cmd << "--push"
+            if (params.SYNC) {
+                cmd << "--sync"
+            }
         }
 
         echo "Will run: ${cmd.join(' ')}"

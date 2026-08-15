@@ -37,6 +37,12 @@ node() {
                     defaultValue: 'stream',
                     trim: true,
                 ),
+                string(
+                    name: 'NVR',
+                    description: 'If set, skip rebase and build — only sync this already-built payload NVR to quay.io. Requires a non-dry-run run.',
+                    defaultValue: '',
+                    trim: true,
+                ),
                 commonlib.dryrunParam('Do not push to git or trigger a Konflux build. Manifests are generated locally only.'),
                 booleanParam(
                     name: 'SYNC',
@@ -67,6 +73,7 @@ node() {
         echo "Will build release payload:"
         echo "  group:           openshift-${params.VERSION}"
         echo "  assembly:        ${params.ASSEMBLY}"
+        echo "  NVR:             ${params.NVR ?: '(build new)'}"
         echo "  payload release: ${payloadRelease}"
         echo "  dry run:         ${params.DRY_RUN}"
         echo "  sync:            ${params.SYNC}"
@@ -90,9 +97,13 @@ node() {
 
         cmd += [
             "beta:release-payload:rebase-and-build",
-            "--release", payloadRelease,
             "--registry-config", '${QUAY_AUTH_FILE}',
         ]
+        if (params.NVR?.trim()) {
+            cmd += ["--nvr", params.NVR.trim()]
+        } else {
+            cmd += ["--release", payloadRelease]
+        }
 
         if (params.DRY_RUN) {
             cmd << "--dry-run"

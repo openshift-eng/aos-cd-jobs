@@ -50,7 +50,7 @@ node() {
 
     commonlib.checkMock()
 
-    def payloadRelease = new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone('UTC')) + ".p0"
+    def payloadRelease = new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone('UTC')) + ".p2"
 
     currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"
     if (params.DRY_RUN) {

@@ -12,9 +12,9 @@ node() {
         <b>Timing</b>: Triggered automatically by promote-assembly after a successful promote.
         Can also be triggered manually.
 
-        Invokes <code>doozer beta:release-payload:rebase-and-build</code> to rebase
+        Invokes <code>artcd build-release-payload</code> to rebase
         the release payload source repo and trigger a Konflux build that produces a
-        multi-arch manifest-list image.
+        multi-arch manifest-list image. Cosigns the result after a successful sync.
     """)
 
     properties([
@@ -56,8 +56,6 @@ node() {
 
     commonlib.checkMock()
 
-    def payloadRelease = new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone('UTC')) + ".p2"
-
     currentBuild.displayName += " ${params.VERSION} - ${params.ASSEMBLY}"
     if (params.DRY_RUN) {
         currentBuild.displayName += " [DRY RUN]"
@@ -71,79 +69,76 @@ node() {
             error("ASSEMBLY is required")
         }
         echo "Will build release payload:"
-        echo "  group:           openshift-${params.VERSION}"
-        echo "  assembly:        ${params.ASSEMBLY}"
-        echo "  NVR:             ${params.NVR ?: '(build new)'}"
-        echo "  payload release: ${payloadRelease}"
-        echo "  dry run:         ${params.DRY_RUN}"
-        echo "  sync:            ${params.SYNC}"
+        echo "  group:    openshift-${params.VERSION}"
+        echo "  assembly: ${params.ASSEMBLY}"
+        echo "  NVR:      ${params.NVR ?: '(build new)'}"
+        echo "  dry run:  ${params.DRY_RUN}"
+        echo "  sync:     ${params.SYNC}"
     }
 
-    stage("Version dumps") {
-        buildlib.doozer "--version"
-        buildlib.oc("version --client=true -o yaml")
-    }
+    def signing_env = params.DRY_RUN ? "stage" : "prod"
+    def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
+    def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
 
-    def doozer_working = "${env.WORKSPACE}/doozer_working"
-
-    stage("Build release payload") {
-        buildlib.cleanWorkdir(doozer_working)
-
+    stage("build-release-payload") {
         def cmd = [
-            "doozer",
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+        ]
+
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        }
+
+        cmd += [
+            "build-release-payload",
             "--group", "openshift-${params.VERSION}",
             "--assembly", params.ASSEMBLY,
         ]
 
-        cmd += [
-            "beta:release-payload:rebase-and-build",
-            "--registry-config", '${QUAY_AUTH_FILE}',
-        ]
         if (params.NVR?.trim()) {
             cmd += ["--nvr", params.NVR.trim()]
-        } else {
-            cmd += ["--release", payloadRelease]
         }
 
-        if (params.DRY_RUN) {
-            cmd << "--dry-run"
-        } else {
-            cmd << "--push"
-            if (params.SYNC) {
-                cmd << "--sync"
-            }
+        if (params.SYNC) {
+            cmd << "--sync"
         }
 
         echo "Will run: ${cmd.join(' ')}"
 
-        try {
-            dir(doozer_working) {
-                buildlib.withAppCiAsArtPublish() {
-                    withCredentials([
-                        file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
-                        string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
-                        file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                        usernamePassword(
-                            credentialsId: 'art-dash-db-login',
-                            passwordVariable: 'DOOZER_DB_PASSWORD',
-                            usernameVariable: 'DOOZER_DB_USER'
-                        ),
-                        file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
-                        file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                    ]) {
-                        withEnv(['DOOZER_DB_NAME=art_dash', "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
-                            sh(script: cmd.join(' '))
-                        }
+        buildlib.withAppCiAsArtPublish() {
+            withCredentials([
+                file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
+                string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                usernamePassword(
+                    credentialsId: 'art-dash-db-login',
+                    passwordVariable: 'DOOZER_DB_PASSWORD',
+                    usernameVariable: 'DOOZER_DB_USER'
+                ),
+                file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
+                string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
+                string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL'),
+            ]) {
+                withEnv(['DOOZER_DB_NAME=art_dash', "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                    try {
+                        buildlib.init_artcd_working_dir()
+                        sh(script: cmd.join(' '))
+                    } finally {
+                        commonlib.safeArchiveArtifacts([
+                            "artcd_working/**/*.log",
+                            "artcd_working/**/*.json",
+                            "artcd_working/**/*.yaml",
+                            "artcd_working/**/*.yml",
+                        ])
+                        buildlib.cleanWorkspace()
                     }
                 }
             }
-        } finally {
-            commonlib.safeArchiveArtifacts([
-                "doozer_working/debug.log",
-                "doozer_working/**/*.log",
-                "doozer_working/**/*.json",
-            ])
-            buildlib.cleanWorkspace()
         }
     }
 

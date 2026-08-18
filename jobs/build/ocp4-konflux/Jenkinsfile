@@ -126,6 +126,11 @@ node {
                         description: 'Skip Enterprise Contract verification for built images',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'SKIP_RHCOS_INTEGRATION_TESTS',
+                        description: 'Skip RHCOS integration tests (tests not yet available, default: true)',
+                        defaultValue: true,
+                    ),
                     choice(
                         name: 'NETWORK_MODE',
                         description: 'Override network mode for Konflux builds',
@@ -203,6 +208,9 @@ node {
             }
             if (params.SKIP_EC_VERIFY) {
                 cmd << "--skip-ec-verify"
+            }
+            if (params.SKIP_RHCOS_INTEGRATION_TESTS) {
+                cmd << "--skip-rhcos-integration-tests"
             }
             if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                 cmd << "--skip-build-sync-konflux"

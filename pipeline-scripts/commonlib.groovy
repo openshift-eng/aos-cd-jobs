@@ -29,6 +29,7 @@ ocp5Versions = [
 
 nonOCPGroups = [
     "acm-2.16",
+    "acm-5.0",
     "mce-2.11",
     "logging-6.0",
     "logging-6.2",

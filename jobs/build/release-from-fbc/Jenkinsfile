@@ -74,6 +74,12 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: 'RELEASE_JIRA',
+                        description: 'Optional JIRA ticket key or URL for the release request (e.g. OADP-1234 or https://redhat.atlassian.net/browse/OADP-1234). Will be referenced in the shipment MR and updated with the MR link.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     commonlib.enableTelemetryParam(),
                     commonlib.telemetryEndpointParam(),
                 ]
@@ -132,6 +138,12 @@ node {
                     "${params.ASSEMBLY}",
                     "--create-mr"
                 ]
+
+                def releaseJira = params.RELEASE_JIRA?.trim()
+                if (releaseJira) {
+                    cmd << "--release-jira"
+                    cmd << "${releaseJira}"
+                }
 
                 if (fbcPullspecs) {
                     cmd += ["--fbc-pullspecs", fbcPullspecs]

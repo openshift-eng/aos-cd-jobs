@@ -76,7 +76,7 @@ node {
                     ),
                     string(
                         name: 'RELEASE_JIRA',
-                        description: 'Optional JIRA ticket URL for the release request (e.g. https://redhat.atlassian.net/browse/OADP-1234). Will be referenced in the shipment MR and updated with the MR link.',
+                        description: 'Optional JIRA ticket key or URL for the release request (e.g. OADP-1234 or https://redhat.atlassian.net/browse/OADP-1234). Will be referenced in the shipment MR and updated with the MR link.',
                         defaultValue: "",
                         trim: true,
                     ),

@@ -81,6 +81,11 @@ node {
                         description: '(For testing) Skip the rebase step',
                         defaultValue: false
                     ),
+                    booleanParam(
+                        name: 'ON_CLUSTER',
+                        description: 'Trigger the build on the artc cluster (Tekton). Disable to run locally (e.g. when testing a PR)',
+                        defaultValue: false
+                    ),
                     choice(
                         name: 'NETWORK_MODE',
                         description: 'Override network mode for Konflux builds',
@@ -153,6 +158,10 @@ node {
                 cmd += ["--image-list=${commonlib.cleanCommaList(params.IMAGE_LIST)}"]
             }
 
+            if (params.ON_CLUSTER) {
+                cmd << "--on-cluster"
+            }
+
             // Needed to detect manual builds
                 wrap([$class: 'BuildUser']) {
                         builderEmail = env.BUILD_USER_EMAIL
@@ -162,6 +171,7 @@ node {
                 withCredentials([
                             string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                            file(credentialsId: 'art-cluster-lp-pipeline-kubeconfig', variable: 'ART_CLUSTER_LP_KUBECONFIG'),
                             file(credentialsId: 'konflux-bot-0-art-oadp-tenant-sa', variable: 'OADP_KONFLUX_SA_KUBECONFIG'),
                             file(credentialsId: 'konflux-bot-0-art-mta-tenant-sa', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),
                             file(credentialsId: 'konflux-bot-0-art-mtc-tenant-sa', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
@@ -190,7 +200,7 @@ node {
                     withEnv(envVars) {
                         buildlib.init_artcd_working_dir()
                         try {
-                            sh(script: cmd.join(' '), returnStdout: true)
+                            sh(script: cmd.join(' '))
                         } catch (err) {
                             // If any image build/push failures occurred, mark the job run as unstable
                             currentBuild.result = "UNSTABLE"

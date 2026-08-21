@@ -180,7 +180,7 @@ node {
     } catch (err) {
         def msg = """
             *:heavy_exclamation_mark: microshift_sync failed*
-            @release-artists Check the build log for more information.
+            @automated-tooling-triage Check the build log for more information.
             buildvm job: ${commonlib.buildURL('console')}
             """
         if (!dry_run) {

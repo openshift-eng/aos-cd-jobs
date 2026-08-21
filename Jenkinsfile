@@ -84,6 +84,11 @@ node() {
                     description: 'Rebuild bundle containers, even if they already exist for given operator NVRs',
                     defaultValue: false,
                 ),
+                booleanParam(
+                    name: 'FORCE_RELEASE',
+                    description: 'Stage-release related images even if bundle containers were not rebuilt',
+                    defaultValue: false,
+                ),
                 string(
                     name: 'PLR_TEMPLATE_COMMIT',
                     description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
@@ -166,6 +171,8 @@ node() {
                     cmd << "--exclude=${exclude.join(',')}"
                 if (params.FORCE_BUILD)
                     cmd << "--force"
+                if (params.FORCE_RELEASE)
+                    cmd << "--force-release"
                 if (params.PLR_TEMPLATE_COMMIT) {
                     cmd << "--plr-template=${params.PLR_TEMPLATE_COMMIT}"
                 }

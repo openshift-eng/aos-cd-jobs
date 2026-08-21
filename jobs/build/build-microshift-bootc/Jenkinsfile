@@ -51,6 +51,11 @@ node() {
                             description: "Prepare shipment for microshift-bootc for the assembly",
                             defaultValue: true
                         ),
+                        booleanParam(
+                            name: "TRIGGER_OPEN_BUILD_FIRST",
+                            description: "Run an open build before the hermetic build. Useful when building microshift-bootc for the first time in a given group (e.g. first microshift-bootc in openshift-4.21)",
+                            defaultValue: false
+                        ),
                         string(
                             name: 'DOOZER_DATA_PATH',
                             description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
@@ -117,6 +122,9 @@ node() {
                 }
                 if (params.FORCE_PLASHET_SYNC) {
                     cmd << "--force-plashet-sync"
+                }
+                if (params.TRIGGER_OPEN_BUILD_FIRST) {
+                    cmd << "--trigger-open-build-first"
                 }
                 withCredentials([
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

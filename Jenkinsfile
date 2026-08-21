@@ -14,6 +14,10 @@ node() {
         Supply exactly one Konflux IMAGE build <code>NVR</code> (SUCCESS row required for this group —
         ART-18934 / art-tools). The job invokes <code>doozer images:release-to-base-repo</code>
         once with singular <code>--nvr</code>.
+
+        For <code>rhel-*-golang-*</code> build groups, the job also runs
+        <code>doozer golang-builder-shipment</code> after release to create a shipment MR in
+        <code>ocp-shipment-data</code>.
     """)
 
     properties([
@@ -66,6 +70,11 @@ node() {
                     description: 'When true, invoke doozer with global --dry-run. Snapshot/release semantics for images:release-to-base-repo depend on art-tools honoring that flag; confirm behavior before trusting it for risky runs.',
                     defaultValue: false,
                 ),
+                booleanParam(
+                    name: 'SKIP_LEGACY_RELEASE',
+                    description: 'Skip the images:release-to-base-repo stage entirely. Use to test the golang-builder-shipment stage in isolation without triggering a real base-image release.',
+                    defaultValue: false,
+                ),
             ],
         ]
     ])
@@ -105,6 +114,9 @@ node() {
         doozer_working = "${env.WORKSPACE}/doozer_working"
         buildlib.cleanWorkdir(doozer_working)
 
+        if (params.SKIP_LEGACY_RELEASE) {
+            echo "SKIP_LEGACY_RELEASE=true — skipping images:release-to-base-repo"
+        } else {
         try {
             def cmd = [
                 "doozer",
@@ -178,6 +190,33 @@ Build URL: ${BUILD_URL}
                 "doozer_working/**/*.json",
             ])
             buildlib.cleanWorkspace()
+        }
+        } // end else SKIP_LEGACY_RELEASE
+
+        stage("Golang builder shipment") {
+            if (env.BASE_IMAGE_RELEASE_NVR ==~ /openshift-golang-builder-container-.*/) {
+                echo "Detected golang builder NVR: ${env.BASE_IMAGE_RELEASE_NVR}"
+
+                def shipmentCmd = ["doozer", "--group", "golang", "--working-dir", doozer_working]
+                if (params.DOOZER_DATA_PATH) {
+                    def dataPath = params.DOOZER_DATA_GITREF ?
+                        "${params.DOOZER_DATA_PATH}@${params.DOOZER_DATA_GITREF}" :
+                        params.DOOZER_DATA_PATH
+                    shipmentCmd += ["--data-path", dataPath]
+                }
+                shipmentCmd += ["golang-builder-shipment", env.BASE_IMAGE_RELEASE_NVR]
+                echo "Will run: ${shipmentCmd.join(' ')}"
+                withCredentials([
+                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                    file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                    file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                ]) {
+                    sh(script: shipmentCmd.join(' '))
+                }
+            } else {
+                echo "Not a golang builder NVR, skipping shipment MR creation"
+            }
         }
     }
 

@@ -122,7 +122,7 @@ node {
         stage('Build golang-builder images') {
             def golang_nvrs = commonlib.cleanSpaceList(params.GOLANG_NVRS)
             withCredentials([
-                string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+                string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                 string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                 string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                 string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

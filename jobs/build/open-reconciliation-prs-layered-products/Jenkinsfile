@@ -55,7 +55,7 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                         booleanParam(
                             name: 'DRY_RUN',
                             description: 'Run in dry-run mode (passes --moist-run to doozer PR operations)',
-                            defaultValue: false,
+                            defaultValue: true,
                         ),
                         commonlib.mockParam(),
                     ]

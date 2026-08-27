@@ -201,10 +201,15 @@ node {
                     withEnv(envVars) {
                         buildlib.init_artcd_working_dir()
                         try {
-                            sh(script: cmd.join(' '))
+                            sh(script: cmd.join(' '), returnStdout: true)
                         } catch (err) {
-                            // If any image build/push failures occurred, mark the job run as unstable
-                            currentBuild.result = "UNSTABLE"
+                            if (err.message =~ /No buildable images remaining/) {
+                                currentBuild.result = "FAILURE"
+                                throw err
+                            } else {
+                                // Partial build failures only
+                                currentBuild.result = "UNSTABLE"
+                            }
                         }
                     }
                 }

@@ -30,8 +30,8 @@ timeout(time: 4, unit: 'HOURS') {
                 "schedule-ocp4-scan-konflux"
             ]
             for ( version in commonlib.ocpMajorVersions["4plus"] ) {
-                // Low priority: versions < 4.18 plus 4.23
-                if (buildlib.cmp_version(version, "4.18") == -1 || version == "4.23") {
+                // Low priority: versions < 4.19 plus 4.23
+                if (buildlib.cmp_version(version, "4.19") == -1 || version == "4.23") {
                     cmd << "--version=${version}"
                 }
             }

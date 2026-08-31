@@ -30,8 +30,8 @@ node {
             "schedule-ocp4-scan-konflux"
         ]
         for ( version in commonlib.ocpMajorVersions["4plus"] ) {
-            // High priority: versions >= 4.18, excluding 4.23 (low priority for now)
-            if (buildlib.cmp_version(version, "4.18") >= 0 && version != "4.23") {
+            // High priority: versions >= 4.19, excluding 4.23 (low priority for now)
+            if (buildlib.cmp_version(version, "4.19") >= 0 && version != "4.23") {
                 cmd << "--version=${version}"
             }
         }

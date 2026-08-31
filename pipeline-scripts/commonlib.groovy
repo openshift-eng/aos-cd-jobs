@@ -31,6 +31,7 @@ nonOCPGroups = [
     "acm-2.16",
     "acm-5.0",
     "mce-2.11",
+    "mce-5.0",
     "logging-6.0",
     "logging-6.2",
     "logging-6.4",

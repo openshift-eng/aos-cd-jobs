@@ -66,7 +66,7 @@ node {
                 }
                 withCredentials([
                         string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                        string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                     ]) {
                     echo "Will run ${cmd.join(' ')}"

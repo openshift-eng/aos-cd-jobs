@@ -67,7 +67,7 @@ node() {
             ]) {
                 withCredentials([
                     string(credentialsId: 'shipyard-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
-                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                    string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                 ]) {
                     dir('shipyard') {
                         deleteDir()

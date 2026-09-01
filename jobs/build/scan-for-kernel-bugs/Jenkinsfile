@@ -85,7 +85,7 @@ node {
                         cmd << "--tracker=${tracker.trim()}"
                     }
                 }
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN')]) {
                     echo "Will run ${cmd.join(' ')}"
                     commonlib.shell(script: cmd.join(' '))
                 }

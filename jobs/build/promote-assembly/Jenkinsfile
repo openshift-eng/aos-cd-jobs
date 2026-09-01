@@ -181,7 +181,7 @@ node {
                                  file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
                                  string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                                  string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                                 string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                                 string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                                  string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                                  string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                                  string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),

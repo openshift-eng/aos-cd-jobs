@@ -113,7 +113,7 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                     string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                    string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                 ]) {
                 wrap([$class: 'BuildUser']) {
                     builderEmail = env.BUILD_USER_EMAIL

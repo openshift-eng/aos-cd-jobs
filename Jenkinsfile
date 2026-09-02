@@ -56,7 +56,7 @@ node {
         }
 
         buildlib.withAppCiAsArtPublish() {
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN')]) {
+            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                 try {
                     sh(script: cmd.join(' '), returnStdout: true)
                 } catch (err) {

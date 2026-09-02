@@ -60,7 +60,7 @@ node {
                 "--advisory", adv,
                 "--comment='${params.COMMENT}'"
             ]
-            withCredentials([string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN')]) {
+            withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                 commonlib.shell(script: cmd.join(' '))
             }
         }

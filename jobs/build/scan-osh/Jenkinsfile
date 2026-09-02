@@ -103,7 +103,7 @@ node() {
                         string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                         string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                        string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
+                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
              ]) {
                 echo "Will run ${cmd.join(' ')}"
                 try {

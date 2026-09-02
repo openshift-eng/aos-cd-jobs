@@ -210,7 +210,7 @@ node {
                                 string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                                 string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                                 file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                                string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
+                                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                                 file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
                                 string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                                 string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

@@ -125,7 +125,7 @@ node {
                         string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                         string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                         string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                        string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
+                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                         file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),

@@ -30,7 +30,10 @@ node {
             "schedule-build-conforma-verify"
         ]
         for ( version in commonlib.ocpMajorVersions["4plus"] ) {
-            cmd << "--version=${version}"
+            cmd << "--group=openshift-${version}"
+        }
+        for ( group in commonlib.nonOCPGroups ) {
+            cmd << "--group=${group}"
         }
         cmd << "--serial"
 

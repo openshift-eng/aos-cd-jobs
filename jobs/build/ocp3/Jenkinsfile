@@ -812,7 +812,7 @@ node {
 
                 echo "Will run ${cmd.join(' ')}"
                 try {
-                    withCredentials([string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                         commonlib.shell(script: cmd.join(' '))
                     }
                 } catch (err) {

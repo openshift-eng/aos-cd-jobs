@@ -129,7 +129,7 @@ node {
                 string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                 string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                 file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
+                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                 file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
             ]) {

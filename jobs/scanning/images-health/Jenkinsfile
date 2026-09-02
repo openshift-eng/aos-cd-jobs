@@ -121,7 +121,7 @@ node() {
                      file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                      usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
                      file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                     string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN')]) {
+                     string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
 
         wrap([$class: 'BuildUser']) {
             builderEmail = env.BUILD_USER_EMAIL

@@ -7,8 +7,8 @@ node {
     def commonlib = buildlib.commonlib
 
     commonlib.describeJob("build-conforma-verify", """
-        Run Conforma (Enterprise Contract) verification against OCP image builds.
-        Accepts an OCP version and optional list of NVRs. If no NVRs are provided,
+        Run Conforma (Enterprise Contract) verification against OCP and layered-product image builds.
+        Accepts a full OCP or layered-product group and an optional list of NVRs. If no NVRs are provided,
         the latest builds for the assembly are fetched automatically.
     """)
 
@@ -25,7 +25,12 @@ node {
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                     commonlib.artToolsParam(),
-                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                    string(
+                        name: 'GROUP',
+                        description: 'Group name to verify (e.g. openshift-4.18, logging-6.7)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     string(
                         name: 'ASSEMBLY',
                         description: 'The name of an assembly to verify builds for',
@@ -105,7 +110,7 @@ node {
     }
     sshagent(["openshift-bot"]) {
         stage("initialize") {
-            currentBuild.displayName = "${params.BUILD_VERSION} - #${currentBuild.number}"
+            currentBuild.displayName = "${params.GROUP} - #${currentBuild.number}"
         }
 
         stage("conforma-verify") {
@@ -120,7 +125,7 @@ node {
             }
             cmd += [
                 "build-conforma-verify",
-                "--version=${params.BUILD_VERSION}",
+                "--group=${params.GROUP}",
                 "--assembly=${params.ASSEMBLY}",
             ]
             if (params.DOOZER_DATA_PATH) {
@@ -160,6 +165,13 @@ node {
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([
                     file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'konflux-bot-0-art-oadp-tenant-sa', variable: 'OADP_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'konflux-bot-0-art-mta-tenant-sa', variable: 'MTA_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'konflux-bot-0-art-mtc-tenant-sa', variable: 'MTC_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'konflux-bot-0-art-logging-tenant-sa', variable: 'LOGGING_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'konflux-bot-0-art-acm-tenant-sa', variable: 'ACM_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'konflux-bot-0-art-oap-tenant-sa', variable: 'OAP_KONFLUX_SA_KUBECONFIG'),
+                    file(credentialsId: 'openshift-bot-assisted-installer-service-account', variable: 'ASSISTED_INSTALLER_SA_KUBECONFIG'),
                     string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),

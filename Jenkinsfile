@@ -44,7 +44,18 @@ node {
         '4.9': ['paths': ['data/data/rhcos-stream.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         '4.10': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         '4.11': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        // 4.12–4.21 used data/data/coreos/rhcos.json; add an explicit entry here if you ever need to republish one of those.
+        // 4.12-4.21: still use rhcos.json (pre-dual-stream RHCOS)
+        '4.12': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.13': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.14': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.15': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.16': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.17': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.18': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.19': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.20': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.21': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        // 4.22+: dual-stream RHCOS (x86_64 + aarch64)
         'default': ['paths': ['data/data/coreos/coreos-rhel-10.json', 'data/data/coreos/coreos-rhel-9.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
     ]
 

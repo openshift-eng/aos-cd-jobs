@@ -1,0 +1,98 @@
+#!/usr/bin/env groovy
+
+node {
+    timestamps {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    commonlib.describeJob("verify-release", """
+        Run post-release verification checks against an OCP assembly.
+        Calls artcd verify-release which runs verification steps
+        (cdn-push, signatures, image-grades, payload, qe-qualifier,
+        security-alerts, kernel-tag, cve-trackers) in parallel
+        and reports pass/fail for each step.
+    """)
+
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '30',
+                    daysToKeepStr: '30')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'Assembly name to verify (e.g. 4.19.42)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'SKIP_STEPS',
+                        description: '(Optional) Comma-separated list of steps to skip: cdn-push, signatures, image-grades, payload, qe-qualifier, security-alerts, kernel-tag, cve-trackers',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                ]
+            ],
+        ]
+    )
+
+    if (currentBuild.description == null) {
+        currentBuild.description = ""
+    }
+    sshagent(["openshift-bot"]) {
+        stage("initialize") {
+            currentBuild.displayName = "${params.BUILD_VERSION} - ${params.ASSEMBLY} - #${currentBuild.number}"
+        }
+
+        stage("verify-release") {
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=./artcd_working",
+                "--config=./config/artcd.toml",
+            ]
+            cmd += [
+                "verify-release",
+                "--version=${params.BUILD_VERSION}",
+                "--assembly=${params.ASSEMBLY}",
+            ]
+            if (params.SKIP_STEPS) {
+                for (step in params.SKIP_STEPS.split("[,\\s]+")) {
+                    cmd << "--skip=${step.trim()}"
+                }
+            }
+
+            buildlib.withAppCiAsArtPublish() {
+                withCredentials([
+                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                    file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                    file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                ]) {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                        buildlib.init_artcd_working_dir()
+                        sh(script: cmd.join(' '), returnStdout: true)
+                    }
+                }
+            }
+        }
+
+        stage("terminate") {
+            commonlib.safeArchiveArtifacts([
+                "artcd_working/**/*.log",
+                "artcd_working/**/*.yaml",
+                "artcd_working/**/*.yml",
+                "artcd_working/**/*.json",
+            ])
+            buildlib.cleanWorkspace()
+        }
+    }
+    }
+}

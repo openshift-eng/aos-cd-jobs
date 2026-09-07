@@ -161,12 +161,17 @@ for name, content in streams.items():
 	        if (!needsHappening) { return }
                 def signing_env = params.DRY_RUN ? "stage" : "prod"
                 def signing_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
+                def direct_signing_keytab_id = "ocp-art-signing-${signing_env}.keytab"
+                def direct_signing_principal_id = "ocp-art-signing-${signing_env}.user"
+                def direct_signing_env_prefix = "DIRECT_SIGNING_${signing_env.toUpperCase()}"
 
                 withCredentials([
                     file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
                     string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                     file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
                     file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
+                    file(credentialsId: direct_signing_keytab_id, variable: "${direct_signing_env_prefix}_KEYTAB"),
+                    string(credentialsId: direct_signing_principal_id, variable: "${direct_signing_env_prefix}_PRINCIPAL"),
                 ]) {
                     buildlib.init_artcd_working_dir()
                     def dryrun = params.DRY_RUN ? "--dry-run" : ""

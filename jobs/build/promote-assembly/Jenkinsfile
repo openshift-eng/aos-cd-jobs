@@ -182,6 +182,8 @@ node {
                                  string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                                  file(credentialsId: "${siging_cert_id}.crt", variable: 'SIGNING_CERT'),
                                  file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
+                                 file(credentialsId: 'ocp-art-signing-prod.keytab', variable: 'DIRECT_SIGNING_KEYTAB'),
+                                 string(credentialsId: 'ocp-art-signing-prod.user', variable: 'DIRECT_SIGNING_PRINCIPAL'),
                                  file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
                                  string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
                                  string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL'),

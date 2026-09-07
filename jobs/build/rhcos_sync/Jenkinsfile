@@ -151,6 +151,9 @@ node {
                 // GPG signing credentials for boot image sha256sum
                 file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
                 file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
+                // Direct signing credentials are bound for the planned transport cutover.
+                file(credentialsId: 'ocp-art-signing-prod.keytab', variable: 'DIRECT_SIGNING_KEYTAB'),
+                string(credentialsId: 'ocp-art-signing-prod.user', variable: 'DIRECT_SIGNING_PRINCIPAL'),
                 // Sigstore/cosign credentials for container image signing
                 file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
                 string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),

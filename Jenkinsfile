@@ -128,8 +128,8 @@ node {
                     ),
                     booleanParam(
                         name: 'SKIP_RHCOS_INTEGRATION_TESTS',
-                        description: 'Skip RHCOS integration tests (tests not yet available, default: true)',
-                        defaultValue: true,
+                        description: 'Skip RHCOS integration tests',
+                        defaultValue: false,
                     ),
                     choice(
                         name: 'NETWORK_MODE',
@@ -242,8 +242,10 @@ node {
                             file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                             file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                            file(credentialsId: 'art-rhcos-images-sa', variable: 'RHCOS_QUAY_AUTH_FILE'),
                             file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
                             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                            file(credentialsId: 'rhcos--prod-pipeline_jenkins_api-prod-stable-spoke1-dc-iad2-itup-redhat-com', variable: 'RHCOS_JENKINS_KUBECONFIG'),
                             usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD'),
                 ]){
                     def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']

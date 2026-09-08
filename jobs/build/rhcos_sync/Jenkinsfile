@@ -119,7 +119,7 @@ node {
         # Extract any additional per-stream boot image data (e.g. rhel-10 in OCP 5.x).
         # .data.streams is a map of stream-name -> stream-JSON; each may contain container
         # images that also need to be cosigned.
-        yq -r '(.data.streams // {}) | keys[]' \$tmp/coreos-bootimages.yaml 2>/dev/null | while read stream_name; do
+        yq -r '(.data.streams // {}) | keys[]' \$tmp/coreos-bootimages.yaml | while read stream_name; do
             stream_file="${env.WORKSPACE}/rhcos-${arch}-\${stream_name}.json"
             yq -r ".data.streams[\\"\\$stream_name\\"]" \$tmp/coreos-bootimages.yaml > "\$stream_file"
             echo "Extracted additional RHCOS stream: \$stream_name -> \$stream_file"
@@ -211,24 +211,29 @@ node {
                 // Sign container images from any additional streams (e.g. rhel-10 in OCP 5.x).
                 // The extraction step above writes rhcos-<arch>-<stream>.json for each entry
                 // found in .data.streams of the bootimages ConfigMap.
-                def extra_streams_cmd = """
-                    for stream_file in ${env.WORKSPACE}/rhcos-${arch}-*.json; do
-                        [ -f "\$stream_file" ] || continue
-                        echo "Signing additional RHCOS stream: \$stream_file"
-                        artcd -vv ${dryrun} \\
-                            --config=${env.WORKSPACE}/config/artcd.toml \\
-                            --working-dir=${env.WORKSPACE}/artcd_working \\
-                            sign-rhcos-containers \\
-                            --rhcos-file "\$stream_file" \\
-                            --arch ${arch} \\
-                            --signing-env ${signing_env}
-                    done
-                """
-                try {
-                    commonlib.shell(script: extra_streams_cmd)
-                } catch (err) {
-                    echo "WARNING: Failed to sign additional RHCOS stream container images: ${err}"
-                    currentBuild.description += "\n[WARNING] Additional RHCOS stream signing failed"
+                // Attempt every stream file and collect failures; throw after the loop so
+                // the job fails if any stream was not signed (avoids silent unsigned images).
+                def extraStreamFailures = []
+                def extraStreamFiles = findFiles(glob: "rhcos-${arch}-*.json")
+                for (streamFile in extraStreamFiles) {
+                    try {
+                        commonlib.shell(script: """
+                            echo "Signing additional RHCOS stream: ${streamFile}"
+                            artcd -vv ${dryrun} \\
+                                --config=${env.WORKSPACE}/config/artcd.toml \\
+                                --working-dir=${env.WORKSPACE}/artcd_working \\
+                                sign-rhcos-containers \\
+                                --rhcos-file ${streamFile} \\
+                                --arch ${arch} \\
+                                --signing-env ${signing_env}
+                        """)
+                    } catch (err) {
+                        echo "ERROR: Failed to sign stream ${streamFile}: ${err}"
+                        extraStreamFailures << streamFile.name
+                    }
+                }
+                if (extraStreamFailures) {
+                    error("Signing failed for extra RHCOS streams: ${extraStreamFailures.join(', ')}")
                 }
             }
         }

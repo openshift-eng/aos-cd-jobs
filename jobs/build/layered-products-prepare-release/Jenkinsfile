@@ -63,6 +63,11 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'FORCE',
+                        description: 'Create a replacement shipment MR and update releases.yml without closing the previous MR.',
+                        defaultValue: false,
+                    ),
                 ]
             ],
         ]
@@ -95,6 +100,10 @@ node {
                     "--assembly", "${params.ASSEMBLY}",
                     "--create-mr"
                 ]
+
+                if (params.FORCE) {
+                    cmd << "--force"
+                }
 
                 def buildDataUrl = params.BUILD_DATA_REPO_URL?.trim()
                 if (buildDataUrl) {

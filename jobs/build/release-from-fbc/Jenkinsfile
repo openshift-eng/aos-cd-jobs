@@ -68,6 +68,11 @@ node {
                         description: 'Enable OCP optional-operator mode. Creates extras/fbc shipments with all FBC related images included. Use with GROUP=openshift-4.x.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'FORCE',
+                        description: 'Create a replacement shipment MR and update releases.yml without closing the previous MR. Layered-product mode only.',
+                        defaultValue: false,
+                    ),
                     string(
                         name: 'EXCLUDE_NVR_COMPONENTS',
                         description: '(Optional) Comma-separated NVR component names to explicitly exclude from shipment. Not needed in the default workflow.',
@@ -138,6 +143,10 @@ node {
                     "${params.ASSEMBLY}",
                     "--create-mr"
                 ]
+
+                if (params.FORCE) {
+                    cmd << "--force"
+                }
 
                 def releaseJira = params.RELEASE_JIRA?.trim()
                 if (releaseJira) {

@@ -119,11 +119,20 @@ node {
         # Extract any additional per-stream boot image data (e.g. rhel-10 in OCP 5.x).
         # .data.streams is a map of stream-name -> stream-JSON; each may contain container
         # images that also need to be cosigned.
-        yq -r '(.data.streams // {}) | keys[]' \$tmp/coreos-bootimages.yaml | while read stream_name; do
-            stream_file="${env.WORKSPACE}/rhcos-${arch}-\${stream_name}.json"
-            yq -r ".data.streams[\\"\\$stream_name\\"]" \$tmp/coreos-bootimages.yaml > "\$stream_file"
-            echo "Extracted additional RHCOS stream: \$stream_name -> \$stream_file"
-        done
+        # Use Python to avoid Groovy GString interpolation conflicts with bash variables.
+        python3 -c "
+import yaml, json, sys
+data = yaml.safe_load(open('\$tmp/coreos-bootimages.yaml'))
+streams = data.get('data', {}).get('streams', {})
+if isinstance(streams, str):
+    streams = json.loads(streams)
+for name, content in streams.items():
+    if isinstance(content, str):
+        content = json.loads(content)
+    fname = '${env.WORKSPACE}/rhcos-${arch}-' + name + '.json'
+    json.dump(content, open(fname, 'w'))
+    print('Extracted additional RHCOS stream:', name, '->', fname)
+"
         rm -rf \$tmp
     """
     rhcosBuild =  commonlib.shell(

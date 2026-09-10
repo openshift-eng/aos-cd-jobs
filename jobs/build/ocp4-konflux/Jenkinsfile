@@ -245,7 +245,6 @@ node {
                             file(credentialsId: 'art-rhcos-images-sa', variable: 'RHCOS_QUAY_AUTH_FILE'),
                             file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
                             file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                            file(credentialsId: 'rhcos--prod-pipeline_jenkins_api-prod-stable-spoke1-dc-iad2-itup-redhat-com', variable: 'RHCOS_JENKINS_KUBECONFIG'),
                             usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD'),
                 ]){
                     def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']

@@ -65,7 +65,7 @@ node {
                     ),
                     booleanParam(
                         name: 'FORCE',
-                        description: 'Create a replacement shipment MR and update releases.yml without closing the previous MR.',
+                        description: 'Create a replacement shipment MR and update releases.yml. An open previous MR is made draft; replacement is refused if it was merged or production was attempted.',
                         defaultValue: false,
                     ),
                 ]

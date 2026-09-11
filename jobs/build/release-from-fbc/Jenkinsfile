@@ -70,7 +70,7 @@ node {
                     ),
                     booleanParam(
                         name: 'FORCE',
-                        description: 'Create a replacement shipment MR and update releases.yml without closing the previous MR. Layered-product mode only.',
+                        description: 'Create a replacement shipment MR and update releases.yml. An open previous MR is made draft; replacement is refused if it was merged or production was attempted. Layered-product mode only.',
                         defaultValue: false,
                     ),
                     string(

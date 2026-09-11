@@ -118,6 +118,7 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                     string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                    file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                 ]) {
                 wrap([$class: 'BuildUser']) {
                     builderEmail = env.BUILD_USER_EMAIL

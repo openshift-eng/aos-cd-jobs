@@ -78,6 +78,8 @@ node {
             ]
 
             withCredentials([
+                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                 file(credentialsId: 'art-rhcos-images-sa', variable: 'RHCOS_QUAY_AUTH_FILE'),
                 file(credentialsId: 'rhcos--prod-pipeline_jenkins_api-prod-stable-spoke1-dc-iad2-itup-redhat-com', variable: 'RHCOS_JENKINS_KUBECONFIG'),

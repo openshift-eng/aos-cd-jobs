@@ -175,7 +175,7 @@ def setup_venv() {
     // Preparing venv for ART tools
     // The following commands will run automatically every time one of our jobs
     // loads buildlib (ideally, once per pipeline)
-    withEnv(['UV_LINK_MODE=symlink', 'PATH+MYCARGO=~/.cargo/bin']) {
+    withEnv(['UV_LINK_MODE=copy', 'PATH+MYCARGO=~/.cargo/bin']) {
         VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
         commonlib.shell(script: """
             rm -rf ${VIRTUAL_ENV}

@@ -65,8 +65,8 @@ node {
                     ),
                     choice(
                         name: 'BUILD_SYSTEM',
-                        choices: ['both', 'brew', 'konflux'],
-                        description: 'Build system to use for golang-builder images (brew, konflux, or both). Defaults to both.',
+                        choices: ['konflux', 'brew', 'both'],
+                        description: 'Build system to use for golang-builder images (brew, konflux, or both). Defaults to konflux.',
                     ),
                     choice(
                         name: 'ASSEMBLY',

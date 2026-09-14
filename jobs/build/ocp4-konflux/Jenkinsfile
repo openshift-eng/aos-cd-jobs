@@ -127,8 +127,8 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
-                        name: 'SKIP_RHCOS_INTEGRATION_TESTS',
-                        description: 'Skip RHCOS integration tests',
+                        name: 'SKIP_NODE_IMAGE_POST_BUILD_OPS',
+                        description: 'Skip node image post-build operations',
                         defaultValue: false,
                     ),
                     choice(
@@ -209,8 +209,8 @@ node {
             if (params.SKIP_EC_VERIFY) {
                 cmd << "--skip-ec-verify"
             }
-            if (params.SKIP_RHCOS_INTEGRATION_TESTS) {
-                cmd << "--skip-rhcos-integration-tests"
+            if (params.SKIP_NODE_IMAGE_POST_BUILD_OPS) {
+                cmd << "--skip-node-image-post-build-ops"
             }
             if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                 cmd << "--skip-build-sync-konflux"

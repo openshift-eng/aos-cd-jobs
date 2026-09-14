@@ -210,7 +210,7 @@ node {
                 cmd << "--skip-ec-verify"
             }
             if (params.SKIP_NODE_IMAGE_POST_BUILD_OPS) {
-                cmd << "--skip-rhcos-integration-tests"
+                cmd << "--skip-node-image-post-build-ops"
             }
             if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                 cmd << "--skip-build-sync-konflux"

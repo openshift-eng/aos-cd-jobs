@@ -174,6 +174,9 @@ node {
             cmd << "--signing-env=${signing_env}"
             echo "Will run ${cmd.join(' ')}"
             def siging_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
+            def direct_signing_keytab_id = "ocp-art-signing-${signing_env}.keytab"
+            def direct_signing_principal_id = "ocp-art-signing-${signing_env}.user"
+            def direct_signing_env_prefix = "DIRECT_SIGNING_${signing_env.toUpperCase()}"
             def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
             def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
             buildlib.withAppCiAsArtPublish() {
@@ -187,6 +190,8 @@ node {
                                  string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                                  file(credentialsId: "${siging_cert_id}.crt", variable: 'SIGNING_CERT'),
                                  file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
+                                 file(credentialsId: direct_signing_keytab_id, variable: "${direct_signing_env_prefix}_KEYTAB"),
+                                 string(credentialsId: direct_signing_principal_id, variable: "${direct_signing_env_prefix}_PRINCIPAL"),
                                  file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
                                  string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
                                  string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL'),

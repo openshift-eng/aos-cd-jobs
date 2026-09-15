@@ -30,7 +30,9 @@ ocp5Versions = [
 nonOCPGroups = [
     "acm-2.16",
     "acm-5.0",
+    "cert-manager-1.19",
     "coo-1.5",
+    "external-secrets-1.1",
     "mce-2.11",
     "mce-5.0",
     "logging-6.0",
@@ -48,6 +50,7 @@ nonOCPGroups = [
     "oadp-1.5",
     "oadp-1.6",
     "oc-mirror-2.0",
+    "zero-trust-1.1",
 ]
 
 ocpVersions = ocp5Versions + ocp4Versions + ocp3Versions

@@ -73,6 +73,11 @@ node {
                         description: 'Create a replacement shipment MR and update releases.yml. An open previous MR is made draft; replacement is refused if it was merged or production was attempted. Layered-product mode only.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'TEST_MODE',
+                        description: 'Mark the shipment MR as test/debug-only, keep it draft, and skip automatic Shipment CI staging. An ART operator must review and mark it ready manually.',
+                        defaultValue: false,
+                    ),
                     string(
                         name: 'EXCLUDE_NVR_COMPONENTS',
                         description: '(Optional) Comma-separated NVR component names to explicitly exclude from shipment. Not needed in the default workflow.',
@@ -102,6 +107,9 @@ node {
             currentBuild.displayName = "#${currentBuild.number} ${params.GROUP} ${params.ASSEMBLY}"
             if (params.DRY_RUN) {
                 currentBuild.displayName += " [DRY_RUN]"
+            }
+            if (params.TEST_MODE) {
+                currentBuild.displayName += " [TEST]"
             }
         }
 
@@ -146,6 +154,9 @@ node {
 
                 if (params.FORCE) {
                     cmd << "--force"
+                }
+                if (params.TEST_MODE) {
+                    cmd << "--test"
                 }
 
                 def releaseJira = params.RELEASE_JIRA?.trim()

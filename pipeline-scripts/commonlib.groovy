@@ -51,6 +51,8 @@ nonOCPGroups = [
     "oadp-1.5",
     "oadp-1.6",
     "oc-mirror-2.0",
+    "quay-3.17",
+    "quay-3.18",
     "zero-trust-1.1",
 ]
 

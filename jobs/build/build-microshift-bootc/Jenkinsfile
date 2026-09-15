@@ -64,6 +64,11 @@ node() {
                             trim: true,
                         ),
                         booleanParam(
+                            name: "FORCE_OPEN_BUILD",
+                            description: "Force redo of open build phase even if one already exists for the assembly",
+                            defaultValue: false
+                        ),
+                        booleanParam(
                             name: 'IGNORE_LOCKS',
                             description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
                             defaultValue: false
@@ -117,6 +122,9 @@ node() {
                 }
                 if (params.FORCE_PLASHET_SYNC) {
                     cmd << "--force-plashet-sync"
+                }
+                if (params.FORCE_OPEN_BUILD) {
+                    cmd << "--force-open-build"
                 }
                 withCredentials([
                     string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),

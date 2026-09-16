@@ -54,6 +54,7 @@ node {
         if (!params.RELEASE || !params.NODE_IMAGE || !params.EXTENSIONS_IMAGE) {
             error("RELEASE, NODE_IMAGE, and EXTENSIONS_IMAGE must be specified")
         }
+        currentBuild.displayName += " [${params.RELEASE}]"
     }
 
     try {

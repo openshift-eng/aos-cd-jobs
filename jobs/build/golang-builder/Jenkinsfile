@@ -64,11 +64,6 @@ node {
                         description: 'Do not check if there is already a golang builder image with the rpm, but build a new one anyway',
                     ),
                     choice(
-                        name: 'BUILD_SYSTEM',
-                        choices: ['konflux'],
-                        description: 'Build system to use for golang-builder images (brew, konflux, or both). Defaults to konflux.',
-                    ),
-                    choice(
                         name: 'ASSEMBLY',
                         choices: ['stream', 'test'],
                         description: 'Stream-type assembly to use for golang-builder operations. Defaults to stream.',
@@ -177,9 +172,6 @@ node {
                         }
                         if (params.FORCE_IMAGE_BUILD) {
                             cmd << "--force-image-build"
-                        }
-                        if (params.BUILD_SYSTEM) {
-                            cmd << "--build-system=${params.BUILD_SYSTEM}"
                         }
                         cmd << "--assembly=${params.ASSEMBLY}"
                         if (params.SKIP_PR) {

@@ -27,11 +27,14 @@ node {
 
             if (name.startsWith('ose-ptp-operator-metadata') || name.startsWith('ose-ptp-operator-bundle')) {
                 echo "Processing {name: ${name}, idx_image: ${idx_image}, ocp_ver: ${ocp_ver}"
-                buildlib.registry_quay_dev_login()
                 dest_name = "quay.io/openshift-release-dev/ocp-release-nightly:iib-int-index-cluster-ose-ptp-operator-${ocp_ver}"
-                buildlib.withAppCiAsArtPublish() {
-                    sh "oc registry login"
-                    sh "oc image mirror ${idx_image} ${dest_name}"
+                withCredentials([file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
+                    withEnv(["REGISTRY_AUTH_FILE=${QUAY_AUTH_FILE}"]) {
+                        buildlib.withAppCiAsArtPublish() {
+                            sh "oc registry login"
+                            sh "oc image mirror ${idx_image} ${dest_name}"
+                        }
+                    }
                 }
             }
             else {

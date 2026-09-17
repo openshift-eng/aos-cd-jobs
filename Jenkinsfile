@@ -89,12 +89,12 @@ node {
 
         stage("sync ocp clients") {
             // must be able to access remote registry to extract image contents
-            buildlib.registry_quay_dev_login()
             timeout(time: 60, unit: 'MINUTES') {
                 withCredentials([
                  file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-                 string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
-                    withEnv(["DRY_RUN=${params.DRY_RUN? '1' : ''}"]){
+                 string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
+                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
+                    withEnv(["DRY_RUN=${params.DRY_RUN? '1' : ''}", "REGISTRY_AUTH_FILE=${QUAY_AUTH_FILE}"]){
                         commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
                     }
                 }

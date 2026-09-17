@@ -101,7 +101,6 @@ node {
 
         commonlib.checkMock()
         stage("initialize") {
-            buildlib.registry_quay_dev_login()
             currentBuild.displayName += " - ${params.BUILD_VERSION} - ${params.ASSEMBLY_NAME}"
             if (!params.ASSEMBLY_NAME) {
                 error("ASSEMBLY_NAME is required.")

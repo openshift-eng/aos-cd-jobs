@@ -68,7 +68,6 @@ node {
 
         commonlib.checkMock()
         stage("initialize") {
-            buildlib.registry_quay_dev_login()
             if (params.DRY_RUN) {
                 currentBuild.displayName += " - [DRY RUN]"
             }
@@ -117,6 +116,7 @@ node {
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
+                    file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                 ]) {
                     echo "Will run ${cmd.join(' ')}"
                     wrap([$class: 'BuildUser']) {

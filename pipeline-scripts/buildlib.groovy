@@ -121,9 +121,15 @@ def registry_quay_dev_login(authfile = null) {
     // Login to the openshift-release-dev/ocp-v4.0-art-dev registry
     // Despite the name, this is the location for both dev and production images.
 
+    // Default to a persistent auth file path to avoid failures when
+    // $XDG_RUNTIME_DIR (tmpfs) is wiped on reboot.
+    def config = authfile ?: "${env.HOME}/.config/containers/auth.json"
+
     withCredentials([usernamePassword(credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'DEV_USER', passwordVariable: 'DEV_PASSWORD')]) {
-        def registry_config_arg = authfile ? "--registry-config=${authfile}" : ""
-        sh "oc registry login ${registry_config_arg} --registry=quay.io/openshift-release-dev --auth-basic=\$DEV_USER:\$DEV_PASSWORD"
+        sh """
+            mkdir -p "\$(dirname '${config}')"
+            oc registry login --registry-config='${config}' --registry=quay.io/openshift-release-dev --auth-basic=\$DEV_USER:\$DEV_PASSWORD
+        """
     }
 }
 

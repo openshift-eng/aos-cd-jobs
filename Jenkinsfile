@@ -67,7 +67,8 @@ node {
     buildlib.cleanWorkdir(workDir)
 
     // must be able to access remote registry for verification
-    buildlib.registry_quay_dev_login()
+    withCredentials([file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
+    withEnv(["REGISTRY_AUTH_FILE=${QUAY_AUTH_FILE}"]) {
 
     stage('sign-artifacts') {
         def noop = params.DRY_RUN ? " --noop" : " "
@@ -187,6 +188,9 @@ node {
             }
         }
     }
+
+    } // withEnv
+    } // withCredentials
 
     buildlib.cleanWorkspace()
     }

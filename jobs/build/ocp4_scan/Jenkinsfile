@@ -66,10 +66,6 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
 
         commonlib.checkMock()
 
-        retry(3) {
-            buildlib.registry_quay_dev_login()
-        }
-
         stage("Initialize") {
             currentBuild.displayName = "#${currentBuild.number} ${params.VERSION}"
 
@@ -106,7 +102,8 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                             string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                             file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
+                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                            file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')
                         ]) {
                         // There is a vanishingly small race condition here, but it is not dangerous;
                         // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).

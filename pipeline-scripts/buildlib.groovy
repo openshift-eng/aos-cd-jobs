@@ -123,8 +123,14 @@ def registry_quay_dev_login(authfile = null) {
 
     withCredentials([usernamePassword(credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'DEV_USER', passwordVariable: 'DEV_PASSWORD')]) {
         def registry_config_arg = authfile ? "--registry-config=${authfile}" : ""
-        sh "oc registry login ${registry_config_arg} --registry=quay.io/openshift-release-dev --auth-basic=\$DEV_USER:\$DEV_PASSWORD"
+        sh """
+            if [ -n "\$XDG_RUNTIME_DIR" ] && [ ! -d "\$XDG_RUNTIME_DIR" ]; then
+                mkdir -p "\$XDG_RUNTIME_DIR"
+            fi
+            oc registry login ${registry_config_arg} --registry=quay.io/openshift-release-dev --auth-basic=\$DEV_USER:\$DEV_PASSWORD
+        """
     }
+
 }
 
 def initialize_openshift_dir() {

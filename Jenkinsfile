@@ -61,7 +61,8 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                     commonlib.mockParam(),
                     ]
                 ],
-                disableResume()
+                disableResume(),
+                disableConcurrentBuilds()
             ]
         )
 

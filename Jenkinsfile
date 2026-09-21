@@ -104,51 +104,59 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
             // Checkout optional art-tools commit override
             buildlib.initialize()
 
-            // Run pipeline
-            withCredentials([
-                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                    string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
-                    file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                    string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
+            // Run pipeline with the app.ci identity used by QCI-APPCI
+            buildlib.withAppCiAsArtPublish() {
+                withCredentials([
+                        string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                        string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                        string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                        string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                        file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                        string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
+                        file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                 ]) {
-                wrap([$class: 'BuildUser']) {
-                    builderEmail = env.BUILD_USER_EMAIL
-                }
-
-                withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
-                    try {
-                        echo "Will run ${cmd.join(' ')}"
-
-                        timeout(activity: true, time: 120, unit: 'MINUTES') {
-                            def rc = sh(script: cmd.join(' '), returnStatus: true)
-                            if (rc == 25) {
-                                currentBuild.result = 'UNSTABLE'
-                                echo "open-reconciliation-prs completed with partial errors (rc=25)"
-                            } else if (rc != 0) {
-                                error("open-reconciliation-prs failed with exit code ${rc}")
-                            }
-                        }
-
-                    } catch (err) {
-                        echo "Error running ${params.VERSION} open-reconciliation-prs:\n${err}"
-                        throw err
-
-                    } finally {
-                        // Archive logs if they exist
-                        def debugLog = "${doozer_working}/debug.log"
-                        if (fileExists(debugLog)) {
-                            sh "mv ${debugLog} ${doozer_working}/debug-${params.VERSION}.log"
-                            sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
-                            commonlib.safeArchiveArtifacts(["artcd_working/doozer_working/*.bz2"])
-                        }
-                        buildlib.cleanWorkspace()
+                    wrap([$class: 'BuildUser']) {
+                        builderEmail = env.BUILD_USER_EMAIL
                     }
-                } // withEnv
-            } // withCredentials
+
+                    withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", "REGISTRY_AUTH_FILE=${QUAY_AUTH_FILE}"]) {
+                        try {
+                            sh '''
+                                oc registry login \
+                                    --registry=quay-proxy.ci.openshift.org \
+                                    --to="${QUAY_AUTH_FILE}"
+                            '''
+                            echo "Will run ${cmd.join(' ')}"
+
+                            timeout(activity: true, time: 120, unit: 'MINUTES') {
+                                def rc = sh(script: cmd.join(' '), returnStatus: true)
+                                if (rc == 25) {
+                                    currentBuild.result = 'UNSTABLE'
+                                    echo "open-reconciliation-prs completed with partial errors (rc=25)"
+                                } else if (rc != 0) {
+                                    error("open-reconciliation-prs failed with exit code ${rc}")
+                                }
+                            }
+
+                        } catch (err) {
+                            echo "Error running ${params.VERSION} open-reconciliation-prs:\n${err}"
+                            throw err
+
+                        } finally {
+                            // Archive logs if they exist
+                            def debugLog = "${doozer_working}/debug.log"
+                            if (fileExists(debugLog)) {
+                                sh "mv ${debugLog} ${doozer_working}/debug-${params.VERSION}.log"
+                                sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
+                                commonlib.safeArchiveArtifacts(["artcd_working/doozer_working/*.bz2"])
+                            }
+                            buildlib.cleanWorkspace()
+                        }
+                    } // withEnv
+                } // withCredentials
+            } // withAppCiAsArtPublish
         } // stage
         }
     }

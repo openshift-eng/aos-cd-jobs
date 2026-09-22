@@ -121,12 +121,8 @@ module_hotfixes=1
 
 LOGGER = logging.getLogger(__name__)
 
-ALLOWED_ARCHES = {"x86_64", "aarch64", "s390x", "ppc64le"}
-
 
 async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir: os.PathLike):
-    if arch not in ALLOWED_ARCHES:
-        raise ValueError(f"Unsupported arch '{arch}'; must be one of {sorted(ALLOWED_ARCHES)}")
     yum_conf_tmpl = YUM_CONF_TEMPLATES.get(rhel_major)
     if not yum_conf_tmpl:
         raise ValueError(f"Unsupported RHEL version '{rhel_major}'")
@@ -177,9 +173,7 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
 
 
 async def create_repo(directory: str):
-    # Resolve to absolute path to ensure the argument is a canonical filesystem path.
-    directory = str(Path(directory).resolve())
-    cmd = ["createrepo_c", "-v", "--", directory]
+    cmd = ["createrepo_c", "-v", "--", f"{directory}"]
     LOGGER.info("Running command %s", cmd)
     process = await asyncio.subprocess.create_subprocess_exec(*cmd, env=os.environ.copy())
     rc = await process.wait()

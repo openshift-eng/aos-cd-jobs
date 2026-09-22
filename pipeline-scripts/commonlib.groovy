@@ -187,6 +187,13 @@ def telemetryEndpointParam() {
     ]
 }
 
+def generateTraceparent() {
+    // Generate a W3C-compliant TRACEPARENT using Python secrets (cryptographically safe)
+    def traceId = sh(script: 'python3 -c "import secrets; print(secrets.token_hex(16))"', returnStdout: true).trim()
+    def spanId  = sh(script: 'python3 -c "import secrets; print(secrets.token_hex(8))"',  returnStdout: true).trim()
+    return "00-${traceId}-${spanId}-01"
+}
+
 def suppressEmailParam() {
     return [
         name: 'SUPPRESS_EMAIL',

@@ -195,6 +195,7 @@ node {
                     def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
                     if (params.TELEMETRY_ENABLED) {
                         envVars << "TELEMETRY_ENABLED=1"
+                        envVars << "TRACEPARENT=${commonlib.generateTraceparent()}"
                         if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
                             envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"
                         }

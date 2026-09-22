@@ -187,11 +187,14 @@ def telemetryEndpointParam() {
     ]
 }
 
+@NonCPS
 def generateTraceparent() {
     // Generate a W3C-compliant TRACEPARENT using JVM SecureRandom (no subprocess dependency)
     def rng = new java.security.SecureRandom()
-    def traceBytes = new byte[16]; rng.nextBytes(traceBytes)
-    def spanBytes  = new byte[8];  rng.nextBytes(spanBytes)
+    def traceBytes = new byte[16]
+    rng.nextBytes(traceBytes)
+    def spanBytes = new byte[8]
+    rng.nextBytes(spanBytes)
     return "00-${traceBytes.encodeHex()}-${spanBytes.encodeHex()}-01"
 }
 

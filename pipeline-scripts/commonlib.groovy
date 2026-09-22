@@ -29,6 +29,7 @@ ocp5Versions = [
 
 nonOCPGroups = [
     "acm-2.16",
+    "acm-2.17",
     "acm-5.0",
     "cert-manager-1.19",
     "coo-1.5",

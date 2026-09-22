@@ -1,70 +1,86 @@
-// Update-branches job
+#!/usr/bin/env groovy
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
-
-node('openshift-build-1') {
+node {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("accept-okd-release", """
+        <h2>Accept an OKD release on Release Controller</h2>
+    """)
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(logRotator(daysToKeepStr: '30')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    string(
+                        name: 'RELEASE_NAME',
+                        description: 'Release name (e.g. 5.0.0-0.okd-scos-nightly-2026-09-22-052225). Arch is amd64 by default.',
+                        trim: true,
+                        defaultValue: ""
+                    ),
+                    choice(
+                        name: 'ARCH',
+                        description: 'Release architecture (amd64, s390x, ppc64le, arm64, multi)',
+                        choices: ['amd64', 's390x', 'ppc64le', 'arm64', 'multi'].join('\n'),
+                    ),
+                    booleanParam(
+                        name: 'REJECT',
+                        description: 'Instead of Accepting, Reject a release',
+                        defaultValue: false
+                    ),
+                    string(
+                        name: 'JIRA_TICKET',
+                        description: 'Jira ticket associated with this action (e.g. ART-1234)',
+                        trim: true,
+                        defaultValue: ""
+                    ),
+                    booleanParam(
+                        name: 'CONFIRM',
+                        description: 'Running without this would be a [dry-run]. Must be specified to apply changes to server',
+                        defaultValue: false
+                    ),
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    stage('Accept OKD release') {
+        if (!params.RELEASE_NAME) {
+            error("You must provide a release name")
         }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
+        if (!params.JIRA_TICKET) {
+            error("You must provide a Jira ticket")
         }
-      }
+
+        def dry_run = params.CONFIRM ? '' : '[DRY_RUN]'
+        currentBuild.displayName = "${params.RELEASE_NAME} ${dry_run}"
+
+        def action = params.REJECT ? "reject" : 'accept'
+        def message = "Manually ${action}ed by ART - ${params.JIRA_TICKET}"
+        def confirm_param = params.CONFIRM ? "--execute" : ''
+
+        script {
+            sh "wget https://raw.githubusercontent.com/openshift/release-controller/master/hack/release-tool.py"
+            buildlib.withAppCiAsArtPublish() {
+                commonlib.shell(
+                    script: """
+                        python3 release-tool.py --message "${message}" --reason "${message}" --name okd --architecture ${params.ARCH} -c `oc config current-context` ${confirm_param} ${action} ${params.RELEASE_NAME}
+                        """,
+                )
+            }
+        }
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    stage('Clean up') {
+        buildlib.cleanWorkspace()
+    }
     }
 }

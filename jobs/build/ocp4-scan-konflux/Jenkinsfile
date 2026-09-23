@@ -59,6 +59,8 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                         defaultValue: false,
                     ),
                     commonlib.mockParam(),
+                    commonlib.enableTelemetryParam(),
+                    commonlib.telemetryEndpointParam(),
                     ]
                 ],
                 disableResume()
@@ -126,7 +128,15 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                             builderEmail = env.BUILD_USER_EMAIL
                         }
 
-                        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]
+                        if (params.TELEMETRY_ENABLED) {
+                            envVars << "TELEMETRY_ENABLED=1"
+                            envVars << "TRACEPARENT=${commonlib.generateTraceparent()}"
+                            if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
+                                envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"
+                            }
+                        }
+                        withEnv(envVars) {
                             try {
                                 echo "Will run ${cmd.join(' ')}"
 

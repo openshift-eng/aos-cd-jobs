@@ -25,6 +25,7 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                    commonlib.artToolsParam(),
                     string(
                         name: 'ASSEMBLY',
                         description: 'Assembly name to verify (e.g. 4.19.42)',
@@ -45,6 +46,9 @@ node {
     if (currentBuild.description == null) {
         currentBuild.description = ""
     }
+
+    try {
+
     sshagent(["openshift-bot"]) {
         stage("initialize") {
             currentBuild.displayName = "${params.BUILD_VERSION} - ${params.ASSEMBLY} - #${currentBuild.number}"
@@ -79,21 +83,22 @@ node {
                 ]) {
                     withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                         buildlib.init_artcd_working_dir()
-                        sh(script: cmd.join(' '), returnStdout: true)
+                        echo "Will run: ${cmd.join(' ')}"
+                        sh(script: cmd.join(' '))
                     }
                 }
             }
         }
+    }
 
-        stage("terminate") {
-            commonlib.safeArchiveArtifacts([
-                "artcd_working/**/*.log",
-                "artcd_working/**/*.yaml",
-                "artcd_working/**/*.yml",
-                "artcd_working/**/*.json",
-            ])
-            buildlib.cleanWorkspace()
-        }
+    } finally {
+        commonlib.safeArchiveArtifacts([
+            "artcd_working/**/*.log",
+            "artcd_working/**/*.yaml",
+            "artcd_working/**/*.yml",
+            "artcd_working/**/*.json",
+        ])
+        buildlib.cleanWorkspace()
     }
     }
 }

@@ -43,6 +43,7 @@ nonOCPGroups = [
     "logging-6.5",
     "logging-6.6",
     "logging-6.7",
+    "mirror-gui-1.0",
     "mta-8.1",
     "mta-8.2",
     "mta-8.3",

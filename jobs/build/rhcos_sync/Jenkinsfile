@@ -102,7 +102,11 @@ node {
     // This is a special case. see: ART-10946
     buildlib.withAppCiAsArtPublish() {
     withCredentials([file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
-    withEnv(["REGISTRY_AUTH_FILE=${QUAY_AUTH_FILE}"]) {
+        // Create a combined auth file with both quay and CI registry credentials
+        def combinedAuth = "${env.WORKSPACE}/combined-registry-auth.json"
+        sh "cp \$QUAY_AUTH_FILE ${combinedAuth}"
+        sh "oc registry login --registry-config=${combinedAuth}"
+    withEnv(["REGISTRY_AUTH_FILE=${combinedAuth}"]) {
     if (tag.contains("nightly")) {
         name = "dev-${ocpVersion}"
         noLatest = true

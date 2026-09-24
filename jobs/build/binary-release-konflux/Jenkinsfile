@@ -34,6 +34,7 @@ node {
                         $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             'oc-mirror-2.0',
+                            'mirror-gui-1.0',
                         ].join('\n'),
                     ],
                     string(

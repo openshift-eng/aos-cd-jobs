@@ -98,29 +98,41 @@ node {
 
     needsHappening = true
     noLatest = params.NO_LATEST
-    // for nightlies, sync them to dev dir
-    // This is a special case. see: ART-10946
-    if (tag.contains("nightly")) {
-        name = "dev-${ocpVersion}"
-        noLatest = true
-    } else {
-        name = commonlib.shell(
-            returnStdout: true,
-            script: "oc adm release info -o template --template '{{ .metadata.version }}' ${pullspec}"
-        )
-    }
 
-    rhcos_file = "${env.WORKSPACE}/rhcos-${arch}.json"
-    cmd = """
-        tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
-        oc image extract --path /manifests/:\$tmp \$(oc adm release info --image-for installer ${pullspec})
-        cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream > ${rhcos_file}
-        cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream | jq -r .architectures.${arch}.artifacts.qemu.release
-        # Extract any additional per-stream boot image data (e.g. rhel-10 in OCP 5.x).
-        # .data.streams is a map of stream-name -> stream-JSON; each may contain container
-        # images that also need to be cosigned.
-        # Use Python to avoid Groovy GString interpolation conflicts with bash variables.
-        python3 -c "
+    // Bind registry credentials for oc commands to authenticate to Quay and CI registries
+    buildlib.withAppCiAsArtPublish() {
+        withCredentials([
+            file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')
+        ]) {
+            // Append registry.ci.openshift.org auth (via art-publish SA token) into the
+            // quay-auth-file so subsequent oc commands work against both registries
+            sh "oc registry login --registry-config=\$QUAY_AUTH_FILE"
+
+            def registryConfigFlag = "--registry-config=\$QUAY_AUTH_FILE"
+
+            // for nightlies, sync them to dev dir
+            // This is a special case. see: ART-10946
+            if (tag.contains("nightly")) {
+                name = "dev-${ocpVersion}"
+                noLatest = true
+            } else {
+                name = commonlib.shell(
+                    returnStdout: true,
+                    script: "oc ${registryConfigFlag} adm release info -o template --template '{{ .metadata.version }}' ${pullspec}"
+                )
+            }
+
+            rhcos_file = "${env.WORKSPACE}/rhcos-${arch}.json"
+            cmd = """
+                tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
+                oc ${registryConfigFlag} image extract --path /manifests/:\$tmp \$(oc ${registryConfigFlag} adm release info --image-for installer ${pullspec})
+                cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream > ${rhcos_file}
+                cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream | jq -r .architectures.${arch}.artifacts.qemu.release
+                # Extract any additional per-stream boot image data (e.g. rhel-10 in OCP 5.x).
+                # .data.streams is a map of stream-name -> stream-JSON; each may contain container
+                # images that also need to be cosigned.
+                # Use Python to avoid Groovy GString interpolation conflicts with bash variables.
+                python3 -c "
 import yaml, json, sys
 data = yaml.safe_load(open('\$tmp/coreos-bootimages.yaml'))
 streams = data.get('data', {}).get('streams', {})
@@ -133,12 +145,14 @@ for name, content in streams.items():
     json.dump(content, open(fname, 'w'))
     print('Extracted additional RHCOS stream:', name, '->', fname)
 "
-        rm -rf \$tmp
-    """
-    rhcosBuild =  commonlib.shell(
-        returnStdout: true,
-        script: cmd
-    ).trim()
+                rm -rf \$tmp
+            """
+            rhcosBuild =  commonlib.shell(
+                returnStdout: true,
+                script: cmd
+            ).trim()
+        }
+    }
 
     pattern = /$major\.$minor\.(\d+)-$arch/
     is_stable = tag ==~ pattern

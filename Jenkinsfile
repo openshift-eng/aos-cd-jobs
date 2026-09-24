@@ -100,6 +100,9 @@ node {
     noLatest = params.NO_LATEST
     // for nightlies, sync them to dev dir
     // This is a special case. see: ART-10946
+    buildlib.withAppCiAsArtPublish() {
+    withCredentials([file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
+    withEnv(["REGISTRY_AUTH_FILE=${QUAY_AUTH_FILE}"]) {
     if (tag.contains("nightly")) {
         name = "dev-${ocpVersion}"
         noLatest = true
@@ -139,6 +142,7 @@ for name, content in streams.items():
         returnStdout: true,
         script: cmd
     ).trim()
+    }}}
 
     pattern = /$major\.$minor\.(\d+)-$arch/
     is_stable = tag ==~ pattern

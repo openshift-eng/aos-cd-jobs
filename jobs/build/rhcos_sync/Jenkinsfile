@@ -100,8 +100,8 @@ node {
     noLatest = params.NO_LATEST
     // for nightlies, sync them to dev dir
     // This is a special case. see: ART-10946
-    buildlib.withAppCiAsArtPublish() {
     withCredentials([file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
+    buildlib.withAppCiAsArtPublish() {
         // Create a combined auth file with both quay and CI registry credentials
         def combinedAuth = "${env.WORKSPACE}/combined-registry-auth.json"
         sh "cp \$QUAY_AUTH_FILE ${combinedAuth}"
@@ -146,7 +146,7 @@ for name, content in streams.items():
         returnStdout: true,
         script: cmd
     ).trim()
-    }}}
+    }}
 
     pattern = /$major\.$minor\.(\d+)-$arch/
     is_stable = tag ==~ pattern
@@ -322,5 +322,6 @@ for name, content in streams.items():
         commonlib.safeArchiveArtifacts(rhcoslib.artifacts)
         buildlib.cleanWorkspace()
     }
+    } // withCredentials(QUAY_AUTH_FILE)
     }
 }

@@ -94,6 +94,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                         string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                         file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                        file(credentialsId: 'quay-auth-file', variable: 'REGISTRY_AUTH_FILE'),
                     ]) {
                     // There is a vanishingly small race condition here, but it is not dangerous;
                     // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).

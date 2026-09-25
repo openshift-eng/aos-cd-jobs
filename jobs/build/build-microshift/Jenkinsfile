@@ -96,6 +96,20 @@ node() {
             stage("build") {
                 buildlib.cleanWorkdir("./artcd_working")
                 sh "mkdir -p ./artcd_working"
+                // Redirect XDG_RUNTIME_DIR to a persistent writable path.
+                // The default /run/user/<uid> is an ephemeral tmpfs created by
+                // systemd-logind that vanishes on pod restart, breaking podman
+                // (libpod DB tmp dir) and oc registry login.
+                sh '''
+                    if [ -n "$XDG_RUNTIME_DIR" ] && [ ! -d "$XDG_RUNTIME_DIR" ]; then
+                        _xdg_fallback="${HOME}/.local/run"
+                        mkdir -p "${_xdg_fallback}"
+                        echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR} does not exist; falling back to ${_xdg_fallback}"
+                    fi
+                '''
+                if (env.XDG_RUNTIME_DIR && !new File(env.XDG_RUNTIME_DIR).isDirectory()) {
+                    env.XDG_RUNTIME_DIR = "${env.HOME}/.local/run"
+                }
                 def cmd = [
                     "artcd",
                     "-v",

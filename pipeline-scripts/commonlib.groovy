@@ -35,6 +35,7 @@ nonOCPGroups = [
     "cert-manager-1.19",
     "coo-1.5",
     "external-secrets-1.1",
+    "mce-2.10",
     "mce-2.11",
     "mce-2.17",
     "mce-5.0",

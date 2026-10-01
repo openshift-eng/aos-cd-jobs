@@ -140,8 +140,6 @@ node() {
                 file(credentialsId: 'konflux-bot-0-art-quay-tenant-sa', variable: 'QUAY_KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'konflux-bot-0-art-rhosdt-tenant-sa', variable: 'RHOSDT_KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'konflux-bot-0-art-coo-tenant-sa', variable: 'COO_KONFLUX_SA_KUBECONFIG'),
-                file(credentialsId: 'konflux-bot-0-art-kueue-tenant-sa', variable: 'KUEUE_KONFLUX_SA_KUBECONFIG'),
-                file(credentialsId: 'konflux-bot-0-art-assisted-installer-tenant-sa', variable: 'ASSISTED_INSTALLER_SA_KUBECONFIG'),
                 string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
                 file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),

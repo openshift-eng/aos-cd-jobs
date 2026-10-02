@@ -6,17 +6,19 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
-    commonlib.describeJob("verify-release", """
-        Run post-release verification checks against an OCP assembly.
-        Calls artcd verify-release which runs verification steps
-        (cdn-push, signatures, image-grades, payload, qe-qualifier,
-        security-alerts, kernel-tag, cve-trackers) in parallel
-        and reports pass/fail for each step.
+    commonlib.describeJob("verify-stage-testing", """
+        Trigger and poll a stage testing Prow job for an OCP assembly.
+        Calls artcd verify-stage-testing which:
+        1. Checks if the stage-testing-success label already exists on the shipment MR
+        2. Triggers the Prow job via Gangway API (if label not present)
+        3. Polls until the job reaches a terminal state
+        4. Adds the stage-testing-success label on success
     """)
 
     properties(
         [
             disableResume(),
+            disableConcurrentBuilds(),
             buildDiscarder(
                 logRotator(
                     artifactDaysToKeepStr: '30',
@@ -28,13 +30,7 @@ node {
                     commonlib.artToolsParam(),
                     string(
                         name: 'ASSEMBLY',
-                        description: 'Assembly name to verify (e.g. 4.19.42)',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'SKIP_STEPS',
-                        description: '(Optional) Comma-separated list of steps to skip: cdn-push, csv-versions, signatures, image-grades, payload, qe-qualifier, security-alerts, kernel-tag, cve-trackers, stage-testing',
+                        description: 'Assembly name to verify (e.g. 4.22.9)',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -54,7 +50,7 @@ node {
             currentBuild.displayName = "${params.BUILD_VERSION} - ${params.ASSEMBLY} - #${currentBuild.number}"
         }
 
-        stage("verify-release") {
+        stage("verify-stage-testing") {
             def cmd = [
                 "artcd",
                 "-v",
@@ -62,26 +58,17 @@ node {
                 "--config=./config/artcd.toml",
             ]
             cmd += [
-                "verify-release",
+                "verify-stage-testing",
                 "--version=${params.BUILD_VERSION}",
                 "--assembly=${params.ASSEMBLY}",
             ]
-            if (params.SKIP_STEPS) {
-                for (step in params.SKIP_STEPS.split("[,\\s]+")) {
-                    cmd << "--skip=${step.trim()}"
-                }
-            }
 
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([
-                    string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
-                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                    string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
-                    file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                    file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                     string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                    string(credentialsId: 'art-gangway-token', variable: 'GANGWAY_TOKEN'),
                 ]) {
-                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                         buildlib.init_artcd_working_dir()
                         echo "Will run: ${cmd.join(' ')}"
                         sh(script: cmd.join(' '))

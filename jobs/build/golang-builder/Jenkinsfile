@@ -18,7 +18,6 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                     string(
                         name: 'DOOZER_DATA_PATH',
                         description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
@@ -116,6 +115,10 @@ node {
         if (!params.ART_JIRA) {
             error("You must provide an ART jira ticket id for reference.")
         }
+
+        if (!params.DOOZER_DATA_GITREF || !(params.DOOZER_DATA_GITREF ==~ /^openshift-\d+\.\d+$/)) {
+            error("DOOZER_DATA_GITREF must be set to the ocp-build-data product branch (e.g. openshift-4.18). It is now required to derive the target OCP version.")
+        }
     }
 
     try {
@@ -150,16 +153,14 @@ node {
                         }
                         cmd += [
                             "update-golang",
-                            "--ocp-version=${params.BUILD_VERSION}",
                             "--art-jira=${params.ART_JIRA}",
                             "${golang_nvrs}"
                         ]
                         if (params.DOOZER_DATA_PATH) {
                             cmd << "--data-path=${params.DOOZER_DATA_PATH}"
                         }
-                        if (params.DOOZER_DATA_GITREF) {
-                            cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
-                        }
+                        // Always pass data-gitref; it is required to derive the target OCP version.
+                        cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
                         if (params.FIXED_CVES) {
                             cmd << "--cves=${params.FIXED_CVES}"
                         }

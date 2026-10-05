@@ -24,7 +24,7 @@ import groovy.json.JsonOutput
     "5.0.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&startRhcosSyncJob],
     "5.0.0-0.nightly-arm64": [this.&publishRPMsEl9],
 
-    "4.23.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&startRhcosSyncJob],
+    "4.23.0-0.nightly":  [this.&publishRPMsEl9, this.&startRhcosSyncJob],
     "4.23.0-0.nightly-arm64": [this.&publishRPMsEl9],
 
     "4.22.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8, this.&startRhcosSyncJob],

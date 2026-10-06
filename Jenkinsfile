@@ -1,70 +1,90 @@
-// Update-branches job
+#!/usr/bin/env groovy
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
-
-node('openshift-build-1') {
+node {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    commonlib.describeJob("verify-cdn-push", """
+        Trigger CDN staging push for release advisories and poll until complete.
+        Calls artcd verify-cdn-push which:
+        1. Triggers CDN staging push for rpm and rhcos advisories via Errata API
+        2. Polls until all push jobs reach COMPLETE status or timeout
+        3. Fail fast on hard errors (API exceptions, FAILED push jobs)
+        4. Keep polling on blocking advisory dependencies
+    """)
+
+    properties(
+        [
+            disableResume(),
+            disableConcurrentBuilds(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '30',
+                    daysToKeepStr: '30')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                    commonlib.artToolsParam(),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'Assembly name to verify (e.g. 4.22.9)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                ]
+            ],
+        ]
+    )
+
+    if (currentBuild.description == null) {
+        currentBuild.description = ""
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    try {
+
+    sshagent(["openshift-bot"]) {
+        stage("initialize") {
+            currentBuild.displayName = "${params.BUILD_VERSION} - ${params.ASSEMBLY} - #${currentBuild.number}"
+        }
+
+        stage("verify-cdn-push") {
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=./artcd_working",
+                "--config=./config/artcd.toml",
+            ]
+            cmd += [
+                "verify-cdn-push",
+                "--version=${params.BUILD_VERSION}",
+                "--assembly=${params.ASSEMBLY}",
+            ]
+
+            buildlib.withAppCiAsArtPublish() {
+                withCredentials([
+                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                ]) {
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        buildlib.init_artcd_working_dir()
+                        echo "Will run: ${cmd.join(' ')}"
+                        sh(script: cmd.join(' '))
+                    }
+                }
+            }
+        }
+    }
+
+    } finally {
+        commonlib.safeArchiveArtifacts([
+            "artcd_working/**/*.log",
+            "artcd_working/**/*.yaml",
+            "artcd_working/**/*.yml",
+            "artcd_working/**/*.json",
+        ])
+        buildlib.cleanWorkspace()
+    }
     }
 }

@@ -45,7 +45,6 @@ nonOCPGroups = [
     "logging-6.5",
     "logging-6.6",
     "logging-6.7",
-    "mirror-gui-1.0",
     "mta-8.1",
     "mta-8.2",
     "mta-8.3",
@@ -54,7 +53,6 @@ nonOCPGroups = [
     "oadp-1.4",
     "oadp-1.5",
     "oadp-1.6",
-    "oc-mirror-2.0",
     "rhosdt-3.11",
     "zero-trust-1.1",
 ]

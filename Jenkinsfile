@@ -1,70 +1,73 @@
-// Update-branches job
+#!/usr/bin/env groovy
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
-
-node('openshift-build-1') {
+node {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("force-new-nightly", """
+        <h2>Force a new nightly payload</h2>
+        <p>Triggers a new ART-managed nightly payload by poking the release
+        controller imagestream. Supports both OCP and OKD.</p>
+    """)
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(logRotator(daysToKeepStr: '30')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    string(
+                        name: 'VERSION',
+                        description: 'The OCP/OKD minor version (e.g. 4.18, 5.1)',
+                        trim: true,
+                        defaultValue: ""
+                    ),
+                    choice(
+                        name: 'PRODUCT',
+                        description: 'Product variant',
+                        choices: ['OCP', 'OKD'].join('\n'),
+                    ),
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    stage('Trigger nightly') {
+        if (!params.VERSION) {
+            error("You must provide a VERSION")
         }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
+
+        def ns
+        def is
+        if (params.PRODUCT == 'OKD') {
+            ns = 'origin'
+            is = "scos-${params.VERSION}-art"
+        } else {
+            ns = 'ocp'
+            is = "${params.VERSION}-art-latest"
         }
-      }
+
+        currentBuild.displayName = "${params.PRODUCT} ${params.VERSION}"
+
+        buildlib.withAppCiAsArtPublish() {
+            commonlib.shell(
+                script: "oc tag --import-mode=PreserveOriginal --source=docker registry.access.redhat.com/ubi9 ${is}:trigger-release-controller -n ${ns}"
+            )
+            sleep 4
+            commonlib.shell(
+                script: "oc tag -d ${is}:trigger-release-controller -n ${ns}"
+            )
+        }
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    stage('Clean up') {
+        buildlib.cleanWorkspace()
+    }
     }
 }

@@ -10,12 +10,13 @@ node {
         <h2>Sync specialized RHCOS artifacts to mirror</h2>
         <p>
         Syncs specialized RHCOS artifacts from the internal RHCOS s3 bucket to mirror.openshift.com.
-        Supports multiple artifact types including NVIDIA BFB (aarch64) and confidential clusters (x86_64).
+        Supports NVIDIA BFB (aarch64), confidential clusters (x86_64), and OCP4NV boot images (aarch64).
         </p>
         <p>
         <strong>Supported types:</strong><br/>
         • <code>bfb</code> - NVIDIA BFB artifacts for aarch64<br/>
-        • <code>confidential</code> - Confidential clusters images for x86_64
+        • <code>confidential</code> - Confidential clusters images for x86_64<br/>
+        • <code>ocp4nv</code> - OCP4NV live installer ISO images for aarch64
         </p>
     """)
 
@@ -37,17 +38,17 @@ node {
                     choice(
                         name: "TYPE",
                         description: "Type of RHCOS artifacts to sync",
-                        choices: ["bfb", "confidential"]
+                        choices: ["bfb", "confidential", "ocp4nv"]
                     ),
                     string(
                         name: "STREAM",
-                        description: "RHCOS stream identifier (e.g., '4.20-9.6-nvidia-bfb', 'rhel-9.6-te-preview')",
+                        description: "RHCOS stream identifier (e.g., '4.20-9.6-nvidia-bfb', 'rhel-9.6-te-preview', 'rhel-10.2-ocp4nv')",
                         defaultValue: "",
                         trim: true
                     ),
                     string(
                         name: "BUILD",
-                        description: "RHCOS build identifier (e.g., '9.6.20250707-1.3')",
+                        description: "RHCOS build identifier (e.g., '9.6.20250707-1.3' or '10.2.20260916-0101')",
                         defaultValue: "",
                         trim: true
                     ),

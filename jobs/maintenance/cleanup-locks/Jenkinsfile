@@ -46,7 +46,8 @@ node {
         withCredentials([
                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')
+                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                    file(credentialsId: 'cleanup-locks-bot-art-cd-sa', variable: 'ARTC_CLEANUP_LOCKS_KUBECONFIG')
                 ]) {
             withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                 try {

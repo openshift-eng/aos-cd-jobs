@@ -123,6 +123,21 @@ node() {
                     }
                 }
             }
+            stage("trigger verify-cdn-push") {
+                if (!params.DRY_RUN) {
+                    build(
+                        job: '../verify/verify%2Fverify-cdn-push',
+                        parameters: [
+                            string(name: 'BUILD_VERSION', value: params.BUILD_VERSION),
+                            string(name: 'ASSEMBLY', value: params.ASSEMBLY),
+                        ],
+                        propagate: false,
+                        wait: false,
+                    )
+                } else {
+                    echo "Skipping verify-cdn-push trigger (DRY_RUN)"
+                }
+            }
         } finally {
             stage("save artifacts") {
                 commonlib.safeArchiveArtifacts([

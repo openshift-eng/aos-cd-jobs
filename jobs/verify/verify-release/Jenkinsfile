@@ -52,6 +52,7 @@ node {
     sshagent(["openshift-bot"]) {
         stage("initialize") {
             currentBuild.displayName = "${params.BUILD_VERSION} - ${params.ASSEMBLY} - #${currentBuild.number}"
+            buildlib.kinit()
         }
 
         stage("verify-release") {

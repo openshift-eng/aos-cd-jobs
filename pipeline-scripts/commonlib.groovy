@@ -28,20 +28,9 @@ ocp5Versions = [
 ]
 
 nonOCPGroups = [
-    "acm-2.14",
-    "acm-2.15",
-    "acm-2.16",
-    "acm-2.17",
-    "acm-5.0",
     "cert-manager-1.19",
     "coo-1.5",
     "external-secrets-1.1",
-    "mce-2.8",
-    "mce-2.9",
-    "mce-2.10",
-    "mce-2.11",
-    "mce-2.17",
-    "mce-5.0",
     "logging-6.0",
     "logging-6.2",
     "logging-6.4",

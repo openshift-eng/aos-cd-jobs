@@ -6,7 +6,7 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("accept-release", """
-        <h2>Accept a release on Release Controller</h2>
+        <h2>Accept an OCP or OKD release on Release Controller</h2>
     """)
 
     // Expose properties for a parameterized build
@@ -17,9 +17,14 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    choice(
+                        name: 'PRODUCT',
+                        description: 'Product to accept/reject release for (ocp uses the default namespace, okd uses --name okd)',
+                        choices: ['ocp', 'okd'].join('\n'),
+                    ),
                     string(
                         name: 'RELEASE_NAME',
-                        description: 'Release name (e.g 4.10.4 or nightly). Arch is amd64 by default.',
+                        description: 'Release name (e.g. 4.10.4 for OCP, 5.0.0-0.okd-scos-nightly-2026-09-22-052225 for OKD). Arch is amd64 by default.',
                         trim: true,
                         defaultValue: ""
                     ),
@@ -52,7 +57,9 @@ node {
 
     commonlib.checkMock()
 
-    stage('Accept release') {
+    def product = params.PRODUCT ?: 'ocp'
+
+    stage("Accept ${product.toUpperCase()} release") {
         if (!params.RELEASE_NAME) {
             error("You must provide a release name")
         }
@@ -61,18 +68,19 @@ node {
         }
 
         def dry_run = params.CONFIRM ? '' : '[DRY_RUN]'
-        currentBuild.displayName = "${params.RELEASE_NAME} ${dry_run}"
+        currentBuild.displayName = "${product.toUpperCase()} ${params.RELEASE_NAME} ${dry_run}"
 
         def action = params.REJECT ? "reject" : 'accept'
         def message = "Manually ${action}ed by ART - ${params.JIRA_TICKET}"
         def confirm_param = params.CONFIRM ? "--execute" : ''
+        def name_param = product == 'okd' ? '--name okd' : ''
 
         script {
             sh "wget https://raw.githubusercontent.com/openshift/release-controller/master/hack/release-tool.py"
             buildlib.withAppCiAsArtPublish() {
                 commonlib.shell(
                     script: """
-                        python3 release-tool.py --message "${message}" --reason "${message}" --architecture ${params.ARCH} -c `oc config current-context` ${confirm_param} ${action} ${params.RELEASE_NAME}
+                        python3 release-tool.py --message "${message}" --reason "${message}" ${name_param} --architecture ${params.ARCH} -c `oc config current-context` ${confirm_param} ${action} ${params.RELEASE_NAME}
                         """,
                 )
             }

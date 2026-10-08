@@ -36,6 +36,8 @@ nonOCPGroups = [
     "cert-manager-1.19",
     "coo-1.5",
     "external-secrets-1.1",
+    "mce-2.9",
+    "mce-2.10",
     "mce-2.11",
     "mce-2.17",
     "mce-5.0",
@@ -45,7 +47,6 @@ nonOCPGroups = [
     "logging-6.5",
     "logging-6.6",
     "logging-6.7",
-    "mirror-gui-1.0",
     "mta-8.1",
     "mta-8.2",
     "mta-8.3",
@@ -54,11 +55,6 @@ nonOCPGroups = [
     "oadp-1.4",
     "oadp-1.5",
     "oadp-1.6",
-    "oc-mirror-2.0",
-    "quay-3.16",
-    "quay-3.17",
-    "quay-3.18",
-    "rhosdt-3.11",
     "zero-trust-1.1",
 ]
 

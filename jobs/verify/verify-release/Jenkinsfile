@@ -34,7 +34,7 @@ node {
                     ),
                     string(
                         name: 'SKIP_STEPS',
-                        description: '(Optional) Comma-separated list of steps to skip: cdn-push, signatures, image-grades, payload, qe-qualifier, security-alerts, kernel-tag, cve-trackers',
+                        description: '(Optional) Comma-separated list of steps to skip: cdn-push, csv-versions, signatures, image-grades, payload, qe-qualifier, security-alerts, kernel-tag, cve-trackers, stage-testing',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -52,6 +52,7 @@ node {
     sshagent(["openshift-bot"]) {
         stage("initialize") {
             currentBuild.displayName = "${params.BUILD_VERSION} - ${params.ASSEMBLY} - #${currentBuild.number}"
+            buildlib.kinit()
         }
 
         stage("verify-release") {

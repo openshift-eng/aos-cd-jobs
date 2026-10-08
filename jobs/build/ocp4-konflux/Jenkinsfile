@@ -2,6 +2,7 @@
 
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
+timeout(activity: true, time: 3, unit: 'HOURS') {
 node {
     timestamps {
     checkout scm
@@ -257,7 +258,9 @@ node {
                     withEnv(envVars) {
                         buildlib.init_artcd_working_dir()
                         try {
-                            sh(script: cmd.join(' '), returnStdout: true)
+                            sh(script: cmd.join(' '))
+                        } catch (FlowInterruptedException err) {
+                            currentBuild.result = "ABORTED"
                         } catch (err) {
                             // If any image build/push failures occurred, mark the job run as unstable
                             currentBuild.result = "UNSTABLE"
@@ -277,4 +280,5 @@ node {
         }
     }
     }
+}
 }

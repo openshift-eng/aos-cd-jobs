@@ -13,7 +13,7 @@ node() {
         commonlib = buildlib.commonlib
         slacklib = commonlib.slacklib
 
-        def groups = commonlib.nonOCPGroups.join(',')
+        def groups = (commonlib.nonOCPGroups + commonlib.LPClusterGroups).unique().join(",")
         echo "Will scan layered-product groups: ${groups}"
         commonlib.shell('sudo systemctl restart stunnel')
 

@@ -1,70 +1,108 @@
-// Update-branches job
+timeout(activity: true, time: 60, unit: 'MINUTES') {
+    node() {
+        timestamps {
+            checkout scm
+            def buildlib = load("pipeline-scripts/buildlib.groovy")
+            def commonlib = buildlib.commonlib
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+            properties(
+                [
+                    disableConcurrentBuilds(),
+                    buildDiscarder(logRotator(daysToKeepStr: '30')),
+                    [
+                        $class : 'ParametersDefinitionProperty',
+                        parameterDefinitions: [
+                            commonlib.artToolsParam(),
+                            string(
+                                name: 'GROUPS',
+                                description: 'Comma-separated layered-product groups to scan',
+                                defaultValue: "oadp-1.5",
+                                trim: true,
+                            ),
+                            string(
+                                name: 'DOOZER_DATA_PATH',
+                                description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                                defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                                trim: true,
+                            ),
+                            string(
+                                name: 'DOOZER_DATA_GITREF',
+                                description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                                defaultValue: "",
+                                trim: true,
+                            ),
+                            string(
+                                name: 'ASSEMBLY',
+                                description: 'Assembly name',
+                                defaultValue: "stream",
+                                trim: true,
+                            ),
+                            booleanParam(
+                                name: 'DRY_RUN',
+                                description: 'Run the health report without changing external state',
+                                defaultValue: false,
+                            ),
+                            commonlib.mockParam(),
+                        ],
+                    ],
+                ]
+            )
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+            commonlib.checkMock()
 
-node('openshift-build-1') {
-    timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
+            // Working dirs
+            def artcd_working = "${WORKSPACE}/artcd_working"
+            buildlib.cleanWorkdir(artcd_working)
+
+            // Run pyartcd
+            sh "mkdir -p ./artcd_working"
+
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=${artcd_working}",
+                "--config=./config/artcd.toml",
+            ]
+            if (params.DRY_RUN) {
+                cmd << "--dry-run"
+            }
+            cmd += [
+                "layered-products-image-health",
+                "--groups=${commonlib.cleanCommaList(params.GROUPS)}",
+                "--assembly=${params.ASSEMBLY}",
+            ]
+            if (params.DOOZER_DATA_PATH) {
+                cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+            }
+            if (params.DOOZER_DATA_GITREF) {
+                cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+            }
+
+            withCredentials([
+                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+            ]) {
+                wrap([$class: 'BuildUser']) {
+                    builderEmail = env.BUILD_USER_EMAIL
+                }
+
+                withEnv([
+                    "BUILD_USER_EMAIL=${builderEmail ?: ''}",
+                    "BUILD_URL=${BUILD_URL}",
+                    "JOB_NAME=${JOB_NAME}",
+                ]) {
+                    try {
+                        echo "Will run ${cmd.join(' ')}"
+                        commonlib.shell(script: cmd.join(' '))
+                    } finally {
+                        commonlib.safeArchiveArtifacts([
+                            "artcd_working/**/*.log",
+                        ])
+                        buildlib.cleanWorkspace()
+                    }
+                }
+            }
         }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
-    }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
     }
 }

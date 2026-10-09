@@ -48,6 +48,32 @@ nonOCPGroups = [
     "zero-trust-1.1",
 ]
 
+// Additional LP groups from cluster scan schedules.
+LPClusterGroups = [
+    "acm-2.14",
+    "acm-2.15",
+    "acm-2.16",
+    "acm-2.17",
+    "acm-5.0",
+    "kueue-1.4",
+    "mce-2.8",
+    "mce-2.9",
+    "mce-2.10",
+    "mce-2.11",
+    "mce-2.17",
+    "mce-5.0",
+    "mirror-gui-1.0",
+    "oc-mirror-2.0",
+    "osus-5.0",
+    "quay-3.9",
+    "quay-3.12",
+    "quay-3.14",
+    "quay-3.16",
+    "quay-3.17",
+    "quay-3.18",
+    "rhosdt-0.158",
+]
+
 ocpVersions = ocp5Versions + ocp4Versions + ocp3Versions
 
 // some of our systems refer to golang's chosen architecture nomenclature;

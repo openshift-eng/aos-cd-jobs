@@ -1,0 +1,40 @@
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+failed = false
+
+node() {
+    timestamps {
+        checkout scm
+        buildlib = load("pipeline-scripts/buildlib.groovy")
+        commonlib = buildlib.commonlib
+        slacklib = commonlib.slacklib
+
+        def groups = commonlib.nonOCPGroups.join(',')
+        echo "Will scan layered-product groups: ${groups}"
+        commonlib.shell('sudo systemctl restart stunnel')
+
+        try {
+            timeout(activity: true, time: 60, unit: 'MINUTES') {
+                b = build(
+                    job: '../scanning/scanning%2Flayered-products-image-health',
+                    parameters: [
+                        string(name: 'GROUPS', value: groups),
+                    ],
+                    propagate: false,
+                )
+                failed |= (b.result != "SUCCESS")
+            }
+        } catch (te) {
+            failed = true
+            slacklib.to("#art-release-layered-operators").failure("Error running layered-products-image-health", te)
+        } finally {
+            buildlib.cleanWorkspace()
+        }
+    }
+}
+
+currentBuild.result = failed ? "FAILURE" : "SUCCESS"

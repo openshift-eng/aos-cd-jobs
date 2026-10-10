@@ -88,6 +88,11 @@ node {
                         description: 'Indicates a major.minor golang version bump (e.g. 1.22 -> 1.23). Permits validation of go_latest even when the new version does not match current group.yml vars.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'CI_IMAGES_REFRESH',
+                        description: 'Run the CI golang builder/build-root refresh step (rebuild + sync-ci-images)',
+                        defaultValue: true,
+                    ),
                     choice(
                         name: 'NETWORK_MODE',
                         description: 'Override network mode for Konflux builds',
@@ -190,6 +195,9 @@ node {
                         }
                         if (params.MAJOR_BUMP) {
                             cmd << "--major-bump"
+                        }
+                        if (params.CI_IMAGES_REFRESH){
+                            cmd << "--ci-images-refresh"
                         }
                         if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                             cmd << "--network-mode=${params.NETWORK_MODE}"

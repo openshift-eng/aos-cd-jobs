@@ -29,7 +29,6 @@ ocp5Versions = [
 
 nonOCPGroups = [
     "cert-manager-1.19",
-    "coo-1.5",
     "external-secrets-1.1",
     "logging-6.0",
     "logging-6.2",
@@ -55,6 +54,7 @@ LPClusterGroups = [
     "acm-2.16",
     "acm-2.17",
     "acm-5.0",
+    "coo-1.5",
     "kueue-1.4",
     "mce-2.8",
     "mce-2.9",

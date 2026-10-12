@@ -28,8 +28,6 @@ ocp5Versions = [
 ]
 
 nonOCPGroups = [
-    "mtc-1.8",
-    "zero-trust-1.0",
 ]
 
 // Additional LP groups from cluster scan schedules.
@@ -59,6 +57,7 @@ LPClusterGroups = [
     "mta-8.1",
     "mta-8.2",
     "mta-8.3",
+    "mtc-1.8",
     "oadp-1.3",
     "oadp-1.4",
     "oadp-1.5",
@@ -72,6 +71,7 @@ LPClusterGroups = [
     "quay-3.17",
     "quay-3.18",
     "rhosdt-0.158",
+    "zero-trust-1.0",
     "zero-trust-1.1",
 ]
 

@@ -28,24 +28,8 @@ ocp5Versions = [
 ]
 
 nonOCPGroups = [
-    "cert-manager-1.19",
-    "external-secrets-1.1",
-    "logging-6.0",
-    "logging-6.2",
-    "logging-6.4",
-    "logging-6.5",
-    "logging-6.6",
-    "logging-6.7",
-    "mta-8.1",
-    "mta-8.2",
-    "mta-8.3",
     "mtc-1.8",
-    "oadp-1.3",
-    "oadp-1.4",
-    "oadp-1.5",
-    "oadp-1.6",
     "zero-trust-1.0",
-    "zero-trust-1.1",
 ]
 
 // Additional LP groups from cluster scan schedules.
@@ -55,8 +39,16 @@ LPClusterGroups = [
     "acm-2.16",
     "acm-2.17",
     "acm-5.0",
+    "cert-manager-1.19",
     "coo-1.5",
+    "external-secrets-1.1",
     "kueue-1.4",
+    "logging-6.0",
+    "logging-6.2",
+    "logging-6.4",
+    "logging-6.5",
+    "logging-6.6",
+    "logging-6.7",
     "mce-2.8",
     "mce-2.9",
     "mce-2.10",
@@ -64,6 +56,13 @@ LPClusterGroups = [
     "mce-2.17",
     "mce-5.0",
     "mirror-gui-1.0",
+    "mta-8.1",
+    "mta-8.2",
+    "mta-8.3",
+    "oadp-1.3",
+    "oadp-1.4",
+    "oadp-1.5",
+    "oadp-1.6",
     "oc-mirror-2.0",
     "osus-5.0",
     "quay-3.9",
@@ -73,6 +72,7 @@ LPClusterGroups = [
     "quay-3.17",
     "quay-3.18",
     "rhosdt-0.158",
+    "zero-trust-1.1",
 ]
 
 ocpVersions = ocp5Versions + ocp4Versions + ocp3Versions

@@ -1,0 +1,57 @@
+node() {
+    timestamps {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    commonlib.describeJob("trigger-verify-stage-testing", """
+        Scans GitLab shipment MRs for assemblies needing stage testing
+        (stage-release-success label present, no stage-testing-* label)
+        and triggers the verify-stage-testing job for each.
+        Runs every 30 minutes.
+    """)
+
+    properties([
+        buildDiscarder(logRotator(daysToKeepStr: '30', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+        disableResume(),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                commonlib.artToolsParam(),
+            ]
+        ],
+    ])
+
+    buildlib.init_artcd_working_dir()
+
+    try {
+        stage("scan") {
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=${WORKSPACE}/artcd_working",
+                "--config=./config/artcd.toml",
+                "schedule-stage-testing-scan",
+            ]
+
+            withCredentials([
+                string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+            ]) {
+                echo "Will run ${cmd.join(' ')}"
+                sh(script: cmd.join(' '), returnStdout: true)
+            }
+        }
+    } catch (Exception ex) {
+        currentBuild.description = "Error: ${ex.message}"
+        throw ex
+    } finally {
+        commonlib.safeArchiveArtifacts([
+            "artcd_working/**/*.log",
+        ])
+        buildlib.cleanWorkspace()
+    }
+    }
+}

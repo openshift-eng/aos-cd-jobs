@@ -2,6 +2,8 @@
 
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
+error("This job is disabled.")
+
 node {
     timestamps {
     checkout scm

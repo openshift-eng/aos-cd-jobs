@@ -110,6 +110,8 @@ node() {
                         file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                         file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
+                        string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                        string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                     ]) {
                         // Run the command and capture exit code
                         // Exit code 2 indicates UNSTABLE (partial FBC build failures)

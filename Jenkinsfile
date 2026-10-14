@@ -68,6 +68,11 @@ node {
                         description: 'Create a replacement shipment MR and update releases.yml. An open previous MR is closed; replacement is refused if it was merged or production was attempted.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'REFRESH_FBCS',
+                        description: 'Force FBC rebuilds from the latest production catalogs before creating shipment data.',
+                        defaultValue: false,
+                    ),
                 ]
             ],
         ]
@@ -103,6 +108,9 @@ node {
 
                 if (params.FORCE) {
                     cmd << "--force"
+                }
+                if (params.REFRESH_FBCS) {
+                    cmd << "--refresh-fbcs"
                 }
 
                 def buildDataUrl = params.BUILD_DATA_REPO_URL?.trim()

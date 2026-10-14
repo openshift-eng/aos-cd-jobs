@@ -54,7 +54,6 @@ LPClusterGroups = [
     "mce-2.17",
     "mce-5.0",
     "mirror-gui-1.0",
-    "mta-8.1",
     "mta-8.2",
     "mta-8.3",
     "mtc-1.8",

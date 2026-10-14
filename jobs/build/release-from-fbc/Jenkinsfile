@@ -74,6 +74,11 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
+                        name: 'REFRESH_FBCS',
+                        description: 'Rebuild supplied FBCs from the latest production catalogs before creating shipment data.',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
                         name: 'TEST_MODE',
                         description: 'Mark the shipment MR as test/debug-only, keep it draft, and skip automatic Shipment CI staging. An ART operator must review and mark it ready manually.',
                         defaultValue: false,
@@ -155,6 +160,9 @@ node {
                 if (params.FORCE) {
                     cmd << "--force"
                 }
+                if (params.REFRESH_FBCS) {
+                    cmd << "--refresh-fbcs"
+                }
                 if (params.TEST_MODE) {
                     cmd << "--test"
                 }
@@ -214,6 +222,7 @@ node {
                         string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                         string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                        file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
                         file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                         string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                         string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),

@@ -131,7 +131,7 @@ def init_artcd_working_dir() {
     sh """
     if [ -d "./artcd_working" ]; then
         mkdir -p ./empty
-        rsync -a --delete ./empty/ ./artcd_working/
+        rsync --max-alloc=8G -a --delete ./empty/ ./artcd_working/
         rmdir ./empty ./artcd_working
     fi
     mkdir -p ./artcd_working

@@ -16,7 +16,7 @@ node {
         installs on them. Also updates <code>latest</code> directory by default.
 
         Timing: At EC time and GA this gets run by automation. It may also be requested by teams to run at RC time.
-        It may also be used when there is a boot-time bug requiring updated boot images in a version already 
+        It may also be used when there is a boot-time bug requiring updated boot images in a version already
         released. See <a href="https://art-docs.engineering.redhat.com/release/4.y-ga/#publish-rhcos-bootimages" target="_blank">the docs</a>
         </p>
     """)
@@ -73,191 +73,102 @@ node {
         error("Need RELEASE_TAG")
     }
 
+    // === Minimal tag parsing (no oc commands) ===
+    // The heavy lifting (pullspec resolution, oc image extract, RHCOS metadata,
+    // synclist generation, needsHappening check) is now handled by artcd rhcos-sync.
     tag = params.RELEASE_TAG
 
     (major, minor) = commonlib.extractMajorMinorVersionNumbers(tag)
     ocpVersion = "$major.$minor"
 
-    (arch, priv) = releaselib.getReleaseTagArchPriv(tag)
-    suffix = releaselib.getArchPrivSuffix(arch, priv)
-
-    pullspec = ""
+    // Handle pullspec-style tags: extract the tag portion for arch parsing
     if (tag.contains("/")) {
-        // assume instead of a tag it's a pullspec e.g. to registry.ci
         if (!tag.contains(":")) error("RELEASE_TAG pullspec must include a :tag")
-        pullspec = tag
         tag = tag.split(":")[-1]
     }
-    if (pullspec == "") {
-        if (tag.contains("nightly")) {
-            pullspec = "registry.ci.openshift.org/ocp${suffix}/release${suffix}:${tag}"
-        } else {
-            pullspec = "quay.io/openshift-release-dev/ocp-release:${tag}"
-        }
-    }
 
-    needsHappening = true
+    (arch, priv) = releaselib.getReleaseTagArchPriv(tag)
+
+    // Derive the version name from the tag without oc commands.
+    // For nightlies, use "dev-<version>"; for stable/pre-release, strip the arch suffix.
     noLatest = params.NO_LATEST
-    // for nightlies, sync them to dev dir
-    // This is a special case. see: ART-10946
-    withCredentials([file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
-    buildlib.withAppCiAsArtPublish() {
-        // Create a combined auth file with both quay and CI registry credentials
-        def combinedAuth = "${env.WORKSPACE}/combined-registry-auth.json"
-        sh "cp \$QUAY_AUTH_FILE ${combinedAuth}"
-        sh "oc registry login --registry-config=${combinedAuth}"
-    withEnv(["REGISTRY_AUTH_FILE=${combinedAuth}"]) {
     if (tag.contains("nightly")) {
         name = "dev-${ocpVersion}"
         noLatest = true
     } else {
-        name = commonlib.shell(
-            returnStdout: true,
-            script: "oc adm release info -o template --template '{{ .metadata.version }}' ${pullspec}"
-        )
+        name = tag.replaceAll("-${arch}\$", "")
+        if (priv) {
+            name = name.replaceAll("-priv\$", "")
+        }
     }
 
-    rhcos_file = "${env.WORKSPACE}/rhcos-${arch}.json"
-    cmd = """
-        tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
-        oc image extract --path /manifests/:\$tmp \$(oc adm release info --image-for installer ${pullspec})
-        cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream > ${rhcos_file}
-        cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream | jq -r .architectures.${arch}.artifacts.qemu.release
-        # Extract any additional per-stream boot image data (e.g. rhel-10 in OCP 5.x).
-        # .data.streams is a map of stream-name -> stream-JSON; each may contain container
-        # images that also need to be cosigned.
-        # Use Python to avoid Groovy GString interpolation conflicts with bash variables.
-        python3 -c "
-import yaml, json, sys
-data = yaml.safe_load(open('\$tmp/coreos-bootimages.yaml'))
-streams = data.get('data', {}).get('streams', {})
-if isinstance(streams, str):
-    streams = json.loads(streams)
-for name, content in streams.items():
-    if isinstance(content, str):
-        content = json.loads(content)
-    fname = '${env.WORKSPACE}/rhcos-${arch}-' + name + '.json'
-    json.dump(content, open(fname, 'w'))
-    print('Extracted additional RHCOS stream:', name, '->', fname)
-"
-        rm -rf \$tmp
-    """
-    rhcosBuild =  commonlib.shell(
-        returnStdout: true,
-        script: cmd
-    ).trim()
-    }}
-
+    // Stable releases (e.g. 4.19.3-x86_64) go to the version directory;
+    // everything else (EC, RC, nightly) goes to pre-release.
     pattern = /$major\.$minor\.(\d+)-$arch/
     is_stable = tag ==~ pattern
     mirrorPrefix = is_stable ? ocpVersion : "pre-release"
 
-    print("RHCOS build: $rhcosBuild, arch: $arch, mirror prefix: $mirrorPrefix")
-
-    if (!params.SIGN_ONLY) {
-        echo("Initializing RHCOS-${mirrorPrefix} sync: #${currentBuild.number}")
-        rhcoslib.initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix)
+    currentBuild.displayName = "${name} - ${arch} - ${mirrorPrefix}"
+    if (params.DRY_RUN) {
+        currentBuild.displayName += " [DRY_RUN]"
+    }
+    if (params.SIGN_ONLY) {
+        currentBuild.displayName += " [SIGN_ONLY]"
     }
 
-    try {
-        if (!params.SIGN_ONLY) {
-            stage("Get/Generate sync list") {
-                rhcoslib.rhcosSyncPrintArtifacts()
-	        needsHappening = rhcoslib.rhcosSyncNeedsHappening(mirrorPrefix, rhcosBuild, name)
-            }
-            stage("Mirror artifacts and sign sha256sum") {
-	        if (!needsHappening) { return }
-                def signing_env = params.DRY_RUN ? "stage" : "prod"
-                def signing_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
+    echo("RHCOS sync: tag=${tag}, arch=${arch}, ocpVersion=${ocpVersion}, name=${name}, mirrorPrefix=${mirrorPrefix}")
 
-                withCredentials([
-                    file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-                    string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
-                    file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
-                    file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
-                ]) {
+    try {
+        // === Main stage: artcd rhcos-sync handles the entire sync + sign workflow ===
+        // This replaces the previous Groovy preamble (pullspec resolution, oc image
+        // extract, RHCOS metadata extraction, synclist generation, needsHappening
+        // check) and the two separate artcd calls (sync-rhcos + sign-rhcos-containers).
+        stage("Sync RHCOS boot images and sign containers") {
+            def signing_env = params.DRY_RUN ? "stage" : "prod"
+            def signing_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
+            def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
+            def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
+
+            withCredentials([
+                // Registry auth for pulling release payloads
+                file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                // S3 mirror credentials for boot image sync
+                file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
+                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
+                // GPG signing credentials for boot image sha256sum
+                file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
+                file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
+                // Sigstore/cosign credentials for container image signing
+                file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
+                string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
+                string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL'),
+            ]) {
+                // KUBECONFIG provides oc access to registry.ci for nightly payloads
+                buildlib.withAppCiAsArtPublish() {
                     buildlib.init_artcd_working_dir()
                     def dryrun = params.DRY_RUN ? "--dry-run" : ""
+                    def forceFlag = params.FORCE ? "--force" : ""
                     def noLatestFlag = noLatest ? "--no-latest" : ""
+                    def signOnlyFlag = params.SIGN_ONLY ? "--sign-only" : ""
                     def cmd = """
                         artcd -vv ${dryrun} \\
                             --config=${env.WORKSPACE}/config/artcd.toml \\
                             --working-dir=${env.WORKSPACE}/artcd_working \\
-                            sync-rhcos \\
-                            --arch ${arch} \\
-                            --build-id ${rhcosBuild} \\
-                            --version ${name} \\
-                            --mirror-prefix ${mirrorPrefix} \\
-                            --base-dir ${s3MirrorBaseDir} \\
-                            --synclist ${env.WORKSPACE}/${syncList} \\
+                            rhcos-sync \\
+                            --release-tag ${params.RELEASE_TAG} \\
                             --signing-env ${signing_env} \\
-                            ${noLatestFlag}
+                            ${forceFlag} \\
+                            ${noLatestFlag} \\
+                            ${signOnlyFlag}
                     """
                     commonlib.shell(script: cmd)
                 }
             }
         }
-        stage("Sign RHCOS container images") {
-            def signing_env = params.DRY_RUN ? "stage" : "prod"
-            def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
-            def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
 
-            withCredentials([
-                file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
-                string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
-                string(credentialsId: 'signing_rekor_url', variable: 'REKOR_URL')
-            ]) {
-                buildlib.init_artcd_working_dir()
-                def dryrun = params.DRY_RUN ? "--dry-run" : ""
-                def cmd = """
-                    artcd -vv ${dryrun} \\
-                        --config=${env.WORKSPACE}/config/artcd.toml \\
-                        --working-dir=${env.WORKSPACE}/artcd_working \\
-                        sign-rhcos-containers \\
-                        --rhcos-file ${rhcos_file} \\
-                        --arch ${arch} \\
-                        --signing-env ${signing_env}
-                """
-                try {
-                    commonlib.shell(script: cmd)
-                    echo "Successfully signed RHCOS container images"
-                } catch (err) {
-                    echo "WARNING: Failed to sign RHCOS container images: ${err}"
-                    currentBuild.description += "\n[WARNING] RHCOS container signing failed"
-                }
-                // Sign container images from any additional streams (e.g. rhel-10 in OCP 5.x).
-                // The extraction step above writes rhcos-<arch>-<stream>.json for each entry
-                // found in .data.streams of the bootimages ConfigMap.
-                // Attempt every stream file and collect failures; throw after the loop so
-                // the job fails if any stream was not signed (avoids silent unsigned images).
-                def extraStreamFailures = []
-                def extraStreamFiles = findFiles(glob: "rhcos-${arch}-*.json")
-                for (streamFile in extraStreamFiles) {
-                    try {
-                        commonlib.shell(script: """
-                            echo "Signing additional RHCOS stream: ${streamFile}"
-                            artcd -vv ${dryrun} \\
-                                --config=${env.WORKSPACE}/config/artcd.toml \\
-                                --working-dir=${env.WORKSPACE}/artcd_working \\
-                                sign-rhcos-containers \\
-                                --rhcos-file ${streamFile} \\
-                                --arch ${arch} \\
-                                --signing-env ${signing_env}
-                        """)
-                    } catch (err) {
-                        echo "ERROR: Failed to sign stream ${streamFile}: ${err}"
-                        extraStreamFailures << streamFile.name
-                    }
-                }
-                if (extraStreamFailures) {
-                    error("Signing failed for extra RHCOS streams: ${extraStreamFailures.join(', ')}")
-                }
-            }
-        }
         if (!params.SIGN_ONLY) {
             stage("Slack notification to release channel") {
-	        if (!needsHappening) { return }
-                if ( !params.DRY_RUN ) {
+                if (!params.DRY_RUN) {
                     slacklib.to(ocpVersion).say("""
                     *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
                     https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
@@ -267,25 +178,35 @@ for name, content in streams.items():
                 }
             }
 
-            // only run for x86_64 since no AMIs for other arches
-            // only sync AMI to ROSA Marketplace account when no custom sync list is defined
-            if ( arch == "x86_64") {
+            // Only run for x86_64 since no AMIs for other arches
+            if (arch == "x86_64") {
                 stage("Mirror ROSA AMIs") {
-	            if (!needsHappening) { return }
-                    if ( arch != 'x86_64' ) {
-                        echo "Skipping ROSA sync for non-x86 arch"
+                    // The artcd rhcos-sync command writes the RHCOS stream JSON to
+                    // the working directory. Extract the us-east-1 AMI from it and
+                    // create a meta.json-compatible file for rosa_sync.sh.
+                    def streamJsonFile = "${env.WORKSPACE}/artcd_working/rhcos-${arch}.json"
+                    def ami = commonlib.shell(
+                        returnStdout: true,
+                        script: "jq -r '.architectures.x86_64.images.aws.regions[\"us-east-1\"].image // empty' ${streamJsonFile}"
+                    ).trim()
+
+                    if (!ami) {
+                        echo "No us-east-1 AMI found in RHCOS stream data, skipping ROSA sync"
                         return
                     }
+
+                    def rosaMetaJson = "${env.WORKSPACE}/rosa-meta.json"
+                    writeFile file: rosaMetaJson, text: """{"amis": [{"name": "us-east-1", "hvm": "${ami}"}]}"""
+
                     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                        rhcoslib.rhcosSyncROSA()
+                        commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
                     }
                     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                        rhcoslib.rhcosSyncROSA()
+                        commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
                     }
                 }
                 stage("Slack notification to release channel") {
-	            if (!needsHappening) { return }
-                    if ( !params.DRY_RUN ) {
+                    if (!params.DRY_RUN) {
                         slacklib.to(ocpVersion).say("""
                         *:white_check_mark: rosa_sync (${name}) successful*
                         """)
@@ -293,10 +214,9 @@ for name, content in streams.items():
                 }
             }
 
-            // run publish_azure_marketplace when publishing RHCOS bootimages for 4.10+
+            // Publish azure marketplace for 4.10+
             stage("Publish azure marketplace") {
-	        if (!needsHappening) { return }
-                if ( buildlib.cmp_version(ocpVersion, "4.9") == 1 ) {
+                if (buildlib.cmp_version(ocpVersion, "4.9") == 1) {
                     build(
                         job: 'build%252Fpublish_azure_marketplace',
                         wait: false,
@@ -310,18 +230,17 @@ for name, content in streams.items():
                 }
             }
         }
-    } catch ( err ) {
-        if ( !params.DRY_RUN ) {
+    } catch (err) {
+        if (!params.DRY_RUN) {
             slacklib.to(ocpVersion).say("""
             *:heavy_exclamation_mark: rhcos_sync ${mirrorPrefix} failed*
             buildvm job: ${commonlib.buildURL('console')}
             """)
         }
-        throw (err)
+        throw(err)
     } finally {
         commonlib.safeArchiveArtifacts(rhcoslib.artifacts)
         buildlib.cleanWorkspace()
     }
-    } // withCredentials(QUAY_AUTH_FILE)
     }
 }

@@ -175,6 +175,8 @@ for name, content in streams.items():
                     string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                     file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
                     file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
+                    file(credentialsId: 'ocp-art-signing-prod.keytab', variable: 'DIRECT_SIGNING_KEYTAB'),
+                    string(credentialsId: 'ocp-art-signing-prod.user', variable: 'DIRECT_SIGNING_PRINCIPAL'),
                 ]) {
                     buildlib.init_artcd_working_dir()
                     def dryrun = params.DRY_RUN ? "--dry-run" : ""

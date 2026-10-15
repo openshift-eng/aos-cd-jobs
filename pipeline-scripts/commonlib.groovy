@@ -28,6 +28,7 @@ ocp5Versions = [
 ]
 
 nonOCPGroups = [
+    "mce-2.6",
 ]
 
 // Additional LP groups from cluster scan schedules.
@@ -47,6 +48,7 @@ LPClusterGroups = [
     "logging-6.5",
     "logging-6.6",
     "logging-6.7",
+    "mce-2.6",
     "mce-2.8",
     "mce-2.9",
     "mce-2.10",

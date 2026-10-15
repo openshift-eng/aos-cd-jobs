@@ -18,7 +18,6 @@ node {
     properties(
         [
             disableResume(),
-            disableConcurrentBuilds(),
             buildDiscarder(
                 logRotator(
                     artifactDaysToKeepStr: '30',
@@ -45,33 +44,35 @@ node {
 
     try {
 
-    sshagent(["openshift-bot"]) {
-        stage("initialize") {
-            currentBuild.displayName = "${params.BUILD_VERSION} - ${params.ASSEMBLY} - #${currentBuild.number}"
-        }
+    lock(resource: "verify-stage-testing-${params.BUILD_VERSION}-${params.ASSEMBLY}", skipIfLocked: true) {
+        sshagent(["openshift-bot"]) {
+            stage("initialize") {
+                currentBuild.displayName = "${params.BUILD_VERSION} - ${params.ASSEMBLY} - #${currentBuild.number}"
+            }
 
-        stage("verify-stage-testing") {
-            def cmd = [
-                "artcd",
-                "-v",
-                "--working-dir=./artcd_working",
-                "--config=./config/artcd.toml",
-            ]
-            cmd += [
-                "verify-stage-testing",
-                "--version=${params.BUILD_VERSION}",
-                "--assembly=${params.ASSEMBLY}",
-            ]
+            stage("verify-stage-testing") {
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                ]
+                cmd += [
+                    "verify-stage-testing",
+                    "--version=${params.BUILD_VERSION}",
+                    "--assembly=${params.ASSEMBLY}",
+                ]
 
-            buildlib.withAppCiAsArtPublish() {
-                withCredentials([
-                    string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
-                    string(credentialsId: 'art-gangway-token', variable: 'GANGWAY_TOKEN'),
-                ]) {
-                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
-                        buildlib.init_artcd_working_dir()
-                        echo "Will run: ${cmd.join(' ')}"
-                        sh(script: cmd.join(' '))
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([
+                        string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                        string(credentialsId: 'art-gangway-token', variable: 'GANGWAY_TOKEN'),
+                    ]) {
+                        withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                            buildlib.init_artcd_working_dir()
+                            echo "Will run: ${cmd.join(' ')}"
+                            sh(script: cmd.join(' '))
+                        }
                     }
                 }
             }

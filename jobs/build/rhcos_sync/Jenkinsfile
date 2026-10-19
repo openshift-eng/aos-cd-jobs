@@ -58,6 +58,14 @@ node {
                         description: 'Only sign RHCOS container images via Sigstore/cosign (skip boot image mirror sync, GPG signing, ROSA, Azure). Use for z-stream releases.',
                         defaultValue: false,
                     ),
+                    choice(
+                        name: 'SIGNING_TRANSPORT',
+                        description: 'Signing transport for the RHCOS sha256sum signature',
+                        choices: [
+                            "umb",
+                            "direct",
+                        ].join("\n"),
+                    ),
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                 ],
@@ -174,6 +182,7 @@ node {
                             --release-tag ${params.RELEASE_TAG} \\
                             --signing-env ${signing_env} \\
                             ${forceFlag} \\
+                            --signing-transport ${params.SIGNING_TRANSPORT} \\
                             ${noLatestFlag} \\
                             ${signOnlyFlag}
                     """

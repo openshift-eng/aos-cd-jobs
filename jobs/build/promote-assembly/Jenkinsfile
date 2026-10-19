@@ -79,6 +79,14 @@ node {
                         description: 'Do not sign the release (legacy).',
                         defaultValue: false,
                     ),
+                    choice(
+                        name: 'SIGNING_TRANSPORT',
+                        description: 'Signing transport for release artifacts',
+                        choices: [
+                            "umb",
+                            "direct",
+                        ].join("\n"),
+                    ),
                     booleanParam(
                         name: 'SKIP_SIGSTORE',
                         description: 'Do not sign the release with the newer sigstore method.',
@@ -167,6 +175,7 @@ node {
             }
             def signing_env = params.DRY_RUN? "stage": "prod"
             cmd << "--signing-env=${signing_env}"
+            cmd << "--signing-transport=${params.SIGNING_TRANSPORT}"
             echo "Will run ${cmd.join(' ')}"
             def siging_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
             def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"

@@ -119,6 +119,19 @@ node {
     echo("RHCOS sync: tag=${tag}, arch=${arch}, ocpVersion=${ocpVersion}, name=${name}, mirrorPrefix=${mirrorPrefix}")
 
     try {
+        // Capture the current RHCOS build on mirror before sync, so we can
+        // determine whether the sync actually changed anything (needsHappening gate).
+        // This is a public URL — no credentials needed.
+        def rhcosBuildOnMirrorBefore = ""
+        if (!params.SIGN_ONLY) {
+            def mirrorUrl = "https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/rhcos-id.txt"
+            rhcosBuildOnMirrorBefore = commonlib.shell(
+                returnStdout: true,
+                script: "curl -sf ${mirrorUrl} || true"
+            ).trim()
+            echo "RHCOS build currently on mirror: '${rhcosBuildOnMirrorBefore}'"
+        }
+
         // === Main stage: artcd rhcos-sync handles the entire sync + sign workflow ===
         // This replaces the previous Groovy preamble (pullspec resolution, oc image
         // extract, RHCOS metadata extraction, synclist generation, needsHappening
@@ -166,9 +179,32 @@ node {
             }
         }
 
+        // After artcd finishes, extract the RHCOS build ID from the stream JSON
+        // that artcd wrote, and determine if downstream stages need to run.
+        // If the build on mirror is already the same as what artcd resolved,
+        // there's nothing new to announce or propagate downstream.
+        def rhcosBuild = ""
+        def needsHappening = true
+        if (!params.SIGN_ONLY) {
+            def streamJsonFile = "${env.WORKSPACE}/artcd_working/rhcos-${arch}.json"
+            if (fileExists(streamJsonFile)) {
+                rhcosBuild = commonlib.shell(
+                    returnStdout: true,
+                    script: "jq -r '.architectures.\"${arch}\".artifacts.qemu.release // empty' ${streamJsonFile}"
+                ).trim()
+            }
+            if (!params.FORCE) {
+                if (rhcosBuild && rhcosBuild == rhcosBuildOnMirrorBefore) {
+                    echo "RHCOS build ${rhcosBuild} was already on mirror before sync; skipping downstream stages"
+                    needsHappening = false
+                }
+            }
+            echo "needsHappening=${needsHappening} (rhcosBuild='${rhcosBuild}', mirrorBefore='${rhcosBuildOnMirrorBefore}', FORCE=${params.FORCE})"
+        }
+
         if (!params.SIGN_ONLY) {
             stage("Slack notification to release channel") {
-                if (!params.DRY_RUN) {
+                if (needsHappening && !params.DRY_RUN) {
                     slacklib.to(ocpVersion).say("""
                     *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
                     https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
@@ -181,6 +217,10 @@ node {
             // Only run for x86_64 since no AMIs for other arches
             if (arch == "x86_64") {
                 stage("Mirror ROSA AMIs") {
+                    if (!needsHappening) {
+                        echo "RHCOS build unchanged on mirror; skipping ROSA AMI sync"
+                        return
+                    }
                     // The artcd rhcos-sync command writes the RHCOS stream JSON to
                     // the working directory. Extract the us-east-1 AMI from it and
                     // create a meta.json-compatible file for rosa_sync.sh.
@@ -206,7 +246,7 @@ node {
                     }
                 }
                 stage("Slack notification to release channel") {
-                    if (!params.DRY_RUN) {
+                    if (needsHappening && !params.DRY_RUN) {
                         slacklib.to(ocpVersion).say("""
                         *:white_check_mark: rosa_sync (${name}) successful*
                         """)
@@ -216,6 +256,10 @@ node {
 
             // Publish azure marketplace for 4.10+
             stage("Publish azure marketplace") {
+                if (!needsHappening) {
+                    echo "RHCOS build unchanged on mirror; skipping Azure marketplace publish"
+                    return
+                }
                 if (buildlib.cmp_version(ocpVersion, "4.9") == 1) {
                     build(
                         job: 'build%252Fpublish_azure_marketplace',

@@ -18,7 +18,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.ocpVersionParam('VERSION', '4'),
+                    commonlib.ocpVersionParam('VERSION', '4plus'),
                     string(
                         name: 'OPENSHIFT_INSTALLER_GIT_REF',
                         description: 'If anything other than release-4.x branch HEAD, specify git reference to checkout (e.g. 1c538b8949f3a0e5b993e1ae33b9cd799806fa93) would result in publishing https://github.com/openshift/installer/blob/1c538b8949f3a0e5b993e1ae33b9cd799806fa93/data/data/rhcos-stream.json#L338',

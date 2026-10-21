@@ -132,6 +132,7 @@ node {
                 string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                 file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                     script {
@@ -195,11 +196,13 @@ node {
                             cmd << "--network-mode=${params.NETWORK_MODE}"
                         }
 
-                        // Run pipeline
-                        timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
-                            echo "Will run ${cmd.join(' ')}"
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        } // timeout
+                        // Run pipeline; app.ci kubeconfig lets the golang bug sweep read nightlies on registry.ci
+                        buildlib.withAppCiAsArtPublish() {
+                            timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
+                                echo "Will run ${cmd.join(' ')}"
+                                sh(script: cmd.join(' '), returnStdout: true)
+                            } // timeout
+                        }
 
                         commonlib.safeArchiveArtifacts([
                             "artcd_working/**/*.json",

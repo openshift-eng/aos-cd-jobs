@@ -35,6 +35,20 @@ node {
                         choices: [
                             'oc-mirror-2.0',
                             'mirror-gui-1.0',
+                            'openshift-4.12',
+                            'openshift-4.13',
+                            'openshift-4.14',
+                            'openshift-4.15',
+                            'openshift-4.16',
+                            'openshift-4.17',
+                            'openshift-4.18',
+                            'openshift-4.19',
+                            'openshift-4.20',
+                            'openshift-4.21',
+                            'openshift-4.22',
+                            'openshift-4.23',
+                            'openshift-5.0',
+                            'openshift-5.1',
                         ].join('\n'),
                     ],
                     string(
@@ -46,6 +60,18 @@ node {
                     text(
                         name: 'NVR',
                         description: 'Comma-separated list of build NVR(s) to release, e.g. oc-mirror-container-2.0-202607291654.p2.g90b54b1.assembly.stream.el9',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'RELEASE_PLAN_KEY',
+                        description: 'ocp-shipment-data config.yaml applications key for the stage/prod ReleasePlans. Required for openshift-* products: openshift-X-Y-cdn (GA) or openshift-X-Y-cdn-dev-preview. Leave empty for other products.',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'SHIPMENT_KIND',
+                        description: 'Shipment file kind. Required for openshift-* products: cdn (GA) or cdn-dev-preview. Leave empty for other products (default kind: image).',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -104,6 +130,18 @@ node {
                     nvrs,
                     "--create-mr"
                 ]
+
+                def releasePlanKey = params.RELEASE_PLAN_KEY?.trim()
+                if (releasePlanKey) {
+                    cmd << "--release-plan-key"
+                    cmd << "${releasePlanKey}"
+                }
+
+                def shipmentKind = params.SHIPMENT_KIND?.trim()
+                if (shipmentKind) {
+                    cmd << "--shipment-kind"
+                    cmd << "${shipmentKind}"
+                }
 
                 def targetDate = params.TARGET_RELEASE_DATE?.trim()
                 if (targetDate) {

@@ -65,13 +65,13 @@ node {
                     ),
                     string(
                         name: 'RELEASE_PLAN_KEY',
-                        description: 'ocp-shipment-data config.yaml applications key for the stage/prod ReleasePlans. Required for openshift-* products: openshift-X-Y-cdn (GA) or openshift-X-Y-cdn-dev-preview. Leave empty for other products.',
+                        description: 'ocp-shipment-data config.yaml applications key for the stage/prod ReleasePlans. Required for openshift-* products: openshift-X-Y-binaries (GA) or openshift-X-Y-binaries-dev-preview. Leave empty for other products.',
                         defaultValue: "",
                         trim: true,
                     ),
                     string(
                         name: 'SHIPMENT_KIND',
-                        description: 'Shipment file kind. Required for openshift-* products: cdn (GA) or cdn-dev-preview. Leave empty for other products (default kind: image).',
+                        description: 'Shipment file kind. Required for openshift-* products: binaries (GA) or binaries-dev-preview. Leave empty for other products (default kind: image).',
                         defaultValue: "",
                         trim: true,
                     ),

@@ -6,13 +6,13 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
-    commonlib.describeJob("installer-cdn-release", """
-        <h2>Ship openshift-install for a promoted release through the Konflux CDN</h2>
+    commonlib.describeJob("binaries-cdn-release", """
+        <h2>Ship a binaries/ member (e.g. openshift-install) of a promoted release through the Konflux CDN</h2>
         <b>Timing</b>: Started by promote right after it publishes the clients to mirror.openshift.com.
         Can be re-run by hand with the same parameters.
 
-        Builds the openshift-install delivery image of the release (doozer, Konflux) with the release
-        digests as build args, checks that its parents are the payload's installer images, opens the
+        Builds the binary from ocp-build-data binaries/ (doozer beta:binaries:konflux:*) with the release
+        digests as build args, checks that its parents are the payload's images, opens the
         konflux-release-data MR for the CGW product version and waits for it, then creates the shipment
         MR with artcd binary-release-konflux. The mirror.openshift.com clients are not touched.
     """)
@@ -30,6 +30,12 @@ node {
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                     commonlib.artToolsParam(),
+                    [
+                        name: 'BINARY',
+                        description: 'The ocp-build-data binaries/ member to ship',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['openshift-install'].join('\n'),
+                    ],
                     commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                     string(
                         name: 'ASSEMBLY',
@@ -51,13 +57,13 @@ node {
                     ],
                     string(
                         name: 'NVR',
-                        description: '(Optional) Release this delivery image NVR instead of building a new one',
+                        description: '(Optional) Release this binaries build NVR instead of building a new one',
                         defaultValue: "",
                         trim: true,
                     ),
                     booleanParam(
                         name: 'BUILD_ONLY',
-                        description: 'Build and verify the delivery image, then stop before the konflux-release-data and shipment MRs (Konflux build gate)',
+                        description: 'Build and verify the binary, then stop before the konflux-release-data and shipment MRs (Konflux build gate)',
                         defaultValue: false,
                     ),
                     booleanParam(
@@ -94,14 +100,14 @@ node {
             if (!params.ASSEMBLY || !params.RELEASE_NAME) {
                 error("ASSEMBLY and RELEASE_NAME are required")
             }
-            currentBuild.displayName = "#${currentBuild.number} ${params.RELEASE_NAME} ${params.CLIENT_TYPE}"
+            currentBuild.displayName = "#${currentBuild.number} ${params.BINARY} ${params.RELEASE_NAME} ${params.CLIENT_TYPE}"
             if (params.DRY_RUN) {
                 currentBuild.displayName += " [DRY_RUN]"
             }
         }
 
         try {
-            stage("installer-cdn-release") {
+            stage("binaries-cdn-release") {
                 def cmd = [
                     "artcd",
                     "-v",
@@ -114,7 +120,8 @@ node {
                 }
 
                 cmd += [
-                    "installer-cdn-release",
+                    "binaries-cdn-release",
+                    "--binary=${params.BINARY}",
                     "--version=${params.BUILD_VERSION}",
                     "--assembly=${params.ASSEMBLY}",
                     "--release-name=${params.RELEASE_NAME}",
@@ -161,7 +168,7 @@ node {
                         }
                         withEnv(envVars) {
                             buildlib.init_artcd_working_dir()
-                            lock("installer-cdn-release-${params.BUILD_VERSION}-${params.CLIENT_TYPE}") {
+                            lock("binaries-cdn-release-${params.BINARY}-${params.BUILD_VERSION}-${params.CLIENT_TYPE}") {
                                 sh(script: cmd.join(' '))
                             }
                         }

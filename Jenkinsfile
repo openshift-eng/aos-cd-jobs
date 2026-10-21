@@ -1,70 +1,190 @@
-// Update-branches job
+#!/usr/bin/env groovy
 
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
-
-node('openshift-build-1') {
+node {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    commonlib.describeJob("binaries-cdn-release", """
+        <h2>Ship a binaries/ member (e.g. openshift-install) of a promoted release through the Konflux CDN</h2>
+        <b>Timing</b>: Started by promote right after it publishes the clients to mirror.openshift.com.
+        Can be re-run by hand with the same parameters.
+
+        Builds the binary from ocp-build-data binaries/ (doozer beta:binaries:konflux:*) with the release
+        digests as build args, checks that its parents are the payload's images, opens the
+        konflux-release-data MR for the CGW product version and waits for it, then creates the shipment
+        MR with artcd binary-release-konflux. The mirror.openshift.com clients are not touched.
+    """)
+
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '30',
+                    daysToKeepStr: '30')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.dryrunParam(),
+                    commonlib.mockParam(),
+                    commonlib.artToolsParam(),
+                    [
+                        name: 'BINARY',
+                        description: 'The ocp-build-data binaries/ member to ship',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['openshift-install'].join('\n'),
+                    ],
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'The promoted assembly, e.g. 4.22.18',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'RELEASE_NAME',
+                        description: 'The promoted release name, e.g. 4.22.18 or 4.23.0-ec.1',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    [
+                        name: 'CLIENT_TYPE',
+                        description: 'ocp for GA releases, ocp-dev-preview otherwise (promote passes the value it used for mirror.openshift.com)',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['ocp', 'ocp-dev-preview'].join('\n'),
+                    ],
+                    string(
+                        name: 'NVR',
+                        description: '(Optional) Release this binaries build NVR instead of building a new one',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    booleanParam(
+                        name: 'BUILD_ONLY',
+                        description: 'Build and verify the binary, then stop before the konflux-release-data and shipment MRs (Konflux build gate)',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'SKIP_CGW_MR',
+                        description: 'Do not create or wait for the konflux-release-data MR (it is already merged)',
+                        defaultValue: false,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    commonlib.enableTelemetryParam(),
+                    commonlib.telemetryEndpointParam(),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    if (currentBuild.description == null) {
+        currentBuild.description = ""
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+    sshagent(["openshift-bot"]) {
+        stage("initialize") {
+            if (!params.ASSEMBLY || !params.RELEASE_NAME) {
+                error("ASSEMBLY and RELEASE_NAME are required")
+            }
+            currentBuild.displayName = "#${currentBuild.number} ${params.BINARY} ${params.RELEASE_NAME} ${params.CLIENT_TYPE}"
+            if (params.DRY_RUN) {
+                currentBuild.displayName += " [DRY_RUN]"
+            }
+        }
+
+        try {
+            stage("binaries-cdn-release") {
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                ]
+
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+
+                cmd += [
+                    "binaries-cdn-release",
+                    "--binary=${params.BINARY}",
+                    "--version=${params.BUILD_VERSION}",
+                    "--assembly=${params.ASSEMBLY}",
+                    "--release-name=${params.RELEASE_NAME}",
+                    "--client-type=${params.CLIENT_TYPE}",
+                    "--data-path=${params.DOOZER_DATA_PATH}",
+                ]
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
+                if (params.NVR) {
+                    cmd << "--nvr=${params.NVR}"
+                }
+                if (params.SKIP_CGW_MR) {
+                    cmd << "--skip-cgw-mr"
+                }
+                if (params.BUILD_ONLY) {
+                    cmd << "--build-only"
+                }
+
+                wrap([$class: 'BuildUser']) {
+                    builderEmail = env.BUILD_USER_EMAIL
+                }
+
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([
+                        string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                        string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                        file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                        file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                        file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                        string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                        string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                        string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                        file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                    ]){
+                        def envVars = ["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']
+                        if (params.TELEMETRY_ENABLED) {
+                            envVars << "TELEMETRY_ENABLED=1"
+                            if (params.OTEL_EXPORTER_OTLP_ENDPOINT && params.OTEL_EXPORTER_OTLP_ENDPOINT != "") {
+                                envVars << "OTEL_EXPORTER_OTLP_ENDPOINT=${params.OTEL_EXPORTER_OTLP_ENDPOINT}"
+                            }
+                        }
+                        withEnv(envVars) {
+                            buildlib.init_artcd_working_dir()
+                            lock("binaries-cdn-release-${params.BINARY}-${params.BUILD_VERSION}-${params.CLIENT_TYPE}") {
+                                sh(script: cmd.join(' '))
+                            }
+                        }
+                    }
+                }
+            }
+        } finally {
+            stage("terminate") {
+                commonlib.safeArchiveArtifacts([
+                    "artcd_working/**/*.log",
+                    "artcd_working/**/*.yaml",
+                    "artcd_working/**/*.yml",
+                ])
+                buildlib.cleanWorkspace()
+            }
+        }
+    }
     }
 }

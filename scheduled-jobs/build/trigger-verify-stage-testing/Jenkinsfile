@@ -8,7 +8,6 @@ node() {
         Scans GitLab shipment MRs for assemblies needing stage testing
         (stage-release-success label present, no stage-testing-* label)
         and triggers the verify-stage-testing job for each.
-        Runs every 30 minutes.
     """)
 
     properties([

@@ -1,0 +1,62 @@
+node() {
+    timestamps {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    commonlib.describeJob("trigger-verify-release", """
+        Scan open GitLab shipment MRs with stage-release-success and
+        stage-testing-success, but without verify-release-success,
+        and trigger verify-release for each eligible assembly.
+    """)
+
+    properties([
+        buildDiscarder(logRotator(daysToKeepStr: '30', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+        disableResume(),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                commonlib.artToolsParam(),
+                commonlib.dryrunParam(),
+                commonlib.mockParam(),
+            ]
+        ],
+    ])
+
+    commonlib.checkMock()
+    buildlib.init_artcd_working_dir()
+
+    try {
+        stage("scan") {
+            def cmd = [
+                "artcd",
+                "-v",
+                "--working-dir=${WORKSPACE}/artcd_working",
+                "--config=./config/artcd.toml",
+            ]
+            if (params.DRY_RUN) {
+                cmd += ["--dry-run"]
+            }
+            cmd += ["schedule-verify-release-scan"]
+
+            withCredentials([
+                string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+            ]) {
+                echo "Will run ${cmd.join(' ')}"
+                sh(script: cmd.join(' '))
+            }
+        }
+    } catch (Exception ex) {
+        currentBuild.description = "Error: ${ex.message}"
+        throw ex
+    } finally {
+        commonlib.safeArchiveArtifacts([
+            "artcd_working/**/*.log",
+        ])
+        buildlib.cleanWorkspace()
+    }
+    }
+}

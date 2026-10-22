@@ -12,6 +12,7 @@ node {
         (cdn-push, signatures, image-grades, payload, qe-qualifier,
         security-alerts, kernel-tag, cve-trackers) in parallel
         and reports pass/fail for each step.
+        After successful verification, adds verify-release-success to the shipment MR.
     """)
 
     properties(
@@ -26,6 +27,7 @@ node {
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION', '4plus'),
                     commonlib.artToolsParam(),
+                    commonlib.dryrunParam(),
                     string(
                         name: 'ASSEMBLY',
                         description: 'Assembly name to verify (e.g. 4.19.42)',
@@ -34,7 +36,7 @@ node {
                     ),
                     string(
                         name: 'SKIP_STEPS',
-                        description: '(Optional) Comma-separated list of steps to skip: cdn-push, csv-versions, signatures, image-grades, payload, qe-qualifier, security-alerts, kernel-tag, cve-trackers, stage-testing',
+                        description: '(Optional) Comma-separated list of steps to skip: cdn-push, csv-versions, signatures, image-grades, payload, qe-qualifier, security-alerts, kernel-tag, cve-trackers, stage-testing, shipment-label',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -62,6 +64,9 @@ node {
                 "--working-dir=./artcd_working",
                 "--config=./config/artcd.toml",
             ]
+            if (params.DRY_RUN) {
+                cmd += ["--dry-run"]
+            }
             cmd += [
                 "verify-release",
                 "--version=${params.BUILD_VERSION}",

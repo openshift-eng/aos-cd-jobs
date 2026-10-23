@@ -64,11 +64,6 @@ node {
                         description: 'Do not check if there is already a golang builder image with the rpm, but build a new one anyway',
                     ),
                     choice(
-                        name: 'BUILD_SYSTEM',
-                        choices: ['konflux'],
-                        description: 'Build system to use for golang-builder images (brew, konflux, or both). Defaults to konflux.',
-                    ),
-                    choice(
                         name: 'ASSEMBLY',
                         choices: ['stream', 'test'],
                         description: 'Stream-type assembly to use for golang-builder operations. Defaults to stream.',
@@ -81,6 +76,11 @@ node {
                     booleanParam(
                         name: 'EXTERNAL_GOLANG_RPMS',
                         description: 'Use golang RPMs from external repos (not tagged in rhaos build tags). Skips tagging and availability checks.',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'ALL_OCP_VERSIONS',
+                        description: 'Also tag the golang RPMs for every active OCP version whose group.yml GO_LATEST matches the NVRs. BUILD_VERSION must be one of them; it still picks the plashet, image vars and Slack channel.',
                         defaultValue: false,
                     ),
                     booleanParam(
@@ -132,6 +132,7 @@ node {
                 string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                 file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                     script {
@@ -178,9 +179,6 @@ node {
                         if (params.FORCE_IMAGE_BUILD) {
                             cmd << "--force-image-build"
                         }
-                        if (params.BUILD_SYSTEM) {
-                            cmd << "--build-system=${params.BUILD_SYSTEM}"
-                        }
                         cmd << "--assembly=${params.ASSEMBLY}"
                         if (params.SKIP_PR) {
                             cmd << "--skip-pr"
@@ -191,15 +189,20 @@ node {
                         if (params.MAJOR_BUMP) {
                             cmd << "--major-bump"
                         }
+                        if (params.ALL_OCP_VERSIONS) {
+                            cmd << "--all-ocp-versions"
+                        }
                         if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                             cmd << "--network-mode=${params.NETWORK_MODE}"
                         }
 
-                        // Run pipeline
-                        timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
-                            echo "Will run ${cmd.join(' ')}"
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        } // timeout
+                        // Run pipeline; app.ci kubeconfig lets the golang bug sweep read nightlies on registry.ci
+                        buildlib.withAppCiAsArtPublish() {
+                            timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
+                                echo "Will run ${cmd.join(' ')}"
+                                sh(script: cmd.join(' '), returnStdout: true)
+                            } // timeout
+                        }
 
                         commonlib.safeArchiveArtifacts([
                             "artcd_working/**/*.json",

@@ -133,55 +133,47 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 }
 
                 // Run pipeline
-                buildlib.withAppCiAsArtPublish() {
-                    withCredentials([
-                            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                            string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                            string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
-                            file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                            file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
-                            file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
-                            string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
-                            usernamePassword(credentialsId: 'art_to_ci_promotion_robot--qci', usernameVariable: 'QCI_USER', passwordVariable: 'QCI_PASSWORD'),
-                        ]) {
-                        wrap([$class: 'BuildUser']) {
-                            builderEmail = env.BUILD_USER_EMAIL
-                        }
+                withCredentials([
+                        string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                        string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                        string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
+                        file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
+                    ]) {
+                    wrap([$class: 'BuildUser']) {
+                        builderEmail = env.BUILD_USER_EMAIL
+                    }
 
-                        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
-                            try {
-                                echo "Will run ${cmd.join(' ')}"
+                    withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        try {
+                            echo "Will run ${cmd.join(' ')}"
 
-                                timeout(activity: true, time: 120, unit: 'MINUTES') {
-                                    def rc = sh(script: cmd.join(' '), returnStatus: true)
-                                    if (rc == 25) {
-                                        currentBuild.result = 'UNSTABLE'
-                                        echo "sync-ci-images completed with partial errors (rc=25)"
-                                    } else if (rc != 0) {
-                                        error("sync-ci-images failed with exit code ${rc}")
-                                    }
+                            timeout(activity: true, time: 120, unit: 'MINUTES') {
+                                def rc = sh(script: cmd.join(' '), returnStatus: true)
+                                if (rc == 25) {
+                                    currentBuild.result = 'UNSTABLE'
+                                    echo "sync-ci-images completed with partial errors (rc=25)"
+                                } else if (rc != 0) {
+                                    error("sync-ci-images failed with exit code ${rc}")
                                 }
-
-                            } catch (err) {
-                                echo "Error running ${params.VERSION} sync-ci-images:\n${err}"
-                                throw err
-
-                            } finally {
-                                // Archive logs if they exist
-                                def debugLog = "${doozer_working}/debug.log"
-                                if (fileExists(debugLog)) {
-                                    sh "mv ${debugLog} ${doozer_working}/debug-${params.VERSION}.log"
-                                    sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
-                                    commonlib.safeArchiveArtifacts(["artcd_working/doozer_working/*.bz2"])
-                                }
-                                buildlib.cleanWorkspace()
                             }
-                        } // withEnv
-                    } // withCredentials
-                } // withAppCiAsArtPublish
+
+                        } catch (err) {
+                            echo "Error running ${params.VERSION} sync-ci-images:\n${err}"
+                            throw err
+
+                        } finally {
+                            // Archive logs if they exist
+                            def debugLog = "${doozer_working}/debug.log"
+                            if (fileExists(debugLog)) {
+                                sh "mv ${debugLog} ${doozer_working}/debug-${params.VERSION}.log"
+                                sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
+                                commonlib.safeArchiveArtifacts(["artcd_working/doozer_working/*.bz2"])
+                            }
+                            buildlib.cleanWorkspace()
+                        }
+                    } // withEnv
+                } // withCredentials
             } // sshagent
         } // stage
     }

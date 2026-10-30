@@ -58,6 +58,14 @@ node {
                         description: 'Only sign RHCOS container images via Sigstore/cosign (skip boot image mirror sync, GPG signing, ROSA, Azure). Use for z-stream releases.',
                         defaultValue: false,
                     ),
+                    choice(
+                        name: 'SIGNING_TRANSPORT',
+                        description: 'Signing transport for the RHCOS sha256sum signature',
+                        choices: [
+                            "umb",
+                            "direct",
+                        ].join("\n"),
+                    ),
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                 ],
@@ -151,6 +159,9 @@ node {
                 // GPG signing credentials for boot image sha256sum
                 file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
                 file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
+                // Direct signing credentials are bound for the planned transport cutover.
+                file(credentialsId: 'ocp-art-signing-prod.keytab', variable: 'DIRECT_SIGNING_KEYTAB'),
+                string(credentialsId: 'ocp-art-signing-prod.user', variable: 'DIRECT_SIGNING_PRINCIPAL'),
                 // Sigstore/cosign credentials for container image signing
                 file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),
                 string(credentialsId: sigstore_key_id, variable: 'KMS_KEY_ID'),
@@ -171,6 +182,7 @@ node {
                             --release-tag ${params.RELEASE_TAG} \\
                             --signing-env ${signing_env} \\
                             ${forceFlag} \\
+                            --signing-transport ${params.SIGNING_TRANSPORT} \\
                             ${noLatestFlag} \\
                             ${signOnlyFlag}
                     """

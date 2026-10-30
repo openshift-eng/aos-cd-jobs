@@ -31,7 +31,7 @@ node() {
                 "-v",
                 "--working-dir=${WORKSPACE}/artcd_working",
                 "--config=./config/artcd.toml",
-                "schedule-stage-testing-scan",
+                "schedule-verify-stage-testing-scan",
             ]
 
             withCredentials([

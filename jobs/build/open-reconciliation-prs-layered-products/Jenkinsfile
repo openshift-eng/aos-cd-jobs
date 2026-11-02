@@ -26,7 +26,7 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                         choice(
                             name: 'GROUP',
                             description: 'Layered product group to reconcile',
-                            choices: commonlib.nonOCPGroups,
+                            choices: commonlib.LPClusterGroups,
                         ),
                         string(
                             name: 'ASSEMBLY',

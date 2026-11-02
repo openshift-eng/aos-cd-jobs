@@ -28,7 +28,7 @@ node {
             "--config=./config/artcd.toml",
             "schedule-open-reconciliation-prs-layered"
         ]
-        for ( group in commonlib.nonOCPGroups ) {
+        for ( group in commonlib.LPClusterGroups ) {
             cmd << "--group=${group}"
         }
 

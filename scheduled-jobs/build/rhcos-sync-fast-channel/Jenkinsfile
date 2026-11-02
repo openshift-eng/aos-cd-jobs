@@ -1,0 +1,61 @@
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+description = ""
+failed = false
+
+def runFor(version) {
+    try {
+        timeout(activity: true, time: 20, unit: 'MINUTES') {
+            b = build(
+                job: '../aos-cd-builds/build%2Frhcos-sync-fast-channel',
+                parameters: [
+                    string(name: 'VERSION', value: version),
+                ],
+                propagate: false,
+            )
+        }
+        description += "${version} - ${b.result}\n"
+        failed |= (b.result != "SUCCESS")
+    } catch (te) {
+        description += "${version} - ERROR\n"
+        failed = true
+    }
+}
+
+// Iterate every buildable 4.x/5.x y-stream. The per-version worker safely
+// no-ops for y-streams whose fast channel has no new/changed build (pre-GA
+// fast channels are empty; already-synced versions compare equal), so no phase
+// filtering is required here. This set can later be narrowed to GA/maintenance
+// phases if desired.
+@NonCPS
+def sortedVersions() {
+  return commonlib.ocpMajorVersions["4plus"].sort(false)
+}
+
+node() {
+    timestamps {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+    slacklib = commonlib.slacklib
+
+    try {
+        // Dispatch one worker build per y-stream, sequentially.
+        for ( String version : sortedVersions() ) {
+            runFor(version)
+        }
+    } catch (err) {
+        slacklib.to("#art-release").failure("Error running rhcos-sync-fast-channel", err)
+        throw err
+    } finally {
+        buildlib.cleanWorkspace()
+    }
+    }
+}
+
+currentBuild.description = description.trim()
+currentBuild.result = failed ? "FAILURE" : "SUCCESS"

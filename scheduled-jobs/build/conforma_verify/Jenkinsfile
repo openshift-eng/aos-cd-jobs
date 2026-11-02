@@ -32,7 +32,7 @@ node {
         for ( version in commonlib.ocpMajorVersions["4plus"] ) {
             cmd << "--group=openshift-${version}"
         }
-        for ( group in commonlib.nonOCPGroups ) {
+        for ( group in commonlib.LPClusterGroups ) {
             cmd << "--group=${group}"
         }
         cmd << "--serial"

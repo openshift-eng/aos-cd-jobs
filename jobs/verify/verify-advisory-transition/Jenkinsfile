@@ -11,7 +11,9 @@ node {
         Excludes MicroShift and transitions QE advisories only. Elliott then
         verifies all active advisories have progressed beyond QE.
         Requires verify-release-success on the shipment MR and adds
-        advisory-transition-success after successful processing.
+        advisory-transition-success after successful processing, removing any fail label.
+        Failed attempts add advisory-transition-fail and stop scheduled retries.
+        Retry this job manually after fixing the cause, or remove the fail label.
     """)
 
     properties([

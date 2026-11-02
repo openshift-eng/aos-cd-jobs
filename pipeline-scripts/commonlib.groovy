@@ -27,11 +27,10 @@ ocp5Versions = [
     "5.0",
 ]
 
-nonOCPGroups = [
-]
-
-// Additional LP groups from cluster scan schedules.
+// Layered-product groups shared by scheduled jobs and manual job parameters.
 LPClusterGroups = [
+    "acm-2.11",
+    "acm-2.13",
     "acm-2.14",
     "acm-2.15",
     "acm-2.16",
@@ -47,6 +46,7 @@ LPClusterGroups = [
     "logging-6.5",
     "logging-6.6",
     "logging-6.7",
+    "mce-2.6",
     "mce-2.8",
     "mce-2.9",
     "mce-2.10",
@@ -64,11 +64,15 @@ LPClusterGroups = [
     "oc-mirror-2.0",
     "osus-5.0",
     "quay-3.9",
+    "quay-3.10",
     "quay-3.12",
     "quay-3.14",
+    "quay-3.15",
     "quay-3.16",
     "quay-3.17",
     "quay-3.18",
+    "quay-5.0",
+    "quay-5.1",
     "rhosdt-0.158",
     "zero-trust-1.0",
     "zero-trust-1.1",

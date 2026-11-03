@@ -37,6 +37,10 @@ by any later build of the same component in this pull-for-testing repo.
   credential, exposed as the `GOOGLE_APPLICATION_CREDENTIALS` environment
   variable, so the pipeline's KonfluxDb / BigQuery client can authenticate when
   resolving build records.
+- On successful completion the job appends a summary of the destination pullspecs
+  it created (grouped by NVR) to the Jenkins build description. This requires the
+  `jenkins-service-account` / `jenkins-service-account-token` credentials and the
+  `BUILD_URL` / `JOB_NAME` environment variables.
 - The underlying pipeline command is
   `artcd ... sync-nvr-to-quay --nvr "<NVR>" --target-repo "<TARGET_REPO>"`,
   with `--dry-run` appended when `DRY_RUN` is set.

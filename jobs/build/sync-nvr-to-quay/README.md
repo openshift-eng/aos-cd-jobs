@@ -24,6 +24,10 @@ build record.
   embargo flag).
 - Quay push authentication is provided through the `quay-auth-file` credential,
   exposed to the pipeline as the `QUAY_AUTH_FILE` environment variable.
+- Google Cloud credentials are provided through the `konflux-gcp-app-creds-prod`
+  credential, exposed as the `GOOGLE_APPLICATION_CREDENTIALS` environment
+  variable, so the pipeline's KonfluxDb / BigQuery client can authenticate when
+  resolving build records.
 - The underlying pipeline command is
   `artcd ... sync-nvr-to-quay --nvr "<NVR>" --target-repo "<TARGET_REPO>"`,
   with `--dry-run` appended when `DRY_RUN` is set.

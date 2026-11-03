@@ -26,6 +26,12 @@ build record.
   embargo flag).
 - Quay push authentication is provided through the `quay-auth-file` credential,
   exposed to the pipeline as the `QUAY_AUTH_FILE` environment variable.
+- RHCOS source images live in the `art-rhcos-images` repo, which uses a separate
+  quay credential. The `art-rhcos-images-sa` credential is exposed as the
+  `RHCOS_QUAY_AUTH_FILE` environment variable, and the pipeline builds a **merged
+  registry config** (covering both the default konflux creds and the RHCOS creds)
+  so `oc image mirror` can read an RHCOS source as well as a konflux source and
+  write to the destination repo.
 - Google Cloud credentials are provided through the `konflux-gcp-app-creds-prod`
   credential, exposed as the `GOOGLE_APPLICATION_CREDENTIALS` environment
   variable, so the pipeline's KonfluxDb / BigQuery client can authenticate when

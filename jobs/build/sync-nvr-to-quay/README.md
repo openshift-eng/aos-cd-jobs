@@ -14,6 +14,8 @@ build record.
 | `ART_TOOLS_COMMIT` | (via `artToolsParam`) art-tools version to run. |
 | `NVR`          | NVR(s) to sync. A comma-separated list of one or more NVRs is supported; values are trimmed. **Required.** |
 | `TARGET_REPO`  | Target quay repo to sync into. This is a dropdown (allowlist). The only allowed value for now is `quay.io/redhat-user-workloads/ocp-art-tenant/art-images-test`. The allowlist is also enforced server-side by the pipeline. |
+| `ALLOW_FAILED` | When `true`, also consider terminal failed builds (e.g. a build that was built but failed ITS/conforma, `its_error`) in addition to successful ones. When `false` (default), only `success` records are eligible. Embargoed builds are **never** synced, even with `ALLOW_FAILED` set. |
+| `RECORD_ID`    | Konflux build `record_id`. When more than one record exists for a single NVR, the job fails and lists the candidate record_ids; set `RECORD_ID` to the desired one to pick among them. Only meaningful for a single NVR. Defaults to empty. |
 | `DRY_RUN`      | Take no action, just log what the job would have done. Defaults to `false`. |
 | `MOCK`         | (via `mockParam`) Pin parameters without running the job. |
 

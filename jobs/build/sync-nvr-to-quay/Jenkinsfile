@@ -39,6 +39,17 @@ node {
                             ].join("\n"),
                         ),
                         booleanParam(
+                            name: "ALLOW_FAILED",
+                            description: "Also consider terminal failed builds (e.g. its_error), not just successful ones. Embargoed builds are never synced regardless.",
+                            defaultValue: false
+                        ),
+                        string(
+                            name: 'RECORD_ID',
+                            description: 'Konflux build record_id to disambiguate when multiple records exist for one NVR. Only meaningful for a single NVR.',
+                            defaultValue: "",
+                            trim: true,
+                        ),
+                        booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",
                             defaultValue: false
@@ -73,6 +84,12 @@ node {
                     "--nvr", "\"${params.NVR}\"",
                     "--target-repo", "\"${params.TARGET_REPO}\"",
                 ]
+                if (params.ALLOW_FAILED) {
+                    cmd << "--allow-failed"
+                }
+                if (params.RECORD_ID?.trim()) {
+                    cmd += ["--record-id", "\"${params.RECORD_ID}\""]
+                }
                 withCredentials([
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                         file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),

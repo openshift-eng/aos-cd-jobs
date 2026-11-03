@@ -4,8 +4,9 @@ Sync a Konflux-built image (identified by its NVR) into an approved quay repo,
 tagging it so quay does not garbage-collect it.
 
 `sync_to_quay` (in art-tools / pyartcd) always creates a `sha256-<digest>` tag
-to prevent garbage collection, plus the human-friendly tags derived from the
-build record.
+to prevent garbage collection, plus the build-specific `image_tag` from the build
+record. No floating `<name>-<X.Y>` tag is applied, since it would be overwritten
+by any later build of the same component in this pull-for-testing repo.
 
 ## Parameters
 

@@ -57,6 +57,12 @@ node {
                             trim: true,
                         ),
                         string(
+                            name: 'PACKAGE_FILTER',
+                            description: '(Optional) Comma/space-separated list of package names to scope the plashet run to. When set, the filtered packages are merged into the existing plashet instead of a full regen. If empty, a full regen is performed.',
+                            defaultValue: '',
+                            trim: true,
+                        ),
+                        string(
                             name: 'DATA_PATH',
                             description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
                             defaultValue: "https://github.com/openshift-eng/ocp-build-data",
@@ -118,6 +124,9 @@ node {
             ]
             if (params.REPOS) {
                 cmd << "--repos=${params.REPOS}"
+            }
+            if (params.PACKAGE_FILTER) {
+                cmd << "--package-filter=${params.PACKAGE_FILTER}"
             }
             if (params.DATA_PATH) {
                 cmd << "--data-path=${params.DATA_PATH}"

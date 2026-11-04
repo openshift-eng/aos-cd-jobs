@@ -1,70 +1,121 @@
-// Update-branches job
-
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
-
-node('openshift-build-1') {
+node {
     timestamps {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
+    wrap([$class: "BuildUser"]) {
+        checkout scm
+        def buildlib = load("pipeline-scripts/buildlib.groovy")
+        def commonlib = buildlib.commonlib
+
+        commonlib.describeJob("sync-nvr-to-quay", """
+            <h2>Sync a Konflux-built image (identified by its NVR) into an approved quay repo.</h2>
+            <p>The image is tagged (including a <code>sha256-&lt;digest&gt;</code> tag) so quay does not
+            garbage-collect it.</p>
+            <p>TARGET_REPO is an allowlist (dropdown); the pipeline also enforces the allowlist
+            server-side. Embargoed NVRs are NEVER synced.</p>
+            <b>Timing</b>: Run on demand.
+        """)
+
+        properties(
+            [
+                disableResume(),
+                buildDiscarder(
+                    logRotator(
+                        artifactDaysToKeepStr: "45",
+                        daysToKeepStr: "45")),
+                [
+                    $class: "ParametersDefinitionProperty",
+                    parameterDefinitions: [
+                        commonlib.artToolsParam(),
+                        string(
+                            name: 'NVR',
+                            description: 'NVR(s) to sync. Comma-separated list is supported.',
+                            defaultValue: "",
+                            trim: true,
+                        ),
+                        choice(
+                            name: 'TARGET_REPO',
+                            description: 'Target quay repo to sync into (allowlist).',
+                            choices: [
+                                "quay.io/redhat-user-workloads/ocp-art-tenant/art-images-test",
+                            ].join("\n"),
+                        ),
+                        booleanParam(
+                            name: "ALLOW_FAILED",
+                            description: "Also consider terminal failed builds (e.g. its_error), not just successful ones. Embargoed builds are never synced regardless.",
+                            defaultValue: false
+                        ),
+                        string(
+                            name: 'RECORD_ID',
+                            description: 'Konflux build record_id to disambiguate when multiple records exist for one NVR. Only meaningful for a single NVR.',
+                            defaultValue: "",
+                            trim: true,
+                        ),
+                        booleanParam(
+                            name: "DRY_RUN",
+                            description: "Take no action, just echo what the job would have done.",
+                            defaultValue: false
+                        ),
+                        commonlib.mockParam(),
+                    ]
+                ],
+            ]
+        )   // Please update README.md if modifying parameter names or semantics
+
+        commonlib.checkMock()
+        stage("initialize") {
+            if (!params.NVR?.trim()) {
+                error("NVR parameter is required")
+            }
+            currentBuild.displayName += " ${params.NVR}"
         }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-python3 -m venv ../env/
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
+        try {
+            stage("sync-nvr-to-quay") {
+                sh "mkdir -p ./artcd_working"
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config", "./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
+                    "sync-nvr-to-quay",
+                    "--nvr", "\"${params.NVR}\"",
+                    "--target-repo", "\"${params.TARGET_REPO}\"",
+                ]
+                if (params.ALLOW_FAILED) {
+                    cmd << "--allow-failed"
+                }
+                if (params.RECORD_ID?.trim()) {
+                    cmd += ["--record-id", "\"${params.RECORD_ID}\""]
+                }
+                withCredentials([
+                        file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                        file(credentialsId: 'art-rhcos-images-sa', variable: 'RHCOS_QUAY_AUTH_FILE'),
+                        file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                        string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                        string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                        string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
+                        string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                    ]) {
+                    echo "Will run ${cmd.join(' ')}"
+                    withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                        commonlib.shell(script: cmd.join(' '))
+                    }
+                }
+            }
+        } catch (err) {
+            currentBuild.result = "FAILURE"
+            throw err
+        } finally {
+            commonlib.safeArchiveArtifacts([
+                "artcd_working/**/*.log",
+            ])
+            buildlib.cleanWorkdir("./artcd_working")
+            buildlib.cleanWorkspace()
         }
-      }
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
     }
 }

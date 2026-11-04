@@ -64,6 +64,7 @@ node {
                         "--assembly=${params.ASSEMBLY}",
                     ]
                     withCredentials([
+                        file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                         string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
                     ]) {
                         echo "Will run: ${cmd.join(' ')}"

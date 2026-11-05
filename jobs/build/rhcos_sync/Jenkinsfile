@@ -217,32 +217,43 @@ node {
             // Only run for x86_64 since no AMIs for other arches
             if (arch == "x86_64") {
                 stage("Mirror ROSA AMIs") {
-                    if (!needsHappening) {
-                        echo "RHCOS build unchanged on mirror; skipping ROSA AMI sync"
-                        return
+                    // artcd writes one JSON file for the primary stream and one
+                    // file for each additional RHCOS stream. Process all of them
+                    // so a changed RHEL 10 AMI is copied even when the primary
+                    // RHCOS build on mirror has not changed.
+                    def primaryStreamJsonFile = "${env.WORKSPACE}/artcd_working/rhcos-${arch}.json"
+                    if (!fileExists(primaryStreamJsonFile)) {
+                        error("RHCOS stream data not found: ${primaryStreamJsonFile}")
                     }
-                    // The artcd rhcos-sync command writes the RHCOS stream JSON to
-                    // the working directory. Extract the us-east-1 AMI from it and
-                    // create a meta.json-compatible file for rosa_sync.sh.
-                    def streamJsonFile = "${env.WORKSPACE}/artcd_working/rhcos-${arch}.json"
-                    def ami = commonlib.shell(
+                    def streamJsonFiles = [primaryStreamJsonFile]
+                    def additionalStreamJsonFiles = commonlib.shell(
                         returnStdout: true,
-                        script: "jq -r '.architectures.x86_64.images.aws.regions[\"us-east-1\"].image // empty' ${streamJsonFile}"
+                        script: "find ${env.WORKSPACE}/artcd_working -maxdepth 1 -type f -name 'rhcos-${arch}-*.json' -print | sort"
                     ).trim()
-
-                    if (!ami) {
-                        echo "No us-east-1 AMI found in RHCOS stream data, skipping ROSA sync"
-                        return
+                    if (additionalStreamJsonFiles) {
+                        streamJsonFiles.addAll(additionalStreamJsonFiles.readLines())
                     }
 
                     def rosaMetaJson = "${env.WORKSPACE}/rosa-meta.json"
-                    writeFile file: rosaMetaJson, text: """{"amis": [{"name": "us-east-1", "hvm": "${ami}"}]}"""
+                    streamJsonFiles.each { streamJsonFile ->
+                        def ami = commonlib.shell(
+                            returnStdout: true,
+                            script: "jq -r '.architectures.x86_64.images.aws.regions[\"us-east-1\"].image // empty' ${streamJsonFile}"
+                        ).trim()
 
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                        commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
-                    }
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                        commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
+                        if (!ami) {
+                            echo "No us-east-1 AMI found in RHCOS stream data ${streamJsonFile}; skipping this stream"
+                        } else {
+                            echo "Syncing ROSA AMI ${ami} from ${streamJsonFile}"
+                            writeFile file: rosaMetaJson, text: """{"amis": [{"name": "us-east-1", "hvm": "${ami}"}]}"""
+
+                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                                commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
+                            }
+                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                                commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
+                            }
+                        }
                     }
                 }
                 stage("Slack notification to release channel") {
@@ -256,10 +267,10 @@ node {
 
             // Publish azure marketplace for 4.10+
             stage("Publish azure marketplace") {
-                if (!needsHappening) {
-                    echo "RHCOS build unchanged on mirror; skipping Azure marketplace publish"
-                    return
-                }
+                // needsHappening compares only the primary RHCOS stream. The
+                // Azure publisher covers the RHEL-specific metadata files and
+                // skips blobs that are already present, so run it even if the
+                // primary stream is unchanged.
                 if (buildlib.cmp_version(ocpVersion, "4.9") == 1) {
                     build(
                         job: 'build%252Fpublish_azure_marketplace',

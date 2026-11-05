@@ -267,10 +267,10 @@ node {
 
             // Publish azure marketplace for 4.10+
             stage("Publish azure marketplace") {
-                if (!needsHappening) {
-                    echo "RHCOS build unchanged on mirror; skipping Azure marketplace publish"
-                    return
-                }
+                // needsHappening compares only the primary RHCOS stream. The
+                // Azure publisher covers the RHEL-specific metadata files and
+                // skips blobs that are already present, so run it even if the
+                // primary stream is unchanged.
                 if (buildlib.cmp_version(ocpVersion, "4.9") == 1) {
                     build(
                         job: 'build%252Fpublish_azure_marketplace',

@@ -1,8 +1,9 @@
 #!/bin/bash
 set -xeo pipefail
 
-# This script copies the first AMI that is found to exist in the us-east-1 region in the meta.json
-# to the AWS account configured via the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.
+# This script copies the us-east-1 AMI in the meta.json to the AWS account configured via the
+# AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables, unless that account already
+# has an AMI with the same name.
 # The path to the meta.json file must be passed as the first parameter.
 # An optional second parameter configures whether or not to do a dry run (defaults to false).
  
@@ -46,6 +47,16 @@ copy_ami() {
     ami_name=$(aws ec2 --region "$AWS_DEFAULT_REGION" describe-images --image-ids "${ami}" --query 'Images[0].[Name]' --output text)
     if [ -z "$ami_name" ]; then
         error-exit no AMI name found in metadata
+    fi
+
+    existing_ami=$(aws ec2 --region "$AWS_DEFAULT_REGION" describe-images \
+        --owners self \
+        --filters "Name=name,Values=${ami_name}" \
+        --query 'Images[0].ImageId' \
+        --output text)
+    if [ -n "$existing_ami" ] && [ "$existing_ami" != "None" ]; then
+        echo "AMI ${ami_name} (${existing_ami}) already exists in this AWS account; skipping copy"
+        return 0
     fi
     
     aws ec2 copy-image \

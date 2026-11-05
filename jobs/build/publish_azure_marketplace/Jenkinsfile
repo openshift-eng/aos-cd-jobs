@@ -45,23 +45,23 @@ node {
         '4.10': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         '4.11': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         // 4.12-4.21: still use rhcos.json (pre-dual-stream RHCOS)
-        '4.12': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.13': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.14': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.15': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.16': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.17': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.18': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.19': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.20': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
-        '4.21': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.12': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.13': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.14': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.15': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.16': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.17': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.18': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.19': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.20': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.21': ['paths': ['data/data/coreos/rhcos.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         // 4.22+: dual-stream RHCOS (x86_64 + aarch64)
         'default': ['paths': ['data/data/coreos/coreos-rhel-10.json', 'data/data/coreos/coreos-rhel-9.json'], 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
     ]
 
     stage('upload vhd.gz') {
         slackChannel = slacklib.to(params.VERSION)
-        slackChannel.task("Uploading ${params.VERSION} RHCOS VHD for Azure Marketplace") {
+        slackChannel.task("Checking RHCOS VHDs for Azure Marketplace upload for ${params.VERSION}") {
             def coordinateKey = 'default'
             if (azureArtifactCoordinate.containsKey(params.VERSION)) {
                 coordinateKey = params.VERSION
@@ -81,27 +81,40 @@ node {
                         pushd ${workDir}
                         echo 'Using file: ${rhcosJsonURL}'
                         echo 'Using jq expression base: ${jqExpression}'
-                        VHD_GZ_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.location' -r`
-                        VHD_SHA=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.sha256' -r`
+                        VHD_GZ_URL=`curl --fail '${rhcosJsonURL}' | jq -r '${jqExpression}.location // empty'`
+                        VHD_SHA=`curl --fail '${rhcosJsonURL}' | jq -r '${jqExpression}.sha256 // empty'`
                         """ +
                         '''
-                        VHD_GZ_FILE=`basename $VHD_GZ_URL`
-                        VHD_SHA_FILE="$VHD_GZ_FILE".sha256
-                        echo $VHD_SHA > $VHD_SHA_FILE
-
-                        curl --fail $VHD_GZ_URL > $VHD_GZ_FILE
-                        echo Target VHD: $VHD_GZ_FILE
-                        ''' + (params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
-                            exists=$(az storage blob exists --name $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY | jq .exists)
-                            if [[ $exists = ="false" ]]; then
-                                az storage blob upload -f $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                        if [[ -z "$VHD_GZ_URL" ]]; then
+                            echo "No Azure VHD found for this stream and architecture; skipping"
+                        elif [[ -z "$VHD_SHA" ]]; then
+                            echo "Azure VHD is missing its SHA-256 value" >&2
+                            exit 1
+                        else
+                            VHD_GZ_FILE=`basename "$VHD_GZ_URL"`
+                            VHD_SHA_FILE="${VHD_GZ_FILE}.sha256"
+                            echo "Target VHD: ${VHD_GZ_FILE}"
+                        ''' + (params.DRY_RUN ? '''
+                            printf "%s\n" "$VHD_SHA" > "$VHD_SHA_FILE"
+                            curl --fail "$VHD_GZ_URL" > "$VHD_GZ_FILE"
+                            echo "Exiting before upload because of DRY_RUN"
+                        ''' : '''
+                            exists=$(az storage blob exists --name "$VHD_SHA_FILE" --container-name rhcos --account-name artupload --account-key "$ACCESS_KEY" | jq -r .exists)
+                            if [[ "$exists" == "false" ]]; then
+                                printf "%s\n" "$VHD_SHA" > "$VHD_SHA_FILE"
+                                az storage blob upload -f "$VHD_SHA_FILE" --container-name rhcos --account-name artupload --account-key "$ACCESS_KEY"
                             fi
 
-                            exists=$(az storage blob exists --name $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY | jq .exists)
-                            if [[ $exists = ="false" ]]; then
-                                az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                            exists=$(az storage blob exists --name "$VHD_GZ_FILE" --container-name rhcos --account-name artupload --account-key "$ACCESS_KEY" | jq -r .exists)
+                            if [[ "$exists" == "false" ]]; then
+                                curl --fail "$VHD_GZ_URL" > "$VHD_GZ_FILE"
+                                az storage blob upload -f "$VHD_GZ_FILE" --container-name rhcos --account-name artupload --account-key "$ACCESS_KEY"
+                            else
+                                echo "Azure blob ${VHD_GZ_FILE} already exists; skipping download and upload"
                             fi
-                        ''')
+                        ''') + '''
+                        fi
+                        '''
                         )
                     }
                 }

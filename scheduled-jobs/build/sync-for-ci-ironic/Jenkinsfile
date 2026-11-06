@@ -21,46 +21,53 @@ node() {
     for ( String version : sortedVersions() ) {
 
         openshift_group = "openshift-${version}"
-        plashet_arch_args = ""
-        def arches = buildlib.branch_arches(openshift_group)
-        for ( String arch : arches ) {
-            plashet_arch_args += "--arch ${arch} unsigned "
+        def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+        def groupArches = buildlib.branch_arches(openshift_group)
+
+        // A version can need more than one ironic prevalidation repo during an EL
+        // transition. Build a list of specs: [tag, embargoed tag, arches].
+        def specs = []
+
+        // EL9 ironic prevalidation (base for every version this job iterates; all >= 4.12).
+        specs << [tag: "rhaos-${version}-ironic-rhel-9-prevalidation",
+                  embargoed: "rhaos-${version}-rhel-9-embargoed",
+                  arches: groupArches]
+
+        // EL10 ironic prevalidation -- in addition to EL9, on 5.1+.
+        // EL10 ironic images are x86_64/aarch64 only, so restrict the arches.
+        if (major >= 5) {
+            specs << [tag: "rhaos-${version}-ironic-rhel-10-prevalidation",
+                      embargoed: "rhaos-${version}-rhel-10-embargoed",
+                      arches: ["x86_64", "aarch64"]]
         }
 
         /**
          * Build a plashet in a local directory under the WORKSPACE ${baseDir}/${plashetDirName} .
          * The plashets are unsigned as this is just for testing by Ironic's CI systems.
          */
-        prevalidation_tag_name = "rhaos-${version}-rhel-8-ironic-prevalidation"
-        embargoed_tag_name = "rhaos-${version}-rhel-8-embargoed"
+        for ( spec in specs ) {
+            def plashet_arch_args = spec.arches.collect { "--arch ${it} unsigned" }.join(' ')
+            def plashetDirName = spec.tag
+            commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run
+            def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=${openshift_group}"
+            buildlib.doozer([
+                    doozerOpts,
+                    "config:plashet",
+                    "--base-dir ${baseDir}",  // Directory in which to create the yum repo
+                    "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
+                    "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
+                    plashet_arch_args,
+                    "from-tags", // plashet mode of operation => build from brew tags
+                    "--brew-tag ${spec.tag} NOT_APPLICABLE",  // product name is not required since we aren't signing
+                    "--embargoed-brew-tag ${spec.embargoed}",
+                    "--inherit",
+                    "--include-previous", // enable both pinning and non-pinning for pre-validation
+            ].join(' '))
 
-        def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
-        // for 4.12+ ironic is based on rhel 9 and tag naming convention differs from previous
-        if (major > 4 || major == 4 && minor >= 12) {
-            prevalidation_tag_name = "rhaos-${version}-ironic-rhel-9-prevalidation"
-            embargoed_tag_name = "rhaos-${version}-rhel-9-embargoed"
+            echo "Synchronizing plashet for ${spec.tag}"
+
+            commonlib.syncRepoToS3Mirror("${baseDir}/${plashetDirName}/", "${S3_MIRROR_SYNC_DIR}/${plashetDirName}/")
         }
-
-        plashetDirName = prevalidation_tag_name
-        commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run
-        def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=${openshift_group}"
-        buildlib.doozer([
-                doozerOpts,
-                "config:plashet",
-                "--base-dir ${baseDir}",  // Directory in which to create the yum repo
-                "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
-                "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
-                plashet_arch_args,
-                "from-tags", // plashet mode of operation => build from brew tags
-                "--brew-tag ${prevalidation_tag_name} NOT_APPLICABLE",  // product name is not required since we aren't signing
-                "--embargoed-brew-tag ${embargoed_tag_name}",
-                "--inherit",
-                "--include-previous", // enable both pinning and non-pinning for pre-validation
-        ].join(' '))
-
-        echo "Synchronizing plashet for ${prevalidation_tag_name}"
-
-        commonlib.syncRepoToS3Mirror("${baseDir}/${plashetDirName}/", "${S3_MIRROR_SYNC_DIR}/${plashetDirName}/")
     }
 
     buildlib.cleanWorkspace()

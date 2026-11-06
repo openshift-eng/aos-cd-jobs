@@ -100,8 +100,13 @@ def startBuildMicroshiftJob(String releaseStream, Map latestRelease, Map previou
     def x86_64_nightly = latestRelease.name
     // Get all nightlies matching the x86_64 nightly
     echo "Get nightlies matching the x86_64 nightly ${x86_64_nightly}..."
-    def cmd = "doozer --assembly=stream --arches x86_64,aarch64 --group openshift-${buildVersion} get-nightlies --matching ${x86_64_nightly}"
-    def res = commonlib.shell(script: cmd, returnAll: true)
+    def res
+    withCredentials([file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
+        withEnv(["REGISTRY_AUTH_FILE=${QUAY_AUTH_FILE}"]) {
+            def cmd = "doozer --assembly=stream --arches x86_64,aarch64 --group openshift-${buildVersion} --registry-config \"\$QUAY_AUTH_FILE\" get-nightlies --matching ${x86_64_nightly}"
+            res = commonlib.shell(script: cmd, returnAll: true)
+        }
+    }
     if (res.returnStatus != 0) {
         if (res.combined.contains("Found no nightlies") || res.combined.contains("No sets of equivalent nightlies")) {
             // Couldn't find consistent and accepted nightlies matching the x86_64 nightly

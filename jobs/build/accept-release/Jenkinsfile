@@ -59,6 +59,13 @@ node {
 
     def product = params.PRODUCT ?: 'ocp'
 
+    // Auto-detect OKD from the release name to prevent silent failures
+    // when PRODUCT is not explicitly set for OKD releases
+    if (product == 'ocp' && params.RELEASE_NAME && params.RELEASE_NAME.contains('okd')) {
+        product = 'okd'
+        echo "Auto-detected OKD product from release name: ${params.RELEASE_NAME}"
+    }
+
     stage("Accept ${product.toUpperCase()} release") {
         if (!params.RELEASE_NAME) {
             error("You must provide a release name")

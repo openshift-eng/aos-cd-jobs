@@ -128,8 +128,13 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
+                        name: 'SKIP_POST_BUILD',
+                        description: 'Skip post-build callbacks for all images',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
                         name: 'SKIP_NODE_IMAGE_POST_BUILD_OPS',
-                        description: 'Skip node image post-build operations',
+                        description: 'DEPRECATED alias for SKIP_POST_BUILD; retained for one transition window, will be removed',
                         defaultValue: false,
                     ),
                     choice(
@@ -210,8 +215,8 @@ node {
             if (params.SKIP_EC_VERIFY) {
                 cmd << "--skip-ec-verify"
             }
-            if (params.SKIP_NODE_IMAGE_POST_BUILD_OPS) {
-                cmd << "--skip-node-image-post-build-ops"
+            if (params.SKIP_POST_BUILD || params.SKIP_NODE_IMAGE_POST_BUILD_OPS) {
+                cmd << "--skip-post-build"
             }
             if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                 cmd << "--skip-build-sync-konflux"

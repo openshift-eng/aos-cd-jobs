@@ -46,6 +46,7 @@ LPClusterGroups = [
     "logging-6.5",
     "logging-6.6",
     "logging-6.7",
+    "logging-6.8",
     "mce-2.6",
     "mce-2.8",
     "mce-2.9",

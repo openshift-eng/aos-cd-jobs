@@ -31,36 +31,56 @@ node() {
          * Build a plashet in a local directory under the WORKSPACE ${baseDir}/${plashetDirName} .
          * The plashets are unsigned as this is just for testing by Ironic's CI systems.
          */
-        prevalidation_tag_name = "rhaos-${version}-rhel-8-ironic-prevalidation"
-        embargoed_tag_name = "rhaos-${version}-rhel-8-embargoed"
-
         def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
-        // for 4.12+ ironic is based on rhel 9 and tag naming convention differs from previous
-        if (major > 4 || major == 4 && minor >= 12) {
-            prevalidation_tag_name = "rhaos-${version}-ironic-rhel-9-prevalidation"
-            embargoed_tag_name = "rhaos-${version}-rhel-9-embargoed"
+        def tag_sets = [[
+            prevalidation_tag_name: "rhaos-${version}-rhel-8-ironic-prevalidation",
+            embargoed_tag_name: "rhaos-${version}-rhel-8-embargoed"
+        ]]
+
+        // OCP 5.1+ Ironic publishes both RHEL 9 and RHEL 10 plashets.
+        if (major > 5 || (major == 5 && minor >= 1)) {
+            tag_sets = [
+                [
+                    prevalidation_tag_name: "rhaos-${version}-ironic-rhel-9-prevalidation",
+                    embargoed_tag_name: "rhaos-${version}-rhel-9-embargoed"
+                ],
+                [
+                    prevalidation_tag_name: "rhaos-${version}-ironic-rhel-10-prevalidation",
+                    embargoed_tag_name: "rhaos-${version}-rhel-10-embargoed"
+                ]
+            ]
+        // OCP 4.12 through 5.0 Ironic uses RHEL 9.
+        } else if (major > 4 || (major == 4 && minor >= 12)) {
+            tag_sets = [[
+                prevalidation_tag_name: "rhaos-${version}-ironic-rhel-9-prevalidation",
+                embargoed_tag_name: "rhaos-${version}-rhel-9-embargoed"
+            ]]
         }
 
-        plashetDirName = prevalidation_tag_name
-        commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run
-        def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=${openshift_group}"
-        buildlib.doozer([
-                doozerOpts,
-                "config:plashet",
-                "--base-dir ${baseDir}",  // Directory in which to create the yum repo
-                "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
-                "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
-                plashet_arch_args,
-                "from-tags", // plashet mode of operation => build from brew tags
-                "--brew-tag ${prevalidation_tag_name} NOT_APPLICABLE",  // product name is not required since we aren't signing
-                "--embargoed-brew-tag ${embargoed_tag_name}",
-                "--inherit",
-                "--include-previous", // enable both pinning and non-pinning for pre-validation
-        ].join(' '))
+        for (def tag_set : tag_sets) {
+            def prevalidation_tag_name = tag_set.prevalidation_tag_name
+            def embargoed_tag_name = tag_set.embargoed_tag_name
+            def plashetDirName = prevalidation_tag_name
+            commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run
+            def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=${openshift_group}"
+            buildlib.doozer([
+                    doozerOpts,
+                    "config:plashet",
+                    "--base-dir ${baseDir}",  // Directory in which to create the yum repo
+                    "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
+                    "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
+                    plashet_arch_args,
+                    "from-tags", // plashet mode of operation => build from brew tags
+                    "--brew-tag ${prevalidation_tag_name} NOT_APPLICABLE",  // product name is not required since we aren't signing
+                    "--embargoed-brew-tag ${embargoed_tag_name}",
+                    "--inherit",
+                    "--include-previous", // enable both pinning and non-pinning for pre-validation
+            ].join(' '))
 
-        echo "Synchronizing plashet for ${prevalidation_tag_name}"
+            echo "Synchronizing plashet for ${prevalidation_tag_name}"
 
-        commonlib.syncRepoToS3Mirror("${baseDir}/${plashetDirName}/", "${S3_MIRROR_SYNC_DIR}/${plashetDirName}/")
+            commonlib.syncRepoToS3Mirror("${baseDir}/${plashetDirName}/", "${S3_MIRROR_SYNC_DIR}/${plashetDirName}/")
+        }
     }
 
     buildlib.cleanWorkspace()

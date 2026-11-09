@@ -1,10 +1,6 @@
 
 slacklib = load("pipeline-scripts/slacklib.groovy")
 
-ocp3Versions = [
-    "3.11",
-]
-
 // All buildable versions of ocp4
 ocp4Versions = [
     "4.23",
@@ -79,7 +75,7 @@ LPClusterGroups = [
     "zero-trust-1.1",
 ]
 
-ocpVersions = ocp5Versions + ocp4Versions + ocp3Versions
+ocpVersions = ocp5Versions + ocp4Versions
 
 // some of our systems refer to golang's chosen architecture nomenclature;
 // most use brew's nomenclature or similar. translate.
@@ -115,7 +111,6 @@ ocpMajorVersions = [
     "5": ocp5Versions,
     "4": ocp4Versions,
     "4plus": ocp5Versions + ocp4Versions,
-    "3": ocp3Versions,
     "all": ocpVersions,
 ]
 

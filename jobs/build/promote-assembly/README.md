@@ -142,19 +142,6 @@ Actually this job is _not_ invoked; but the code for syncing the oc client out
 to mirror.openshift.com is shared between the jobs, which is useful when
 something prevents completing the sync step during the promotion.
 
-### signing-jobs/sign-artifacts
-
-Once the release image is created (and if necessary has passed tests), the
-[signing job](https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/signing-jobs/job/signing%252Fsign-artifacts/)
-is used to sign the release image and oc client with Red Hat's key.
-
-### cincinnati-prs
-
-After signing the release, the
-[cincinnati-prs job](https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fcincinnati-prs/)
-is used to create PRs to have the release (and upgrade edges) included in OCP 4
-[release channels](https://github.com/openshift/cincinnati-graph-data/tree/master/channels).
-
 ## Permit certain validation failures
 This job runs a lot of validations against the release content, advisories, and bugs before actually promoting the release.
 In case of a validation error, a slack message will be sent to corresponding release channel.

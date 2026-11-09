@@ -106,28 +106,6 @@ node {
         }
     }
 
-    stage("sign artifacts") {
-        if (params.DRY_RUN) {
-            echo "Would have signed artifacts"
-            return
-        }
-        release.signArtifacts(
-            name: params.VERSION,
-            signature_name: "signature-1",
-            dry_run: params.DRY_RUN,
-            env: "prod",
-            key_name: "redhatrelease2",
-            arch: "x86_64",
-            digest: "",
-            client_type: "ocp",
-            product: "coreos-installer",
-        )
-
-        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/${params.VERSION}/")
-        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/latest/")
-
-    }
-
     buildlib.cleanWorkspace()
     }
 }

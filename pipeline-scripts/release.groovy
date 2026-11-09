@@ -619,82 +619,6 @@ def getReleaseTagArchPriv(from_release_tag) {
     return [arch, priv]
 }
 
-def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String arch = 'x86_64', String releaseStreamName='4-stable', String providerName = 'Red Hat UMB') {
-
-    if (params.DRY_RUN) {
-        echo "Would have sent release complete message"
-        return
-    }
-
-    def releaseName = release.name
-    def message = [
-        "contact": [
-            "url": "https://mojo.redhat.com/docs/DOC-1178565",
-            "team": "OpenShift Automatic Release Team (ART)",
-            "email": "aos-team-art@redhat.com",
-            "name": "ART Jobs",
-            "slack": "#forum-ocp-art",
-        ],
-        "run": [
-            "url": env.BUILD_URL,
-            "log": "${env.BUILD_URL}console",
-        ],
-        "artifact": [
-            "type": "ocp-release",
-            "name": "ocp-release",
-            "version": releaseName,
-            "nvr": "ocp-release-${releaseName}",
-            "architecture": arch,
-            "release_stream": releaseStreamName,
-            "release": release,
-            "advisory": [
-                "number": advisoryNumber,
-                "live_url": advisoryLiveUrl,
-            ],
-        ],
-        "generated_at": new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC')),
-        "version": "0.2.3",
-    ]
-
-    timeout(3) {
-        def sendResult = sendCIMessage(
-            messageProperties:
-                """release=${releaseName}
-                release_stream: ${releaseStreamName}
-                product=OpenShift Container Platform
-                """,
-            messageType: 'Custom',
-            failOnError: true,
-            overrides: [topic: "VirtualTopic.eng.ci.art.ocp-release.complete"],
-            providerName: providerName,
-            messageContent: JsonOutput.toJson(message),
-        )
-        echo 'Message sent.'
-        echo "Message ID: ${sendResult.getMessageId()}"
-        echo "Message content: ${sendResult.getMessageContent()}"
-    }
-}
-
-def sendPreReleaseMessage(Map release, String releaseStreamName, String providerName = 'Red Hat UMB') {
-    timeout(3) {
-        def sendResult = sendCIMessage(
-            messageProperties:
-                """release=${release.name}
-                release_stream: ${releaseStreamName}
-                product=OpenShift Container Platform
-                """,
-            messageContent: JsonOutput.toJson(release),
-            messageType: 'Custom',
-            failOnError: true,
-            overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
-            providerName: providerName,
-        )
-        echo 'Message sent.'
-        echo "Message ID: ${sendResult.getMessageId()}"
-        echo "Message content: ${sendResult.getMessageContent()}"
-    }
-}
-
 def createAdvisoriesFor(ocpVersion, dry_run=false) {
     build(
         job: "build%2Fadvisories",
@@ -727,24 +651,6 @@ def determineNextReleaseDate(ocpVersion) {
         .with(TemporalAdjusters.next(dayOfWeek))
         .with(TemporalAdjusters.next(dayOfWeek))            // 2 weeks from now
         .format(DateTimeFormatter.ofPattern("yyyy-MMM-dd")) // format required by elliott
-    )
-}
-
-def signArtifacts(Map signingParams) {
-    build(
-        job: "/signing-jobs/signing%2Fsign-artifacts",
-        propagate: true,
-        parameters: [
-            string(name: "NAME", value: signingParams.name),
-            string(name: "SIGNATURE_NAME", value: signingParams.signature_name),
-            string(name: "CLIENT_TYPE", value: signingParams.client_type),
-            booleanParam(name: "DRY_RUN", value: signingParams.dry_run),
-            string(name: "ENV", value: signingParams.env),
-            string(name: "KEY_NAME", value: signingParams.key_name),
-            string(name: "ARCH", value: signingParams.arch),
-            string(name: "DIGEST", value: signingParams.digest),
-            string(name: "PRODUCT", value: signingParams.product),
-        ]
     )
 }
 

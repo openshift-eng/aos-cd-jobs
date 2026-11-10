@@ -100,13 +100,19 @@ def startBuildMicroshiftJob(String releaseStream, Map latestRelease, Map previou
     def res
     // get-nightlies reads nightly release payloads from registry.ci.openshift.org (app.ci),
     // which needs the art-publish app.ci identity, and reads Konflux payload content from
-    // quay.io, which needs the quay-auth-file. Provide both for the whole command:
-    // withAppCiAsArtPublish sets KUBECONFIG so oc can read registry.ci nightly payloads,
-    // and quay-auth-file (REGISTRY_AUTH_FILE / --registry-config) covers quay.io.
+    // quay.io, which needs the quay-auth-file. doozer's get-nightlies runs
+    // `oc adm release info` / `oc image info` with no --kubeconfig/--registry-config, so they
+    // authenticate only from REGISTRY_AUTH_FILE. Build a single auth file with BOTH quay.io
+    // creds (from quay-auth-file) and the app.ci registry.ci token: copy the read-only quay
+    // file to a writable path, then `oc registry login` (KUBECONFIG is set by
+    // withAppCiAsArtPublish) merges the registry.ci entry into it, preserving the quay entries.
     buildlib.withAppCiAsArtPublish() {
         withCredentials([file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE')]) {
-            withEnv(["REGISTRY_AUTH_FILE=${QUAY_AUTH_FILE}"]) {
-                def cmd = "doozer --assembly=stream --arches x86_64,aarch64 --group openshift-${buildVersion} --registry-config \"\$QUAY_AUTH_FILE\" get-nightlies --matching ${x86_64_nightly}"
+            def mergedAuthFile = "${env.WORKSPACE}/.docker-merged-auth.json"
+            sh "cp \"\$QUAY_AUTH_FILE\" ${mergedAuthFile}"
+            withEnv(["REGISTRY_AUTH_FILE=${mergedAuthFile}"]) {
+                sh "oc registry login"
+                def cmd = "doozer --assembly=stream --arches x86_64,aarch64 --group openshift-${buildVersion} --registry-config \"${mergedAuthFile}\" get-nightlies --matching ${x86_64_nightly}"
                 res = commonlib.shell(script: cmd, returnAll: true)
             }
         }

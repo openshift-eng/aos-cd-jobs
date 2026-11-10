@@ -36,6 +36,11 @@ node {
                     description: 'Stream type',
                     choices: ['ART', 'CI'].join('\n'),
                 ),
+                choice(
+                    name: 'ARCH',
+                    description: 'Target architecture (OKD only supports amd64 and arm64)',
+                    choices: (commonlib.goArches - 'multi').join('\n'),
+                ),
                 string(
                     name: 'WAIT_MINUTES',
                     description: 'How long to wait (in minutes) before restoring the original config',
@@ -82,18 +87,22 @@ node {
         if (params.PRODUCT == 'OKD' && params.STREAM_TYPE == 'CI') {
             error("OKD does not use CI imagestreams")
         }
+        if (params.PRODUCT == 'OKD' && !(params.ARCH in ['amd64', 'arm64'])) {
+            error("OKD only supports amd64 and arm64 architectures, got: ${params.ARCH}")
+        }
 
+        def archSuffix = commonlib.goSuffixForArch(params.ARCH)
         if (params.PRODUCT == 'OCP') {
-            namespace = "ocp"
+            namespace = "ocp${archSuffix}"
             if (params.STREAM_TYPE == 'ART') {
-                imagestream = "${params.VERSION}-art-latest"
+                imagestream = "${params.VERSION}-art-latest${archSuffix}"
             } else {
-                imagestream = "${params.VERSION}"
+                imagestream = "${params.VERSION}${archSuffix}"
             }
         } else {
             // OKD + ART
-            namespace = "origin"
-            imagestream = "scos-${params.VERSION}-art"
+            namespace = "origin${archSuffix}"
+            imagestream = "scos-${params.VERSION}-art${archSuffix}"
         }
 
         def dry_run_label = params.DRY_RUN ? '[DRY_RUN]' : ''

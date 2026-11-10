@@ -30,6 +30,11 @@ node {
                         description: 'Product variant',
                         choices: ['OCP', 'OKD'].join('\n'),
                     ),
+                    choice(
+                        name: 'ARCH',
+                        description: 'Target architecture (OKD only supports amd64 and arm64)',
+                        choices: (commonlib.goArches - 'multi').join('\n'),
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -42,15 +47,19 @@ node {
         if (!params.VERSION) {
             error("You must provide a VERSION")
         }
+        if (params.PRODUCT == 'OKD' && !(params.ARCH in ['amd64', 'arm64'])) {
+            error("OKD only supports amd64 and arm64 architectures, got: ${params.ARCH}")
+        }
 
+        def archSuffix = commonlib.goSuffixForArch(params.ARCH)
         def ns
         def is
         if (params.PRODUCT == 'OKD') {
-            ns = 'origin'
-            is = "scos-${params.VERSION}-art"
+            ns = "origin${archSuffix}"
+            is = "scos-${params.VERSION}-art${archSuffix}"
         } else {
-            ns = 'ocp'
-            is = "${params.VERSION}-art-latest"
+            ns = "ocp${archSuffix}"
+            is = "${params.VERSION}-art-latest${archSuffix}"
         }
 
         currentBuild.displayName = "${params.PRODUCT} ${params.VERSION}"

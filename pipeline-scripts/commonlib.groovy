@@ -71,6 +71,7 @@ LPClusterGroups = [
     "quay-5.0",
     "quay-5.1",
     "rhosdt-0.158",
+    "rhosdt-0.163",
     "zero-trust-1.0",
     "zero-trust-1.1",
 ]

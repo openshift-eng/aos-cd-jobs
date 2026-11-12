@@ -70,6 +70,11 @@ node() {
                     defaultValue: true, // Default to true for safety
                 ),
                 booleanParam(
+                    name: 'SKIP_REBASE',
+                    description: 'Build existing FBC source without resetting to production or rebasing',
+                    defaultValue: false,
+                ),
+                booleanParam(
                     name: 'SKIP_CHECKS',
                     description: 'Skip all post build checks in the pipeline',
                     defaultValue: false,
@@ -186,6 +191,8 @@ node() {
                     cmd << "--exclude=${exclude.join(',')}"
                 if (operator_nvrs)
                     cmd << "--operator-nvrs=${operator_nvrs.join(',')}"
+                if (params.SKIP_REBASE)
+                    cmd << "--skip-rebase"
                 if (params.SKIP_CHECKS)
                     cmd << "--skip-checks"
                 if (params.IGNORE_LOCKS)

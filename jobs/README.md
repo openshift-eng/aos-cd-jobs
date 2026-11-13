@@ -162,7 +162,7 @@ This has been abstracted out in [commonlib](https://github.com/openshift-eng/aos
 Since we humans would rather not have to pay attention to our job runs all day,
 this integrates slack to notify humans when a job is waiting on input.
 Typically a job should send these to one of our version-specific channels. The
-`release` job uses this heavily, for example to [let release-artists know
+`release` job uses this heavily, for example to [let the ART team know
 release tests failed](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/release/Jenkinsfile#L341-L345).
 
 ### Concurrency and locks

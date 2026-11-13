@@ -165,7 +165,7 @@ node {
                 return
             }
             slackChannel = slacklib.to(params.BUILD_VERSION)
-            slackChannel.say("Hi @release-artists , rebuilding $params.TYPE $params.DISTGIT_KEY for assembly $params.ASSEMBLY is done. Please check instructions in the build log for the next step.")
+            slackChannel.say("Hi @automated-tooling-triage , rebuilding $params.TYPE $params.DISTGIT_KEY for assembly $params.ASSEMBLY is done. Please check instructions in the build log for the next step.")
         }
         buildlib.cleanWorkspace()
     }

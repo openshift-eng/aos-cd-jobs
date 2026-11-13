@@ -73,7 +73,7 @@ notify ART team if it does.
     }
 
     if (warnings) {
-        message = "*:warning: @release-artists buildvm disk usage alert*"
+        message = "*:warning: @automated-tooling-triage buildvm disk usage alert*"
         for (String warning : warnings) {
             message = message + "\n" + warning
         }

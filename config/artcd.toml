@@ -2,7 +2,6 @@
 assigned_to = "openshift-qe-errata@redhat.com"
 manager = "vlaad@redhat.com"
 package_owner = "asdas@redhat.com"
-# Package owner for EUS (extended_support) advisories; falls back to package_owner when unset
 package_owner_eus = "gparente@redhat.com"
 
 [build_config]

@@ -36,11 +36,11 @@ node() {
     def group = "openshift-${params.BUILD_VERSION}"
     def doozerOpts = "--working-dir ${doozer_working} --group ${group} "
 
-    // Skip the build for versions in eol/pre-release state
+    // Only run for versions in pre-release/release/extended-support state; skip all others (e.g. eol, signing)
     def out = buildlib.doozer("${doozerOpts} config:read-group --yaml software_lifecycle", [capture: true]).trim()
     def software_lifecycle_phase = readYaml(text: out)["phase"]
     def include_master = software_lifecycle_phase == "pre-release" ? '--include-master' : ''
-    if (!(software_lifecycle_phase in ["release", "pre-release"])){
+    if (!(software_lifecycle_phase in ["release", "pre-release", "extended-support"])){
         currentBuild.displayName += " [skipped]"
     } else {
         releaseChannel = slacklib.to(BUILD_VERSION)

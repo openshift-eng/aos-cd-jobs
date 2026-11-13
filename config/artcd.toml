@@ -1,7 +1,8 @@
 [advisory]
 assigned_to = "openshift-qe-errata@redhat.com"
 manager = "vlaad@redhat.com"
-package_owner = "jdelft@redhat.com"
+package_owner = "asdas@redhat.com"
+package_owner_eus = "gparente@redhat.com"
 
 [build_config]
 ocp_build_data_url = "https://github.com/openshift-eng/ocp-build-data.git"

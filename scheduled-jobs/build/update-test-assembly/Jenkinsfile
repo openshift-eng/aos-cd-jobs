@@ -28,6 +28,20 @@ node() {
     // Trigger builds sequentially to avoid overwhelming the system.
     // IGNORE_LOCKS=true ensures we don't hold a lock on the ocp ystream.
     for ( version in commonlib.ocpMajorVersions["4plus"] ) {
+        def automationConfig = readYaml(text: httpRequest(
+            url: 'https://raw.githubusercontent.com/openshift-eng/ocp-build-data/main/config/automation.yml',
+            httpMode: 'GET',
+            validResponseCodes: '200',
+            timeout: 30,
+        ).content)
+        if (!(automationConfig instanceof Map) || !(automationConfig.freeze_automation instanceof Boolean)) {
+            error('Global automation config must define freeze_automation as a YAML boolean')
+        }
+        if (automationConfig.freeze_automation) {
+            echo 'Skipping test-assembly builds: all groups are frozen by ocp-build-data main/config/automation.yml'
+            return
+        }
+
         def cv = "${version}" // make sure we use a locally scoped variable
         // Fall back to 4.20 if we did not manage the above list
         def images = base_images[cv]

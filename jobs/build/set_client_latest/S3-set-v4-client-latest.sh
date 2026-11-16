@@ -53,16 +53,24 @@ function rclone() {
 }
 
 function transferClientIfNeeded() {
-    # Generate rclone config file from the template
+    # Configure rclone to use the default profile in Jenkins' shared AWS credentials file.
     echo "Rendering rclone config file at ${WORKSPACE}/rclone.conf"
-    cat /home/jenkins/.config/rclone/rclone.conf.template | envsubst > ${WORKSPACE}/rclone.conf
+    cat > "${WORKSPACE}/rclone.conf" <<EOF
+[osd-art-account]
+type = s3
+provider = AWS
+env_auth = true
+shared_credentials_file = ${AWS_SHARED_CREDENTIALS_FILE}
+profile = default
+region = us-east-1
+EOF
 
     # Don't use "aws s3 sync" as it only pays attention to filesize. For files like 'sha256sum.txt' which are
     # usually the same size, it will not update them. rclone can use checksums.
 
     S3_SRC_PATH="$1"  # e.g. pub/...../adir/
     S3_DEST_PATH="$2"  # e.g. pub/....../bdir/
-    # The first name is a registered config on buildvm ($ rclone config edit). The second name is the bucket.
+    # The rclone remote uses the default profile from AWS_SHARED_CREDENTIALS_FILE.
     RCLONE_ADDR="osd-art-account:art-srv-enterprise"
     S3_SRC="${RCLONE_ADDR}/${S3_SRC_PATH}"
     S3_DEST="${RCLONE_ADDR}/${S3_DEST_PATH}"
@@ -94,7 +102,7 @@ function transferClientIfNeeded() {
 
     # Remove the rendered rclone config file
     echo "Removing rclone config file ${WORKSPACE}/rclone.conf"
-    rm rclone.conf
+    rm "${WORKSPACE}/rclone.conf"
 }
 
 for arch in ${ARCHES}; do

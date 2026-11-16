@@ -32,10 +32,7 @@ node() {
          * The plashets are unsigned as this is just for testing by Ironic's CI systems.
          */
         def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
-        def tag_sets = [[
-            prevalidation_tag_name: "rhaos-${version}-rhel-8-ironic-prevalidation",
-            embargoed_tag_name: "rhaos-${version}-rhel-8-embargoed"
-        ]]
+        def tag_sets = []
 
         // OCP 5.1+ Ironic publishes both RHEL 9 and RHEL 10 plashets.
         if (major > 5 || (major == 5 && minor >= 1)) {

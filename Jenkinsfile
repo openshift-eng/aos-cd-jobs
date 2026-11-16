@@ -87,9 +87,7 @@ node {
 
         withCredentials([
                 file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
-                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
-                aws(credentialsId: 'aws-s3-signing-logs', accessKeyVariable: 'SIGNING_LOGS_ACCESS_KEY', secretKeyVariable: 'SIGNING_LOGS_SECRET_ACCESS_KEY'),
-                aws(credentialsId: 'aws-s3-osd-art-account', accessKeyVariable: 'OSD_ART_ACCOUNT_ACCESS_KEY', secretKeyVariable: 'OSD_ART_ACCOUNT_SECRET_ACCESS_KEY')]) {
+                string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT')]) {
 
             withEnv(["FORCE_UPDATE=${params.FORCE_UPDATE? '1' : '0'}"]){
                 commonlib.shell("./S3-set-v4-client-latest.sh ${params.CHANNEL_OR_RELEASE} ${params.CLIENT_TYPE} ${params.LINK_NAME} ${params.ARCHES}")

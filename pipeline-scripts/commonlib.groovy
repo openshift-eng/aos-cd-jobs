@@ -679,7 +679,7 @@ def invalidateAwsCache(s3_path, dry_run=false) {
     }
 
     withCredentials([
-        aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
+        file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE')
     ]) {
         shell(script: cmd)
     }

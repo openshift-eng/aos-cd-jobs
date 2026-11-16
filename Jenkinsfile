@@ -177,7 +177,6 @@ node {
             cmd << "--signing-env=${signing_env}"
             cmd << "--signing-transport=${params.SIGNING_TRANSPORT}"
             echo "Will run ${cmd.join(' ')}"
-            def siging_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
             def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
             def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
             buildlib.withAppCiAsArtPublish() {
@@ -189,8 +188,8 @@ node {
                                  string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                                  string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
                                  string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                                 file(credentialsId: "${siging_cert_id}.crt", variable: 'SIGNING_CERT'),
-                                 file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
+                                 file(credentialsId: '0xffe138e-openshift-art-bot.crt', variable: 'SIGNING_CERT'),
+                                 file(credentialsId: '0xffe138e-openshift-art-bot.key', variable: 'SIGNING_KEY'),
                                  file(credentialsId: 'ocp-art-signing-prod.keytab', variable: 'DIRECT_SIGNING_KEYTAB'),
                                  string(credentialsId: 'ocp-art-signing-prod.user', variable: 'DIRECT_SIGNING_PRINCIPAL'),
                                  file(credentialsId: sigstore_creds_file, variable: 'KMS_CRED_FILE'),

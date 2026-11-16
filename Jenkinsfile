@@ -146,7 +146,6 @@ node {
         // check) and the two separate artcd calls (sync-rhcos + sign-rhcos-containers).
         stage("Sync RHCOS boot images and sign containers") {
             def signing_env = params.DRY_RUN ? "stage" : "prod"
-            def signing_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
             def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
             def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
 
@@ -157,8 +156,8 @@ node {
                 file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
                 string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
                 // GPG signing credentials for boot image sha256sum
-                file(credentialsId: "${signing_cert_id}.crt", variable: 'SIGNING_CERT'),
-                file(credentialsId: "${signing_cert_id}.key", variable: 'SIGNING_KEY'),
+                file(credentialsId: '0xffe138e-openshift-art-bot.crt', variable: 'SIGNING_CERT'),
+                file(credentialsId: '0xffe138e-openshift-art-bot.key', variable: 'SIGNING_KEY'),
                 // Direct signing credentials are bound for the planned transport cutover.
                 file(credentialsId: 'ocp-art-signing-prod.keytab', variable: 'DIRECT_SIGNING_KEYTAB'),
                 string(credentialsId: 'ocp-art-signing-prod.user', variable: 'DIRECT_SIGNING_PRINCIPAL'),

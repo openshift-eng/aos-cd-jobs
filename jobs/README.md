@@ -174,10 +174,9 @@ time) is not granular enough, nor does it prevent conflicting jobs (perhaps a
 hack job for the same thing) from running.
 
 Use the [`lock` step](https://www.jenkins.io/doc/pipeline/steps/lockable-resources/#lock-lock-shared-resource)
-to scope locking only to the conflict that needs to be avoided.  For example in
-the [ocp4 job](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/ocp4/Jenkinsfile#L110)
-there are locks to prevent conflicting dist-git commits or RPM composes for the
-same version (but different versions can run concurrently just fine).
+or the corresponding pyartcd Redis lock to scope locking to the conflict that
+needs to be avoided. Builds for the same version may need to serialize while
+different versions can run concurrently.
 
 If a job needs to check whether a lock is free without actually locking, see
 [`commonlib.canLock()`](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L476).

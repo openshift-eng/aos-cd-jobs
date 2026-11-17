@@ -48,11 +48,6 @@ node {
                             description: "(Optional for public nightlies) List of nightlies to match with <code>doozer get-nightlies</code> (if empty, find latest). If preparing from private nightlies, provide the amd64 nightly as parameter, to match. The automation will find the corresponding nightlies for other arches.",
                             trim: true,
                         ),
-                        choice(
-                            name: 'BUILD_SYSTEM',
-                            description: 'Whether we should look at Brew or Konflux builds',
-                            choices: ['konflux', 'brew'].join('\n'),
-                        ),
                         booleanParam(
                             name: 'ALLOW_PENDING',
                             description: 'Match nightlies that have not completed tests',
@@ -108,7 +103,7 @@ node {
                         ),
                         booleanParam(
                             name: "TRIGGER_BUILD_SYNC",
-                            description: "Automatically trigger build sync against the automatically created PR",
+                            description: "Automatically trigger Konflux build sync against the created PR",
                             defaultValue: true
                         ),
                         booleanParam(
@@ -146,7 +141,7 @@ node {
             cmd += [
                 "gen-assembly",
                 "--data-path", params.DOOZER_DATA_PATH,
-                "--build-system", params.BUILD_SYSTEM,
+                "--build-system", "konflux",
                 "-g", "openshift-$params.BUILD_VERSION",
                 "--assembly", params.ASSEMBLY_NAME,
             ]

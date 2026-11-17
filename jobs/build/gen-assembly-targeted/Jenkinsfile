@@ -66,11 +66,6 @@ node {
                             defaultValue: "",
                             trim: true
                         ),
-                        choice(
-                            name: "BUILD_SYSTEM",
-                            description: "Whether we should look at Brew or Konflux builds",
-                            choices: ["konflux", "brew"].join("\n"),
-                        ),
                         string(
                             name: "DATE",
                             description: "(Optional) Expected release date. Format: YYYY-Mon-DD or YYYY-MM-DD (e.g. 2026-May-13 or 2026-05-13)",
@@ -90,7 +85,7 @@ node {
                         ),
                         booleanParam(
                             name: "TRIGGER_BUILD_SYNC",
-                            description: "Automatically trigger build sync against the automatically created PR",
+                            description: "Automatically trigger Konflux build sync against the created PR",
                             defaultValue: true
                         ),
                         commonlib.mockParam(),
@@ -129,7 +124,7 @@ node {
             cmd += [
                 "gen-assembly-targeted",
                 "--data-path", params.DOOZER_DATA_PATH,
-                "--build-system", params.BUILD_SYSTEM,
+                "--build-system", "konflux",
                 "-g", "openshift-${params.BUILD_VERSION}",
                 "--assembly", params.ASSEMBLY_NAME,
                 "--basis-assembly", params.BASIS_ASSEMBLY,

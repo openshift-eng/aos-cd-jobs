@@ -10,7 +10,7 @@ node {
 
         commonlib.describeJob("build-plashets", """
             <h2>Update OCP 4.y repos</h2>
-            <b>Timing</b>: Usually run automatically from ocp4 and microshift-bootc.
+            <b>Timing</b>: Usually run automatically from ocp4-konflux and microshift-bootc.
             Humans may run as needed. Locks prevent conflicts.
 
             Creates new plashets if the automation is not frozen.

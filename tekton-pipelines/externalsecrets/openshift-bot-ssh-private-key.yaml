@@ -5,7 +5,7 @@ metadata:
 spec:
   data:
   - remoteRef:
-      key: art/prod/openshift-bot-ssh-private-key
+      key: art/prod/jenkins/openshift-bot
     secretKey: ssh_privatekey
   refreshInterval: 1h
   secretStoreRef:

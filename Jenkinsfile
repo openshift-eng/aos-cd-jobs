@@ -13,7 +13,7 @@ node {
             <b>Timing</b>: Usually run automatically from ocp4-konflux and microshift-bootc.
             Humans may run as needed. Locks prevent conflicts.
 
-            Creates new plashets if the automation is not frozen.
+            Creates new plashets when automation policy permits, or when explicitly overridden.
         """)
 
 
@@ -73,6 +73,11 @@ node {
                             description: 'Transform symlink into referent file/dir',
                             defaultValue: false,
                         ),
+                        booleanParam(
+                            name: 'IGNORE_AUTOMATION_FREEZE',
+                            description: 'Ignore global and group freeze_automation policy for this run; compose locks still apply',
+                            defaultValue: false,
+                        ),
                     ]
                 ],
             ]
@@ -127,6 +132,9 @@ node {
             }
             if (params.COPY_LINKS) {
                 cmd << "--copy-links"
+            }
+            if (params.IGNORE_AUTOMATION_FREEZE) {
+                cmd << "--ignore-automation-freeze"
             }
             if (params.VERSION) {
                 cmd << "--version=${params.VERSION}"

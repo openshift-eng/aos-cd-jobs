@@ -180,8 +180,8 @@ prs() {
 }
 
 jenkins() {
-  echo 'https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
-  echo 'https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/scheduled-builds/'
+  echo 'https://art-jenkins.apps.int.prod-stable-spoke1-dc-iad2.itup.redhat.com/view/OCP4%20Build%20Dashboard/'
+  echo 'https://art-jenkins.apps.int.prod-stable-spoke1-dc-iad2.itup.redhat.com/job/scheduled-builds/'
 }
 
 backlog() {

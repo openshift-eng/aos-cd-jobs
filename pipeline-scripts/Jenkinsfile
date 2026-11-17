@@ -58,10 +58,6 @@ node(TARGET_NODE) {
     timestamps {
 
     checkout scm
-    
-//    def buildlib = load("pipeline-scripts/buildlib.groovy")
-//    buildlib.initialize(IS_TEST_MODE)
-//    echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
     def testlib = load("pipeline-scripts/buildlib_test.groovy")
 

@@ -120,6 +120,7 @@ node {
     }
     if (params.SIGN_ONLY) {
         currentBuild.displayName += " [SIGN_ONLY]"
+        if (params.DRY_RUN) echo '[DRY RUN] ROSA credentials not verified: SIGN_ONLY skips ROSA'
     }
 
     echo("RHCOS sync: tag=${tag}, arch=${arch}, ocpVersion=${ocpVersion}, name=${name}, mirrorPrefix=${mirrorPrefix}")
@@ -244,6 +245,7 @@ node {
                     }
 
                     def rosaMetaJson = "${env.WORKSPACE}/rosa-meta.json"
+                    def rosaStreams = 0
                     streamJsonFiles.each { streamJsonFile ->
                         def ami = commonlib.shell(
                             returnStdout: true,
@@ -253,16 +255,15 @@ node {
                         if (!ami) {
                             echo "No us-east-1 AMI found in RHCOS stream data ${streamJsonFile}; skipping this stream"
                         } else {
+                            rosaStreams++
                             echo "Syncing ROSA AMI ${ami} from ${streamJsonFile}"
                             writeFile file: rosaMetaJson, text: """{"amis": [{"name": "us-east-1", "hvm": "${ami}"}]}"""
 
-                            withCredentials([usernamePassword(credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                                commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
-                            }
-                            withCredentials([usernamePassword(credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                                commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
-                            }
+                            rhcoslib.rhcosSyncROSAWithCredentials(rosaMetaJson, params.DRY_RUN)
                         }
+                    }
+                    if (params.DRY_RUN && !rosaStreams) {
+                        error('ROSA credentials not verified: no us-east-1 AMI found in any RHCOS stream')
                     }
                 }
                 stage("Slack notification to release channel") {
@@ -272,6 +273,8 @@ node {
                         """)
                     }
                 }
+            } else if (params.DRY_RUN) {
+                echo "[DRY RUN] ROSA credentials not verified: architecture ${arch} skips ROSA"
             }
 
             // Publish azure marketplace for 4.10+

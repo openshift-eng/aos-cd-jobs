@@ -137,6 +137,11 @@ node {
                         description: 'DEPRECATED alias for SKIP_POST_BUILD; retained for one transition window, will be removed',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'SKIP_BUILD_SYNC',
+                        description: 'Skip the build-sync-konflux step after the build',
+                        defaultValue: false,
+                    ),
                     choice(
                         name: 'NETWORK_MODE',
                         description: 'Override network mode for Konflux builds',
@@ -218,7 +223,7 @@ node {
             if (params.SKIP_POST_BUILD || params.SKIP_NODE_IMAGE_POST_BUILD_OPS) {
                 cmd << "--skip-post-build"
             }
-            if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
+            if (params.SKIP_BUILD_SYNC || (params.NETWORK_MODE && params.NETWORK_MODE != "")) {
                 cmd << "--skip-build-sync-konflux"
             }
             if (params.BUILD_PRIORITY) {

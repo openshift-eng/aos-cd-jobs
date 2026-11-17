@@ -256,10 +256,10 @@ node {
                             echo "Syncing ROSA AMI ${ami} from ${streamJsonFile}"
                             writeFile file: rosaMetaJson, text: """{"amis": [{"name": "us-east-1", "hvm": "${ami}"}]}"""
 
-                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            withCredentials([usernamePassword(credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                                 commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
                             }
-                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            withCredentials([usernamePassword(credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                                 commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rosaMetaJson} ${params.DRY_RUN}")
                             }
                         }

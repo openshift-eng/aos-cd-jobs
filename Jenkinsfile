@@ -34,6 +34,11 @@ node {
                         description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
                         defaultValue: false
                     ),
+                    booleanParam(
+                        name: 'IGNORE_AUTOMATION_FREEZE',
+                        description: 'Ignore global and group freeze_automation policy for this run; build locks still apply',
+                        defaultValue: false,
+                    ),
                     string(
                         name: 'PLR_TEMPLATE_COMMIT',
                         description: '(Optional) Override the Pipeline Run template commit from openshift-priv/art-konflux-template; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
@@ -213,6 +218,9 @@ node {
             }
             if (params.IGNORE_LOCKS) {
                 cmd << "--ignore-locks"
+            }
+            if (params.IGNORE_AUTOMATION_FREEZE) {
+                cmd << "--ignore-automation-freeze"
             }
             if (params.SKIP_BUNDLE_BUILD) {
                 cmd << "--skip-bundle-build"

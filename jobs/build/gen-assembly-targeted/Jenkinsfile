@@ -90,7 +90,7 @@ node {
                         ),
                         booleanParam(
                             name: "TRIGGER_BUILD_SYNC",
-                            description: "Automatically trigger build sync against the automatically created PR",
+                            description: "Automatically trigger Konflux build sync against the created PR. Disable for Brew assemblies; Brew build-sync is retired.",
                             defaultValue: true
                         ),
                         commonlib.mockParam(),

@@ -58,6 +58,24 @@ Because of the sequence of steps described above, the former will be overwritten
 
 See [How do I hack on the jobs?](https://mojo.redhat.com/docs/DOC-1206910#jive_content_id_How_do_I_hack_on_the_jobs).
 
+## Retired Brew OCP jobs
+
+The legacy jobs `build/ocp4`, `build/ocp4_scan`, `build/build-sync`,
+`build/olm_bundle` and `build/rebuild` are retired. Use `build/ocp4-konflux`,
+`build/ocp4-scan-konflux`, `build/build-sync-konflux` and
+`build/olm_bundle_konflux` for supported builds, scans, payload syncs and bundles.
+
+Merge this job-definition cleanup before the companion art-tools cleanup.
+After merging, verify that update-branches prunes the five generated branches
+and that Jenkins indexing removes the jobs from active use. The disabled,
+separately configured `scheduled-builds/ocp4_scan` wrapper must also be removed
+from Jenkins; deleting its source does not remove that configured job.
+The obsolete 4.2/4.3 bump wrapper definitions are removed as well.
+
+The old rebuild implementation, including custom plashet injection, is archived
+under `pyartcd/hack/` in art-tools. Custom plashet injection has no confirmed
+Konflux replacement. Do not re-enable the retired jobs to access that code.
+
 ## Common conventions
 
 It is a very good idea to get familiar with [commonlib.groovy](https://github.com/openshift-eng/aos-cd-jobs/blob/master/pipeline-scripts/commonlib.groovy).
@@ -174,10 +192,9 @@ time) is not granular enough, nor does it prevent conflicting jobs (perhaps a
 hack job for the same thing) from running.
 
 Use the [`lock` step](https://www.jenkins.io/doc/pipeline/steps/lockable-resources/#lock-lock-shared-resource)
-to scope locking only to the conflict that needs to be avoided.  For example in
-the [ocp4 job](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/ocp4/Jenkinsfile#L110)
-there are locks to prevent conflicting dist-git commits or RPM composes for the
-same version (but different versions can run concurrently just fine).
+or the corresponding pyartcd Redis lock to scope locking to the conflict that
+needs to be avoided. Builds for the same version may need to serialize while
+different versions can run concurrently.
 
 If a job needs to check whether a lock is free without actually locking, see
 [`commonlib.canLock()`](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L476).

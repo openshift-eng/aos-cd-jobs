@@ -109,7 +109,7 @@ node {
             }
         }
     } catch (err) {
-        def buildURL = env.BUILD_URL.replace('https://buildvm.openshift.eng.bos.redhat.com:8443', 'https://localhost:8888')
+        def buildURL = commonlib.buildURL()
         if (!params.DRY_RUN) {
             slacklib.to(ocpVersion).say("""
             *:heavy_exclamation_mark: oc_sync failed*

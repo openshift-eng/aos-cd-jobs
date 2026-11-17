@@ -75,8 +75,6 @@ node {
 
     commonlib.checkMock()
 
-    buildlib.initialize()
-
     if (!params.RELEASE_TAG) {
         error("Need RELEASE_TAG")
     }

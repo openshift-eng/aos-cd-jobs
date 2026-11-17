@@ -60,7 +60,8 @@ node {
     ]
 
     stage('upload vhd.gz') {
-        slackChannel = slacklib.to(params.VERSION)
+        // A null channel suppresses task, success, and failure notifications.
+        slackChannel = slacklib.to(params.DRY_RUN ? null : params.VERSION)
         slackChannel.task("Checking RHCOS VHDs for Azure Marketplace upload for ${params.VERSION}") {
             def coordinateKey = 'default'
             if (azureArtifactCoordinate.containsKey(params.VERSION)) {

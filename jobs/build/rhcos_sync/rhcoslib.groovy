@@ -121,4 +121,29 @@ def rhcosSyncROSA() {
     commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rhcosWorking}/meta.json ${params.DRY_RUN}")
 }
 
+// A dry-run should report both destinations, even if the first binding or AWS check fails.
+// Live copies retain fail-fast behavior, and build interruptions must always propagate.
+def rhcosSyncROSAWithCredentials(metaJson, dryRun) {
+    def failures = []
+    ['staging', 'production'].each { destination ->
+        try {
+            withCredentials([usernamePassword(
+                credentialsId: "artjenkins_rhcos_rosa_marketplace_${destination}",
+                usernameVariable: 'AWS_ACCESS_KEY_ID',
+                passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+            )]) {
+                commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${metaJson} ${dryRun}")
+            }
+            if (dryRun) echo "[DRY RUN] ROSA ${destination}: identity, EC2 reads, and CopyImage permission verified"
+        } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException err) {
+            throw err
+        } catch (Exception err) {
+            if (!dryRun) throw err
+            failures.add(destination)
+            echo "[DRY RUN] ROSA ${destination} validation failed: ${err.message}"
+        }
+    }
+    if (failures) error("ROSA dry-run failed for: ${failures.join(', ')}; both destinations were attempted")
+}
+
 return this

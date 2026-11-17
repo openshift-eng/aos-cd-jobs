@@ -269,7 +269,7 @@ def cleanSpaceList(str) {
 //           Jenkins Input: ${commonlib.buildURL('input')}
 //   """)
 def buildURL(String append='') {
-    env.BUILD_URL.replace('https://buildvm.openshift.eng.bos.redhat.com:8443', 'https://localhost:8888') + append
+    env.BUILD_URL.replaceFirst('https?://[^/]+', 'https://art-jenkins.apps.int.prod-stable-spoke1-dc-iad2.itup.redhat.com') + append
 }
 
 emailIndex = 0

@@ -113,9 +113,6 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 cmd << "--update-images-only-when-missing"
             }
 
-            // Checkout optional art-tools commit override
-            buildlib.initialize()
-
             // Run pipeline with the app.ci identity used by QCI-APPCI
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([

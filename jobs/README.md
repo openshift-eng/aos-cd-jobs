@@ -58,24 +58,6 @@ Because of the sequence of steps described above, the former will be overwritten
 
 See [How do I hack on the jobs?](https://mojo.redhat.com/docs/DOC-1206910#jive_content_id_How_do_I_hack_on_the_jobs).
 
-## Retired Brew OCP jobs
-
-The legacy jobs `build/ocp4`, `build/ocp4_scan`, `build/build-sync`,
-`build/olm_bundle` and `build/rebuild` are retired. Use `build/ocp4-konflux`,
-`build/ocp4-scan-konflux`, `build/build-sync-konflux` and
-`build/olm_bundle_konflux` for supported builds, scans, payload syncs and bundles.
-
-Merge this job-definition cleanup before the companion art-tools cleanup.
-After merging, verify that update-branches prunes the five generated branches
-and that Jenkins indexing removes the jobs from active use. The disabled,
-separately configured `scheduled-builds/ocp4_scan` wrapper must also be removed
-from Jenkins; deleting its source does not remove that configured job.
-The obsolete 4.2/4.3 bump wrapper definitions are removed as well.
-
-The old rebuild implementation, including custom plashet injection, is archived
-under `pyartcd/hack/` in art-tools. Custom plashet injection has no confirmed
-Konflux replacement. Do not re-enable the retired jobs to access that code.
-
 ## Common conventions
 
 It is a very good idea to get familiar with [commonlib.groovy](https://github.com/openshift-eng/aos-cd-jobs/blob/master/pipeline-scripts/commonlib.groovy).

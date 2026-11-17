@@ -101,9 +101,6 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 cmd << "--moist-run"
             }
 
-            // Checkout optional art-tools commit override
-            buildlib.initialize()
-
             // Run pipeline with the app.ci identity used by QCI-APPCI
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([

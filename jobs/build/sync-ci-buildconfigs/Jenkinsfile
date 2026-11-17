@@ -105,9 +105,6 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 cmd << "--images=${params.IMAGES}"
             }
 
-            // Checkout optional art-tools commit override
-            buildlib.initialize()
-
             // Run pipeline with the app.ci identity used by QCI-APPCI
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([

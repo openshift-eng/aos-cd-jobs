@@ -105,9 +105,6 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 cmd << "--moist-run"
             }
 
-            // Checkout optional art-tools commit override
-            buildlib.initialize()
-
             // Run pipeline
             withCredentials([
                     string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),

@@ -19,7 +19,7 @@ node() {
         of the proposed imagestream, and may halt the process accordingly. It can be considered
         the main artbiter.
 
-        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/build-sync/README.md" target="_blank">README</a>
+        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/build-sync-konflux/README.md" target="_blank">README</a>
     """)
 
     // Please update README.md if modifying parameter names or semantics

@@ -5,8 +5,7 @@ metadata:
 spec:
   data:
   - remoteRef:
-      key: art/prod/art-bot-slack-api-token
-      property: api_token
+      key: art/prod/jenkins/art-bot-slack-token
     secretKey: api_token
   refreshInterval: 1h
   secretStoreRef:

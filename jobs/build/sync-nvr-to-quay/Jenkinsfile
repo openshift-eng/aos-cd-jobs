@@ -10,7 +10,8 @@ node {
             <p>The image is tagged (including a <code>sha256-&lt;digest&gt;</code> tag) so quay does not
             garbage-collect it.</p>
             <p>TARGET_REPO is an allowlist (dropdown); the pipeline also enforces the allowlist
-            server-side. Embargoed NVRs are NEVER synced.</p>
+            server-side. Embargoed NVRs are NEVER synced, unless ALLOW_EMBARGOED is set AND
+            TARGET_REPO is explicitly embargo-capable (currently only sd-handoff).</p>
             <b>Timing</b>: Run on demand.
         """)
 
@@ -36,6 +37,7 @@ node {
                             description: 'Target quay repo to sync into (allowlist).',
                             choices: [
                                 "quay.io/redhat-user-workloads/ocp-art-tenant/art-images-test",
+                                "quay.io/redhat-user-workloads/ocp-art-tenant/sd-handoff",
                             ].join("\n"),
                         ),
                         booleanParam(
@@ -48,6 +50,11 @@ node {
                             description: 'Konflux build record_id to disambiguate when multiple records exist for one NVR. Only meaningful for a single NVR.',
                             defaultValue: "",
                             trim: true,
+                        ),
+                        booleanParam(
+                            name: "ALLOW_EMBARGOED",
+                            description: "WARNING: only takes effect for destinations explicitly allowed to carry embargoed content (currently only sd-handoff). Embargoed NVRs are still NEVER synced to art-images-test or any other destination, regardless of this flag.",
+                            defaultValue: false
                         ),
                         booleanParam(
                             name: "DRY_RUN",
@@ -90,9 +97,13 @@ node {
                 if (params.RECORD_ID?.trim()) {
                     cmd += ["--record-id", "\"${params.RECORD_ID}\""]
                 }
+                if (params.ALLOW_EMBARGOED) {
+                    cmd << "--allow-embargoed"
+                }
                 withCredentials([
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                         file(credentialsId: 'art-rhcos-images-sa', variable: 'RHCOS_QUAY_AUTH_FILE'),
+                        file(credentialsId: 'sd-handoff-quay-auth', variable: 'SD_HANDOFF_QUAY_AUTH_FILE'),
                         file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                         string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                         string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),

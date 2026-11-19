@@ -12,9 +12,12 @@ node {
         Can be re-run by hand with the same parameters.
 
         Builds the binary from ocp-build-data binaries/ (doozer beta:binaries:konflux:*) with the release
-        digests as build args, checks that its parents are the payload's images, opens the
-        konflux-release-data MR for the CGW product version and waits for it, then creates the shipment
-        MR with artcd binary-release-konflux. The mirror.openshift.com clients are not touched.
+        digests as build args, checks that its parents are the payload's images, checks that
+        konflux-release-data is onboarded for this X.Y (CGW product version and RPAs), then creates the
+        shipment MR with artcd binary-release-konflux.
+
+        There is one CGW version per X.Y (e.g. 4.22): every release of that X.Y publishes into it and
+        replaces the previous release's files on the CDN. The mirror.openshift.com clients are not touched.
     """)
 
     properties(
@@ -63,12 +66,7 @@ node {
                     ),
                     booleanParam(
                         name: 'BUILD_ONLY',
-                        description: 'Build and verify the binary, then stop before the konflux-release-data and shipment MRs (Konflux build gate)',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
-                        name: 'SKIP_CGW_MR',
-                        description: 'Do not create or wait for the konflux-release-data MR (it is already merged)',
+                        description: 'Build and verify the binary, then stop before the shipment MR (Konflux build gate)',
                         defaultValue: false,
                     ),
                     string(
@@ -133,9 +131,6 @@ node {
                 }
                 if (params.NVR) {
                     cmd << "--nvr=${params.NVR}"
-                }
-                if (params.SKIP_CGW_MR) {
-                    cmd << "--skip-cgw-mr"
                 }
                 if (params.BUILD_ONLY) {
                     cmd << "--build-only"

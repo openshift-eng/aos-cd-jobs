@@ -100,13 +100,10 @@ node {
                 if (params.ALLOW_EMBARGOED) {
                     cmd << "--allow-embargoed"
                 }
-                // NOTE: pushing to sd-handoff additionally requires a 'sd-handoff-quay-auth'
-                // credential (SD_HANDOFF_QUAY_AUTH_FILE) once that repo's robot secret exists;
-                // see jobs/build/sync-nvr-to-quay/README.md. Not yet wired into withCredentials
-                // below to avoid breaking this job for every other target in the meantime.
                 withCredentials([
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                         file(credentialsId: 'art-rhcos-images-sa', variable: 'RHCOS_QUAY_AUTH_FILE'),
+                        file(credentialsId: 'sd-handoff-quay-auth', variable: 'SD_HANDOFF_QUAY_AUTH_FILE'),
                         file(credentialsId: 'konflux-gcp-app-creds-prod', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
                         string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                         string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),

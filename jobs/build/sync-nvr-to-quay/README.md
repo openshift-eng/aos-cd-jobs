@@ -30,12 +30,11 @@ by any later build of the same component in this pull-for-testing repo.
   embargo flag) unless both conditions hold; setting `ALLOW_EMBARGOED` for any
   other `TARGET_REPO` is a hard error, not a silent no-op.
 - `sd-handoff` is a **private** ad-hoc push/pull image repo (see
-  `konflux-release-data` commit `83d37e71a2`). Pushing to it additionally
-  requires a `sd-handoff-quay-auth` Jenkins credential
-  (`SD_HANDOFF_QUAY_AUTH_FILE`) that does not exist yet as of this writing —
-  it must be created from the repo's Konflux-provisioned robot secret before
-  `sd-handoff` syncs will actually succeed. See the `withCredentials` block in
-  the Jenkinsfile for where to add it.
+  `konflux-release-data` commit `83d37e71a2`). Pushing to it uses a dedicated
+  `sd-handoff-quay-auth` Jenkins credential (`SD_HANDOFF_QUAY_AUTH_FILE`),
+  sourced from the repo's Konflux-provisioned `sd-handoff-image-push` robot
+  secret in `ocp-art-tenant` on `kflux-ocp-p01`, following the same pattern as
+  `art-rhcos-images-sa`.
 - Quay push authentication is provided through the `quay-auth-file` credential,
   exposed to the pipeline as the `QUAY_AUTH_FILE` environment variable.
 - RHCOS source images live in the `art-rhcos-images` repo, which uses a separate

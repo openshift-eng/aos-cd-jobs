@@ -39,18 +39,6 @@ node {
                         defaultValue: "stream",
                         trim: true,
                     ),
-                    string(
-                        name: 'DOOZER_DATA_PATH',
-                        description: 'Optional build-data repository for the assembly.',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'DOOZER_DATA_GITREF',
-                        description: 'Optional build-data Git ref. Use the same commit as BuildSync.',
-                        defaultValue: "",
-                        trim: true,
-                    ),
                     booleanParam(
                         name: 'NO_MULTI',
                         description: 'Do not promote a multi-arch/heterogeneous payload.',
@@ -191,10 +179,6 @@ node {
             echo "Will run ${cmd.join(' ')}"
             def sigstore_creds_file = signing_env == "prod" ? "kms_prod_release_signing_creds_file" : "kms_stage_release_signing_creds_file"
             def sigstore_key_id = signing_env == "prod" ? "kms_prod_release_signing_key_id" : "kms_stage_release_signing_key_id"
-            def build_data_credentials = params.DOOZER_DATA_PATH ? [
-                string(credentialsId: 'openshift-art-build-bot-app-id', variable: 'GITHUB_APP_ID'),
-                file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
-            ] : []
             buildlib.withAppCiAsArtPublish() {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD'],
                                  file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
@@ -215,12 +199,8 @@ node {
                                  file(credentialsId: "art-cluster-art-cd-pipeline-kubeconfig", variable: 'ART_CLUSTER_ART_CD_PIPELINE_KUBECONFIG'),
                                  file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                                  string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
-                                ] + build_data_credentials) {
-                    withEnv([
-                        "BUILD_URL=${BUILD_URL}",
-                        "PROMOTE_DATA_PATH=${params.DOOZER_DATA_PATH ?: ''}",
-                        "PROMOTE_DATA_GITREF=${params.DOOZER_DATA_GITREF ?: ''}",
-                    ]) {
+                                ]) {
+                    withEnv(["BUILD_URL=${BUILD_URL}"]) {
                         try {
                             def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                             echo "artcd returns:\n$out"

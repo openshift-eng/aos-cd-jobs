@@ -74,6 +74,16 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                             description: 'Run in dry-run mode (passes --dry-run to doozer subcommands)',
                             defaultValue: false,
                         ),
+                        booleanParam(
+                            name: 'LOAD_DISABLED',
+                            description: 'Load also disabled components (passes --load-disabled to doozer subcommands)',
+                            defaultValue: false,
+                        ),
+                        booleanParam(
+                            name: 'LIVE_TEST_MODE',
+                            description: 'Run in test mode (passes --live-test-mode to doozer subcommands)',
+                            defaultValue: false,
+                        ),
                         commonlib.mockParam(),
                     ]
                 ],
@@ -130,6 +140,12 @@ timeout(activity: true, time: 120, unit: 'MINUTES') {
                 }
                 if (params.UPDATE_IMAGES_ONLY_WHEN_MISSING) {
                     cmd << "--update-images-only-when-missing"
+                }
+                 if (params.LOAD_DISABLED) {
+                    cmd << "--load-disabled"
+                }
+                if(params.LIVE_TEST_MODE) {
+                    cmd << "--live-test-mode"
                 }
 
                 // Run pipeline

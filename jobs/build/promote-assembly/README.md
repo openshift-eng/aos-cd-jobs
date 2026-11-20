@@ -72,11 +72,6 @@ The job needs access to those repositories and namespaces. Run BuildSync with mu
 generation enabled before promoting a heterogeneous payload.
 
 Sigstore signatures stay in the private registry and bypass transparency-log upload.
-To publish legacy GPG signatures, set `PRIVATE_RELEASE_SIGNATURE_S3_URI` to an S3 bucket
-or prefix with public access blocked. The signing credentials need permission to check
-that block and upload signatures. The cluster needs access to the private signature
-and must trust the custom assembly signing key. Use `SKIP_SIGNING` to opt out of
-legacy signing when appropriate.
 
 ### ARCHES
 

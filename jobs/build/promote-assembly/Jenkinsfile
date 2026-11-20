@@ -91,12 +91,6 @@ node {
                         description: 'Do not sign the release (legacy).',
                         defaultValue: false,
                     ),
-                    string(
-                        name: 'PRIVATE_RELEASE_SIGNATURE_S3_URI',
-                        description: 'Private S3 destination for legacy signature files when signing a private assembly.',
-                        defaultValue: "",
-                        trim: true,
-                    ),
                     choice(
                         name: 'SIGNING_TRANSPORT',
                         description: 'Signing transport for release artifacts',
@@ -226,7 +220,6 @@ node {
                         "BUILD_URL=${BUILD_URL}",
                         "PROMOTE_DATA_PATH=${params.DOOZER_DATA_PATH ?: ''}",
                         "PROMOTE_DATA_GITREF=${params.DOOZER_DATA_GITREF ?: ''}",
-                        "PRIVATE_RELEASE_SIGNATURE_S3_URI=${params.PRIVATE_RELEASE_SIGNATURE_S3_URI ?: ''}",
                     ]) {
                         try {
                             def out = sh(script: cmd.join(' '), returnStdout: true).trim()

@@ -246,6 +246,7 @@ node {
 
                     def rosaMetaJson = "${env.WORKSPACE}/rosa-meta.json"
                     def rosaStreams = 0
+                    def stagingFailedAmis = [] as Set
                     streamJsonFiles.each { streamJsonFile ->
                         def ami = commonlib.shell(
                             returnStdout: true,
@@ -259,11 +260,17 @@ node {
                             echo "Syncing ROSA AMI ${ami} from ${streamJsonFile}"
                             writeFile file: rosaMetaJson, text: """{"amis": [{"name": "us-east-1", "hvm": "${ami}"}]}"""
 
-                            rhcoslib.rhcosSyncROSAWithCredentials(rosaMetaJson, params.DRY_RUN)
+                            def failures = rhcoslib.rhcosSyncROSAWithCredentials(rosaMetaJson, params.DRY_RUN)
+                            if ('staging' in failures) {
+                                stagingFailedAmis.add(ami)
+                            }
                         }
                     }
                     if (params.DRY_RUN && !rosaStreams) {
                         error('ROSA credentials not verified: no us-east-1 AMI found in any RHCOS stream')
+                    }
+                    if (stagingFailedAmis) {
+                        error("ROSA staging sync failed for AMIs: ${stagingFailedAmis.join(', ')}; production was attempted for all AMIs")
                     }
                 }
                 stage("Slack notification to release channel") {

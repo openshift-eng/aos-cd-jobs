@@ -121,8 +121,8 @@ def rhcosSyncROSA() {
     commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rhcosWorking}/meta.json ${params.DRY_RUN}")
 }
 
-// A dry-run should report both destinations, even if the first binding or AWS check fails.
-// Live copies retain fail-fast behavior, and build interruptions must always propagate.
+// Always attempt production after a staging failure. Live callers report staging failures
+// after processing all AMIs. Production errors in a live run and interruptions propagate.
 def rhcosSyncROSAWithCredentials(metaJson, dryRun) {
     def failures = []
     ['staging', 'production'].each { destination ->
@@ -138,12 +138,14 @@ def rhcosSyncROSAWithCredentials(metaJson, dryRun) {
         } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException err) {
             throw err
         } catch (Exception err) {
-            if (!dryRun) throw err
+            if (!dryRun && destination == 'production') throw err
             failures.add(destination)
-            echo "[DRY RUN] ROSA ${destination} validation failed: ${err.message}"
+            def operation = dryRun ? "[DRY RUN] ROSA ${destination} validation" : "ROSA ${destination} sync"
+            echo "${operation} failed: ${err.message}"
         }
     }
-    if (failures) error("ROSA dry-run failed for: ${failures.join(', ')}; both destinations were attempted")
+    if (dryRun && failures) error("ROSA dry-run failed for: ${failures.join(', ')}; both destinations were attempted")
+    return failures
 }
 
 return this

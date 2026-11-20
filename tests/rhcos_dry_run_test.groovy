@@ -68,16 +68,24 @@ try {
 }
 assert bothFailed.bound == ['staging', 'production']
 
-def liveFailure = makeRosa(['staging'] as Set)
+for (boolean failBinding : [false, true]) {
+    def liveStagingFailure = failBinding ? makeRosa([] as Set, ['staging'] as Set) : makeRosa(['staging'] as Set)
+    def failures = liveStagingFailure.library.rhcosSyncROSAWithCredentials('/workspace/meta.json', false)
+    assert failures == ['staging']
+    assert liveStagingFailure.bound == ['staging', 'production']
+    assert liveStagingFailure.executed.last().destination == 'production'
+    assert liveStagingFailure.executed.last().command.endsWith('/workspace/meta.json false')
+    assert liveStagingFailure.messages.any { it.contains('ROSA staging sync failed') }
+}
+
+def liveProductionFailure = makeRosa(['staging', 'production'] as Set)
 try {
-    liveFailure.library.rhcosSyncROSAWithCredentials('/workspace/meta.json', false)
+    liveProductionFailure.library.rhcosSyncROSAWithCredentials('/workspace/meta.json', false)
     assert false
 } catch (IllegalStateException expected) {
     assert expected.message == 'AWS permission denied'
 }
-assert liveFailure.bound == ['staging']
-assert liveFailure.executed.size() == 1
-assert liveFailure.executed.first().command.endsWith('/workspace/meta.json false')
+assert liveProductionFailure.bound == ['staging', 'production']
 
 def cancelled = makeRosa([] as Set, [] as Set, true)
 try {
@@ -133,4 +141,4 @@ for (boolean dryRun : [true, false]) {
     }
 }
 new GroovyShell(loader).parse(new File('jobs/build/rhcos_sync/Jenkinsfile'))
-println 'PASS: both ROSA destinations, partial failures, live fail-fast, cancellation, Azure dry-run guards, and rhcos_sync syntax'
+println 'PASS: both ROSA destinations, live staging and production failures, cancellation, Azure dry-run guards, and rhcos_sync syntax'

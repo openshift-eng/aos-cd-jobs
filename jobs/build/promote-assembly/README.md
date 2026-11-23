@@ -62,6 +62,17 @@ This specifies the OCP minor version (e.g. 4.10)
 
 This specifies the name of the assembly. The assembly must be explicitly defined in releases.yml.
 
+### Private assemblies
+
+For a custom assembly with `assembly.visibility: private`, set `DOOZER_DATA_PATH` to the
+build-data repository and `DOOZER_DATA_GITREF` to the same commit SHA used by BuildSync.
+The job reads the private assembly ImageStreams, promotes payloads to
+`quay.io/openshift-release-dev/ocp-release-priv`, and tags the private release ImageStreams.
+The job needs access to those repositories and namespaces. Run BuildSync with multi-arch
+generation enabled before promoting a heterogeneous payload.
+
+Sigstore signatures stay in the private registry and bypass transparency-log upload.
+
 ### ARCHES
 
 Leave this to empty to promote all supported architectures.

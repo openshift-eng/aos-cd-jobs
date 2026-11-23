@@ -137,20 +137,14 @@ node() {
             currentBuild.displayName += " [DRY_RUN]"
         }
 
-        def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}", false, params.DOOZER_DATA_GITREF ?: '').toList()
         if ( params.EXCLUDE_ARCHES ) {
             excludeArches = commonlib.parseList(params.EXCLUDE_ARCHES)
             currentBuild.displayName += " [EXCLUDE ${excludeArches.join(', ')}]"
-            if ( !arches.containsAll(excludeArches) )
-                error("Trying to exclude arch ${excludeArches} not present in known arches ${arches}")
-            arches.removeAll(excludeArches)
         }
 
         if (currentBuild.description == null) {
             currentBuild.description = ""
         }
-        currentBuild.description += "Arches: ${arches.join(', ')}"
-
         imageList = commonlib.cleanCommaList(params.IMAGES)
         if ( imageList ) {
             echo("Only syncing specified images: ${imageList}")

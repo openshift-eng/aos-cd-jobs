@@ -62,8 +62,8 @@ node {
                         name: 'SIGNING_TRANSPORT',
                         description: 'Signing transport for the RHCOS sha256sum signature',
                         choices: [
-                            "umb",
                             "direct",
+                            "umb",
                         ].join("\n"),
                     ),
                     commonlib.dryrunParam(),

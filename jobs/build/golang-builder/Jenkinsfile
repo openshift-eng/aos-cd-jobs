@@ -39,11 +39,11 @@ node {
                     ),
                     string(
                         name: 'FIXED_CVES',
-                        description: 'Comma-separated CVEs fixed in the supplied Go NVRs. The build log prints a targeted tracker verification command for the rebuilt nightly.',
+                        description: 'CVEs that are confirmed to be fixed in all given golang nvrs (comma separated). This will be used to fetch relevant Tracker bugs and move them to ON_QA state if determined to be fixed (nightly is found containing fixed builds)',
                     ),
                     booleanParam(
                         name: 'FORCE_UPDATE_TRACKERS',
-                        description: 'Include the force-update option in the printed dry-run verification command. Requires FIXED_CVES.',
+                        description: 'Force update found tracker bugs for the given CVEs, even if the latest nightly is not found containing fixed builds',
                     ),
                     booleanParam(
                         name: 'SCRATCH',
@@ -132,6 +132,7 @@ node {
                 string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                 file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                     script {

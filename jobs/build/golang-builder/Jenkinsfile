@@ -132,6 +132,7 @@ node {
                 string(credentialsId: 'jira-bot-token', variable: 'JIRA_TOKEN'),
                 file(credentialsId: 'konflux-bot-0-ocp-art-tenant-sa', variable: 'KONFLUX_SA_KUBECONFIG'),
                 file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
+                file(credentialsId: 'creds_registry.redhat.io', variable: 'KONFLUX_OPERATOR_INDEX_AUTH_FILE'),
             ]) {
                 withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                     script {

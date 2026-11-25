@@ -95,8 +95,8 @@ node {
                         name: 'SIGNING_TRANSPORT',
                         description: 'Signing transport for release artifacts',
                         choices: [
-                            "umb",
                             "direct",
+                            "umb",
                         ].join("\n"),
                     ),
                     booleanParam(

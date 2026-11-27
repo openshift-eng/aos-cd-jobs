@@ -88,6 +88,11 @@ node {
                         description: 'Indicates a major.minor golang version bump (e.g. 1.22 -> 1.23). Permits validation of go_latest even when the new version does not match current group.yml vars.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'FORCE_PLASHET_BUILD',
+                        description: 'Force building golang plashets for the given GOLANG_NVRS, even if the golang version does not match GO_LATEST (i.e. plashets would otherwise be skipped). Defaults to False.',
+                        defaultValue: false,
+                    ),
                     choice(
                         name: 'NETWORK_MODE',
                         description: 'Override network mode for Konflux builds',
@@ -194,6 +199,9 @@ node {
                         }
                         if (params.NETWORK_MODE && params.NETWORK_MODE != "") {
                             cmd << "--network-mode=${params.NETWORK_MODE}"
+                        }
+                        if (params.FORCE_PLASHET_BUILD) {
+                            cmd << "--force-plashet-build"
                         }
 
                         // Run pipeline

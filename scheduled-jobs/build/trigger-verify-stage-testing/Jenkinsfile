@@ -1,3 +1,4 @@
+timeout(activity: true, time: 10, unit: 'MINUTES') {
 node() {
     timestamps {
     checkout scm
@@ -41,7 +42,7 @@ node() {
                 string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
             ]) {
                 echo "Will run ${cmd.join(' ')}"
-                sh(script: cmd.join(' '), returnStdout: true)
+                sh(script: cmd.join(' '))
             }
         }
     } catch (Exception ex) {
@@ -54,4 +55,5 @@ node() {
         buildlib.cleanWorkspace()
     }
     }
+}
 }

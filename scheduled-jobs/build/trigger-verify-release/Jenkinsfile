@@ -1,3 +1,4 @@
+timeout(activity: true, time: 10, unit: 'MINUTES') {
 node() {
     timestamps {
     checkout scm
@@ -59,4 +60,5 @@ node() {
         buildlib.cleanWorkspace()
     }
     }
+}
 }

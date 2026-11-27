@@ -1,5 +1,6 @@
 #!/usr/bin/env groovy
 
+timeout(activity: true, time: 15, unit: 'MINUTES') {
 node {
     timestamps {
     checkout scm
@@ -83,4 +84,5 @@ node {
         buildlib.cleanWorkspace()
     }
     }
+}
 }

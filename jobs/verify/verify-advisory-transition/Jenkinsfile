@@ -60,12 +60,14 @@ node {
                     }
                     cmd += [
                         "verify-advisory-transition",
+                        "--report-to-slack",
                         "--version=${params.BUILD_VERSION}",
                         "--assembly=${params.ASSEMBLY}",
                     ]
                     withCredentials([
                         file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                         string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                     ]) {
                         echo "Will run: ${cmd.join(' ')}"
                         sh(script: cmd.join(' '))

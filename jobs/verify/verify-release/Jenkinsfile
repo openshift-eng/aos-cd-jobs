@@ -69,6 +69,7 @@ node {
             }
             cmd += [
                 "verify-release",
+                "--report-to-slack",
                 "--version=${params.BUILD_VERSION}",
                 "--assembly=${params.ASSEMBLY}",
             ]
@@ -86,6 +87,7 @@ node {
                     file(credentialsId: 'openshift-art-build-bot-private-key.pem', variable: 'GITHUB_APP_PRIVATE_KEY_PATH'),
                     file(credentialsId: 'quay-auth-file', variable: 'QUAY_AUTH_FILE'),
                     string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                 ]) {
                     withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                         buildlib.init_artcd_working_dir()

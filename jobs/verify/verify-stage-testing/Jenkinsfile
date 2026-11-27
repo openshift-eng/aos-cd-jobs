@@ -59,6 +59,7 @@ node {
                 ]
                 cmd += [
                     "verify-stage-testing",
+                    "--report-to-slack",
                     "--version=${params.BUILD_VERSION}",
                     "--assembly=${params.ASSEMBLY}",
                 ]
@@ -66,6 +67,7 @@ node {
                 buildlib.withAppCiAsArtPublish() {
                     withCredentials([
                         string(credentialsId: 'art-bot-jenkins-gitlab', variable: 'GITLAB_TOKEN'),
+                        string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                         string(credentialsId: 'art-gangway-token', variable: 'GANGWAY_TOKEN'),
                     ]) {
                         withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {

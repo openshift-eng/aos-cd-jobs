@@ -167,7 +167,6 @@ node {
                             --working-dir=${env.WORKSPACE}/artcd_working \\
                             rhcos-sync \\
                             --release-tag ${params.RELEASE_TAG} \\
-                            --signing-env ${signing_env} \\
                             ${forceFlag} \\
                             ${noLatestFlag} \\
                             ${signOnlyFlag}

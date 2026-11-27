@@ -58,14 +58,6 @@ node {
                         description: 'Only sign RHCOS container images via Sigstore/cosign (skip boot image mirror sync, GPG signing, ROSA, Azure). Use for z-stream releases.',
                         defaultValue: false,
                     ),
-                    choice(
-                        name: 'SIGNING_TRANSPORT',
-                        description: 'Signing transport for the RHCOS sha256sum signature',
-                        choices: [
-                            "direct",
-                            "umb",
-                        ].join("\n"),
-                    ),
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                 ],
@@ -154,10 +146,7 @@ node {
                 // S3 mirror credentials for boot image sync
                 file(credentialsId: 'aws-credentials-file', variable: 'AWS_SHARED_CREDENTIALS_FILE'),
                 string(credentialsId: 's3-art-srv-enterprise-cloudflare-endpoint', variable: 'CLOUDFLARE_ENDPOINT'),
-                // GPG signing credentials for boot image sha256sum
-                file(credentialsId: '0xffe138e-openshift-art-bot.crt', variable: 'SIGNING_CERT'),
-                file(credentialsId: '0xffe138e-openshift-art-bot.key', variable: 'SIGNING_KEY'),
-                // Direct signing credentials are bound for the planned transport cutover.
+                // Direct signing credentials for the RHCOS sha256sum signature
                 file(credentialsId: 'ocp-art-signing-prod.keytab', variable: 'DIRECT_SIGNING_KEYTAB'),
                 string(credentialsId: 'ocp-art-signing-prod.user', variable: 'DIRECT_SIGNING_PRINCIPAL'),
                 // Sigstore/cosign credentials for container image signing
@@ -178,9 +167,7 @@ node {
                             --working-dir=${env.WORKSPACE}/artcd_working \\
                             rhcos-sync \\
                             --release-tag ${params.RELEASE_TAG} \\
-                            --signing-env ${signing_env} \\
                             ${forceFlag} \\
-                            --signing-transport ${params.SIGNING_TRANSPORT} \\
                             ${noLatestFlag} \\
                             ${signOnlyFlag}
                     """

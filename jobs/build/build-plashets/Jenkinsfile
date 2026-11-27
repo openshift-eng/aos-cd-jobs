@@ -78,6 +78,12 @@ node {
                             description: 'Ignore global and group freeze_automation policy for this run; compose locks still apply',
                             defaultValue: false,
                         ),
+                        string(
+                            name: 'OVERRIDE_NVRS',
+                            description: '(Optional) Comma/space-separated list of package NVRs to force-include in the plashet regardless of brew tag membership or assembly pinning. NVR(s) must already exist in Brew.',
+                            defaultValue: '',
+                            trim: true,
+                        ),
                     ]
                 ],
             ]
@@ -138,6 +144,11 @@ node {
             }
             if (params.VERSION) {
                 cmd << "--version=${params.VERSION}"
+            }
+            if (params.OVERRIDE_NVRS) {
+                commonlib.parseList(params.OVERRIDE_NVRS).each { nvr ->
+                    cmd << "--override-nvr=${nvr}"
+                }
             }
 
             try {
